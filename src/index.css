@@ -1,0 +1,34 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #0A0A12;
+    color: #E6EDF3;
+    overflow-x: hidden;
+  }
+
+  code, pre, textarea.code-input {
+    font-family: var(--font-mono);
+  }
+}
+
+.cyber-chamfer {
+  clip-path: polygon(
+    12px 0,
+    calc(100% - 4px) 0,
+    100% 4px,
+    100% calc(100% - 12px),
+    calc(100% - 12px) 100%,
+    4px 100%,
+    0 calc(100% - 4px),
+    0 12px
+  );
+}

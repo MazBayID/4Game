@@ -1,0 +1,8 @@
+{
+  "appId": "com.aegis.cyberprotocol",
+  "appName": "Cyber Protocol",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}
