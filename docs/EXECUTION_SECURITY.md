@@ -1,76 +1,55 @@
-# ByteGhost Python Execution Security Plan
+# ByteGhost Python Execution Security
 
-Status: design decision for the runtime and evaluator phases.
+Status: companion runner implementation added; adversarial and device validation still required.
 
-## Decision
+## Architecture now in the repository
 
-Use Chaquopy + CPython as the language runtime. Keep the current in-app secondary process only as a Stage 1 runtime proof of concept.
+- Game package: `com.neonull.protocol`.
+- Runner package: `com.neonull.protocol.runner`.
+- The two APKs are separate Android packages and receive different Linux UIDs.
+- The game declares the signature-level permission `com.neonull.protocol.permission.RUN_PYTHON`.
+- The runner service is exported only behind that signature permission.
+- Both APKs must be signed with the same certificate. Debug variants use the shared Android debug signing identity in CI; release distribution must use the same release signing key for both APKs.
+- The runner requests no INTERNET or dangerous Android permissions and stores no game secrets or player progress.
+- The game has a Binder client, `CompanionPythonRunnerController`. It is not yet connected to the editor/gameplay.
+- The old same-UID service remains only as a runtime PoC and must not execute arbitrary player submissions.
 
-Do not treat `android:process=":python_runtime"` as a security boundary: it runs under the same application UID and permissions as the main app.
+## Runtime limits implemented
 
-Do not ship arbitrary player-code execution through the same-UID process.
+- Source: 128 Ki characters maximum.
+- stdin: 64 Ki characters maximum.
+- stdout and stderr: 64 Ki characters each, capped while writing.
+- Execution watchdog: 5 seconds after CPython has initialized. On timeout, the runner execution process is killed; Android can restart the bound service.
+- Each submission gets a fresh Python globals namespace.
+- A temporary cache workspace is created for a submission and deleted after it finishes.
+- Runner process is separate from the game UID, so normal Android private-file access is enforced by the OS.
 
-For production execution of untrusted player submissions, the preferred offline architecture is a small companion Android runner package:
+## Important limitations (do not overclaim)
 
-- The game and runner are separate Android packages and therefore receive distinct Android UIDs.
-- The runner has no INTERNET permission and requests no dangerous Android permissions.
-- The runner stores no game credentials, account tokens, or player secrets.
-- The runner exposes only a narrow Binder service protected by a signature-level permission shared with the game.
-- IPC accepts bounded source text and structured inputs; it never accepts arbitrary file paths or host-app objects.
-- The game owns curriculum definitions, hidden test cases, XP, mastery, and save data.
-- The runner returns bounded stdout, stderr, structured return values, and normalized exceptions.
-- The runner uses an ephemeral workspace which is cleared between submissions.
+This is a practical defense-in-depth boundary, not a perfect Python sandbox.
 
-This costs more packaging and installation work than a single APK. It is preferable to falsely claiming that a same-UID process is a sandbox. Before production, validate the companion installation/update flow on real Android devices.
+- There is no hard per-process memory quota. A hostile allocation can still cause runner OOM or broader device memory pressure.
+- The Python Java bridge remains available inside the runner process. Its reach is limited by runner UID and granted Android permissions, but it has not been comprehensively audited.
+- Python threads may outlive a submission; the runner currently isolates globals and workspace, not every possible background activity.
+- The runner's own private files and readable system files are not all inaccessible to submitted code.
+- Filesystem traversal, reflection/Java bridge abuse, thread abuse, IPC abuse, and memory exhaustion still need adversarial tests on supported Android versions.
+- Do not claim perfect isolation or expose unrestricted execution to production players until these tests pass.
 
-## Why not use isolatedProcess with Chaquopy immediately?
+## IPC contract
 
-Android's isolated service model gives a process a distinct isolated UID and removes normal app permissions. That is the right kind of OS boundary in principle, but Chaquopy's documented startup path uses an Activity, Service, or Application context and its FAQ discusses a normal separate process as an option. Compatibility with an isolated-UID service and its storage/runtime bootstrap has not been demonstrated in this project.
+The runner accepts only bounded source and stdin strings. It does not accept arbitrary paths, host objects, hidden expected answers, game save data, or hidden test collections. The host owns grading, hidden tests, XP, mastery, and persistence. The runner returns bounded stdout/stderr and normalized error information.
 
-Therefore:
-1. First prove CPython starts in a normal secondary process.
-2. Then prototype the separate-UID runner package.
-3. Test Python bootstrap, package imports, IPC, filesystem behavior, and process restart on physical devices.
-4. Only enable arbitrary user submissions after the runner passes adversarial tests.
+## Installation and updates
 
-## Grading architecture
+Install the game APK and companion runner APK built from the same source revision and signed with the same certificate. Update both together. If the runner is missing or has an incompatible signature, the host controller returns an installation/transport error rather than silently falling back to the same-UID PoC.
 
-Keep hidden test cases in the trusted game process. Never send expected outputs or the complete hidden test suite to the runner.
+## Required release checks
 
-For function-contract exercises:
-1. The runner loads the submitted source in its own process.
-2. The game sends one bounded function invocation at a time.
-3. The runner returns a bounded, serializable result or normalized exception.
-4. The game compares the result against the hidden expected value.
-5. Use a fresh runner session/process between test batches when practical.
-
-For stdin/stdout exercises, send one test input at a time and compare captured output in the game process.
-
-This reduces accidental leakage of hidden tests and keeps reward/progress decisions outside the untrusted interpreter.
-
-## Required defense-in-depth controls
-
-- Maximum source size and IPC payload size.
-- Maximum stdout and stderr bytes, enforced while writing (not by slicing an already-unbounded StringIO afterwards).
-- Wall-clock timeout with a watchdog able to terminate the runner process.
-- Per-run fresh workspace and cleanup.
-- No INTERNET permission in the runner package.
-- No shared external storage access.
-- No game secrets or persistent player progress in runner storage.
-- Bounded concurrency and queue length.
-- Structured error categories: syntax, name, type, runtime, timeout, output limit, transport, and runner crash.
-- Adversarial tests for infinite loops, huge output, huge allocations, filesystem traversal, Java bridge access, reflection, thread creation, and IPC abuse.
-- No claim of perfect sandboxing: document residual risks and test on supported Android versions.
-
-## Current PoC scope
-
-The current PoC only proves that the app can package Chaquopy and communicate with a secondary process. It is not connected to the editor and is not a secure execution environment.
-
-
-## Current runtime PoC input/output contract
-
-- Source is limited to 128 Ki characters before CPython initialization.
-- Supplied stdin is limited to 64 Ki characters and is exposed through Python `input()` for deterministic exercises.
-- stdout and stderr are each capped at 64 Ki characters.
-- Each submission receives a fresh globals namespace.
-- These limits bound message sizes and captured text; they do not provide CPU or memory isolation. The same-UID process remains a PoC only.
+1. Confirm host and runner UIDs differ on a physical Android device.
+2. Confirm an unrelated app cannot bind the runner service.
+3. Confirm the host app signed with the matching certificate can bind and execute Python.
+4. Confirm source/stdin/output caps and the watchdog.
+5. Confirm timeout kills only the runner process and a later request can restart it.
+6. Test large allocations, filesystem traversal, Java bridge/reflection, thread creation, and IPC abuse.
+7. Test clean install, both-APK update, uninstall, and mismatched-signature behavior.
+8. Do not send hidden test expectations to the runner.
