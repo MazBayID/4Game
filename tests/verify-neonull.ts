@@ -90,8 +90,8 @@ assert(workerSource.includes('import sys, io, json, traceback, re, tokenize'), '
 assert(workerSource.includes('def _neonull_strip_comments(source):'), 'Worker must strip comments without altering string literals');
 assert(workerSource.includes('normalized_source = _neonull_strip_comments(user_code)'), 'Runtime mission checks must use comment-free source');
 for (const moduleId of [1, 2, 3, 4, 5, 6, 7]) {
-  const moduleBranch = workerSource.split(`elif module_id == ${moduleId}:`)[1] ?? '';
-  assert(moduleBranch.trimStart().startsWith('user_code = normalized_source'), `Module ${moduleId} must ignore commented-out requirements`);
+  const expectedBranch = `elif module_id == ${moduleId}:` + String.fromCharCode(10) + '            user_code = normalized_source';
+  assert(workerSource.includes(expectedBranch), `Module ${moduleId} must ignore commented-out requirements`);
 }
 
 console.log('Production Pyodide worker regex checks passed.');
