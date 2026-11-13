@@ -65,3 +65,12 @@ This reduces accidental leakage of hidden tests and keeps reward/progress decisi
 ## Current PoC scope
 
 The current PoC only proves that the app can package Chaquopy and communicate with a secondary process. It is not connected to the editor and is not a secure execution environment.
+
+
+## Current runtime PoC input/output contract
+
+- Source is limited to 128 Ki characters before CPython initialization.
+- Supplied stdin is limited to 64 Ki characters and is exposed through Python `input()` for deterministic exercises.
+- stdout and stderr are each capped at 64 Ki characters.
+- Each submission receives a fresh globals namespace.
+- These limits bound message sizes and captured text; they do not provide CPU or memory isolation. The same-UID process remains a PoC only.
