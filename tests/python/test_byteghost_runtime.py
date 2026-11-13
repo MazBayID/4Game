@@ -37,14 +37,14 @@ class ByteGhostRuntimeTests(unittest.TestCase):
             sys.stdin = original_stdin
 
     def test_exception_keeps_output_written_before_failure(self):
-        result = self.run_source("print('BEFORE_ERROR')\\nraise ValueError('expected')")
+        result = self.run_source("print('BEFORE_ERROR')\nraise ValueError('expected')")
         self.assertFalse(result["ok"])
-        self.assertEqual(result["stdout"], "BEFORE_ERROR\\n")
+        self.assertEqual(result["stdout"], "BEFORE_ERROR\n")
         self.assertEqual(result["errorType"], "ValueError")
 
     def test_stderr_output_is_bounded(self):
         result = self.run_source(
-            "import sys\\nprint('E' * %d, file=sys.stderr)" % (MAX_CAPTURED_OUTPUT * 2)
+            "import sys\nprint('E' * %d, file=sys.stderr)" % (MAX_CAPTURED_OUTPUT * 2)
         )
         self.assertTrue(result["ok"])
         self.assertEqual(len(result["stderr"]), MAX_CAPTURED_OUTPUT)
