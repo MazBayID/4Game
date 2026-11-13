@@ -5,6 +5,8 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.neonull.protocol.data.CurriculumRepository
+import com.neonull.protocol.data.LessonSequenceRepository
+import com.neonull.protocol.data.LessonStep
 import com.neonull.protocol.data.ProtocolModule
 import com.neonull.protocol.data.ProgressionRules
 import com.neonull.protocol.localization.AppLanguage
@@ -63,6 +65,9 @@ data class LearningUiState(
 ) {
     val activeModule: ProtocolModule
         get() = modules.firstOrNull { it.id == activeModuleId } ?: modules.first()
+
+    val activeLessonSteps: List<LessonStep>
+        get() = LessonSequenceRepository.stepsFor(activeModule)
 
     val firewallHealth: Int
         get() = traceIntegrity
