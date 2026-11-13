@@ -45,7 +45,7 @@ export function loadProgress(storage?: StorageLike): SavedProgress {
 
     const completedIds = Array.isArray(data.completedIds)
       ? [...new Set(data.completedIds.filter(
-          (id): id is number => Number.isInteger(id) && id >= 1 && id <= 7
+          (id): id is number => typeof id === 'number' && Number.isInteger(id) && id >= 1 && id <= 7
         ))]
       : [];
     const xp = typeof data.xp === 'number' && Number.isFinite(data.xp)
