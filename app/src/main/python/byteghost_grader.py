@@ -34,24 +34,21 @@ def _has_print(tree, expected):
             return True
         if isinstance(arg, ast.Name) and arg.id == expected:
             return True
-        if (
-            isinstance(arg, ast.Call)
-            and isinstance(arg.func, ast.Name)
-            and arg.func.id == "len"
-            and len(arg.args) == 1
-            and isinstance(arg.args[0], ast.Name)
-            and arg.args[0].id == expected
-        ):
-            return True
     return False
 
 
-def _has_string_print(tree, value):
+def _has_len_print(tree, name):
     return any(
         isinstance(node, ast.Call)
         and isinstance(node.func, ast.Name)
         and node.func.id == "print"
-        and any(isinstance(arg, ast.Constant) and arg.value == value for arg in node.args)
+        and len(node.args) == 1
+        and isinstance(node.args[0], ast.Call)
+        and isinstance(node.args[0].func, ast.Name)
+        and node.args[0].func.id == "len"
+        and len(node.args[0].args) == 1
+        and isinstance(node.args[0].args[0], ast.Name)
+        and node.args[0].args[0].id == name
         for node in ast.walk(tree)
     )
 
@@ -114,7 +111,7 @@ def _grade_structure(module_id, tree):
             and node.args[0].value == "K3"
             for node in ast.walk(tree)
         )
-        return has_initial_shards and has_vault and has_append and _has_print(tree, "shards"), (
+        return has_initial_shards and has_vault and has_append and _has_len_print(tree, "shards"), (
             "Build shards with K1/K2, append K3, create vault={'code': 77}, and print len(shards)."
         )
 
@@ -272,7 +269,7 @@ def grade(module_id, source, stdin_text=""):
 
     if not output_complete:
         feedback = "Output limit reached; remove excessive output and retry."
-    if module_id == 4 and "5" not in execution.get("stdout", "").split():
+    if module_id == 4 and execution.get("stdout", "").splitlines()[-1:] != ["5"]:
         passed = False
         feedback = "The loop must finish with packets equal to 5."
     if module_id == 5:
