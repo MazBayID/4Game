@@ -93,16 +93,4 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
           script: |
-            echo "=== Emulator diagnostics ==="
-            adb devices -l
-            adb shell getprop ro.build.version.sdk
-            adb shell getprop sys.boot_completed
-            echo "=== Running CPython + Binder instrumentation tests ==="
-            if gradle connectedDebugAndroidTest; then
-              test_exit=0
-            else
-              test_exit=$?
-            fi
-            echo "=== Runtime service and Android binding diagnostics ==="
-            adb logcat -d -v threadtime | grep -E "ByteGhostRuntimeTest|ByteGhostPythonService|ActivityManager|AndroidRuntime|SecurityException|Permission Denial" || true
-            exit "$test_exit"
+            echo "=== Emulator diagnostics ==="; adb devices -l; adb shell getprop ro.build.version.sdk; adb shell getprop sys.boot_completed; echo "=== Running CPython + Binder instrumentation tests ==="; gradle connectedDebugAndroidTest; test_exit=$?; echo "=== Runtime service and Android binding diagnostics ==="; adb logcat -d -v threadtime | grep -E "ByteGhostRuntimeTest|ByteGhostPythonService|ActivityManager|AndroidRuntime|SecurityException|Permission Denial" || true; exit "$test_exit"
