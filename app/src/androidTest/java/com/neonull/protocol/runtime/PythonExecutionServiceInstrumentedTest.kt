@@ -74,7 +74,7 @@ class PythonExecutionServiceInstrumentedTest {
         assertEquals("SourceTooLarge", oversized.getString("errorType"))
         val followUp = JSONObject(executeThroughService("print('AFTER_SIZE_LIMIT_OK')"))
         assertTrue(followUp.getBoolean("ok"))
-        assertEquals("AFTER_SIZE_LIMIT_OK\\n", followUp.getString("stdout"))
+        assertEquals("AFTER_SIZE_LIMIT_OK\n", followUp.getString("stdout"))
     }
 
     @Test
