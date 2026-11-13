@@ -3,6 +3,15 @@ set -uo pipefail
 
 echo "=== ByteGhost host instrumentation suite ==="
 gradle assembleDebug
+
+echo "=== Install both signed debug APKs for cross-package Binder validation ==="
+HOST_APK_PATH=$(find app/build/outputs/apk/debug -name "*.apk" -print -quit)
+RUNNER_APK_PATH=$(find runner/build/outputs/apk/debug -name "*.apk" -print -quit)
+test -n "$HOST_APK_PATH"
+test -n "$RUNNER_APK_PATH"
+adb install -r "$HOST_APK_PATH"
+adb install -r "$RUNNER_APK_PATH"
+
 gradle :app:connectedDebugAndroidTest
 host_test_status=$?
 
