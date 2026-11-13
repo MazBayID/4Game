@@ -201,15 +201,15 @@ function hasIndentedStatementAfter(
   headerPattern: RegExp,
   statementPattern: RegExp
 ): boolean {
-  const lines = code.split('\\n');
+  const lines = code.split('\n');
   for (let headerIndex = 0; headerIndex < lines.length; headerIndex++) {
     const header = stripTrailingComment(lines[headerIndex]);
     if (!headerPattern.test(header.trim())) continue;
-    const headerIndent = header.match(/^[ \\t]*/)?.[0].length ?? 0;
+    const headerIndent = header.match(/^[ \t]*/)?.[0].length ?? 0;
     for (let bodyIndex = headerIndex + 1; bodyIndex < lines.length; bodyIndex++) {
       const body = stripTrailingComment(lines[bodyIndex]);
       if (!body.trim()) continue;
-      const bodyIndent = body.match(/^[ \\t]*/)?.[0].length ?? 0;
+      const bodyIndent = body.match(/^[ \t]*/)?.[0].length ?? 0;
       if (bodyIndent <= headerIndent) break;
       if (statementPattern.test(body.trim())) return true;
     }
@@ -219,20 +219,20 @@ function hasIndentedStatementAfter(
 
 function hasMissionBlockStructure(moduleId: number, code: string): boolean {
   if (moduleId === 4) {
-    return hasIndentedStatementAfter(code, /^for\\s+\\w+\\s+in\\s+range\\s*\\(\\s*5\\s*\\)\\s*:/, /^packets\\s*(?:\\+=|=\\s*packets\\s*\\+)\\s*1\\b/);
+    return hasIndentedStatementAfter(code, /^for\s+\w+\s+in\s+range\s*\(\s*5\s*\)\s*:/, /^packets\s*(?:\+=|=\s*packets\s*\+)\s*1\b/);
   }
   if (moduleId === 5) {
-    return hasIndentedStatementAfter(code, /^def\\s+craft_token\\s*\\(\\s*seed\\s*\\)\\s*:/, /^return\\s+seed\\s*\\*\\s*3\\s*\\+\\s*9\\b/);
+    return hasIndentedStatementAfter(code, /^def\s+craft_token\s*\(\s*seed\s*\)\s*:/, /^return\s+seed\s*\*\s*3\s*\+\s*9\b/);
   }
   if (moduleId === 6) {
-    return hasIndentedStatementAfter(code, /^try\\s*:/, /^open\\s*\\(\\s*["']corrupt\\.log["']/) &&
-      hasIndentedStatementAfter(code, /^except\\b.*:/, /^print\\s*\\(\\s*["']SAFE_EXTRACT["']\\s*\\)/);
+    return hasIndentedStatementAfter(code, /^try\s*:/, /^open\s*\(\s*["']corrupt\.log["']/) &&
+      hasIndentedStatementAfter(code, /^except\b.*:/, /^print\s*\(\s*["']SAFE_EXTRACT["']\s*\)/);
   }
   if (moduleId === 7) {
-    return hasIndentedStatementAfter(code, /^class\\s+OverlordOverride\\s*:/, /^def\\s+__init__\\s*\\(\\s*self\\s*,\\s*key\\s*\\)\\s*:/) &&
-      hasIndentedStatementAfter(code, /^def\\s+__init__\\s*\\(\\s*self\\s*,\\s*key\\s*\\)\\s*:/, /^self\\.key\\s*=\\s*key$/) &&
-      hasIndentedStatementAfter(code, /^class\\s+OverlordOverride\\s*:/, /^def\\s+shutdown\\s*\\(\\s*self\\s*\\)\\s*:/) &&
-      hasIndentedStatementAfter(code, /^def\\s+shutdown\\s*\\(\\s*self\\s*\\)\\s*:/, /^return\\s*["']ROOT_UNLOCKED["']$/);
+    return hasIndentedStatementAfter(code, /^class\s+OverlordOverride\s*:/, /^def\s+__init__\s*\(\s*self\s*,\s*key\s*\)\s*:/) &&
+      hasIndentedStatementAfter(code, /^def\s+__init__\s*\(\s*self\s*,\s*key\s*\)\s*:/, /^self\.key\s*=\s*key$/) &&
+      hasIndentedStatementAfter(code, /^class\s+OverlordOverride\s*:/, /^def\s+shutdown\s*\(\s*self\s*\)\s*:/) &&
+      hasIndentedStatementAfter(code, /^def\s+shutdown\s*\(\s*self\s*\)\s*:/, /^return\s*["']ROOT_UNLOCKED["']$/);
   }
   return true;
 }
