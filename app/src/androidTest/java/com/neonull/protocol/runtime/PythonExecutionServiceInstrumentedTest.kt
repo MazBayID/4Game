@@ -103,6 +103,13 @@ class PythonExecutionServiceInstrumentedTest {
         assertEquals(2, ProgressionRules.nextUnlockedModuleId(modules, setOf(1, 3)))
         assertTrue(ProgressionRules.isAccessible(3, modules, setOf(1, 2, 3)))
         assertEquals(false, ProgressionRules.isAccessible(4, modules, setOf(1, 3)))
+
+        val campaigns = CurriculumRepository.campaigns
+        assertEquals(modules.size, campaigns.sumOf { it.modules.size })
+        assertTrue(campaigns.all { it.modules.isNotEmpty() })
+        assertTrue(campaigns.zipWithNext().all { (left, right) ->
+            left.lastModuleId < right.firstModuleId
+        })
     }
 
     private fun executeThroughService(source: String, stdinText: String? = null): String =
