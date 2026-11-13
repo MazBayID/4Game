@@ -5,7 +5,10 @@ import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.neonull.protocol.data.CurriculumRepository
+import com.neonull.protocol.data.LessonSequenceRepository
+import com.neonull.protocol.data.LessonStep
 import com.neonull.protocol.data.ProtocolModule
+import com.neonull.protocol.data.ProgressionRules
 import com.neonull.protocol.localization.AppLanguage
 import com.neonull.protocol.localization.LanguageManager
 import com.neonull.protocol.localization.LocalizedText
@@ -63,30 +66,34 @@ data class LearningUiState(
     val activeModule: ProtocolModule
         get() = modules.firstOrNull { it.id == activeModuleId } ?: modules.first()
 
+    val activeLessonSteps: List<LessonStep>
+        get() = LessonSequenceRepository.stepsFor(activeModule)
+
     val firewallHealth: Int
         get() = traceIntegrity
 
     val isCampaignComplete: Boolean
         get() = completedModuleIds.size >= modules.size
 
-    fun highestUnlockedModuleId(): Int {
-        val maxCompleted = completedModuleIds.maxOrNull() ?: 0
-        return (maxCompleted + 1).coerceAtMost(modules.size)
-    }
+    fun highestUnlockedModuleId(): Int =
+        ProgressionRules.nextUnlockedModuleId(modules, completedModuleIds)
 
     fun rankTitle(lang: AppLanguage): String {
+        val totalLessons = modules.size.coerceAtLeast(1)
+        val rootbreakerThreshold = (totalLessons * 7 + 9) / 10
+        val cipherRunnerThreshold = (totalLessons * 4 + 9) / 10
         return when {
-            completedModuleIds.size >= 7 -> LocalizedText(
+            completedModuleIds.size >= totalLessons -> LocalizedText(
                 en = "Zero-Day Legend",
                 id = "Legenda Zero-Day",
                 ph = "Alamat ng Zero-Day"
             ).resolve(lang)
-            completedModuleIds.size >= 5 -> LocalizedText(
+            completedModuleIds.size >= rootbreakerThreshold -> LocalizedText(
                 en = "Rootbreaker",
                 id = "Pembobol Root",
                 ph = "Tagawasak ng Root"
             ).resolve(lang)
-            completedModuleIds.size >= 3 -> LocalizedText(
+            completedModuleIds.size >= cipherRunnerThreshold -> LocalizedText(
                 en = "Cipher Runner",
                 id = "Pelari Sandi",
                 ph = "Tagapagbukas ng Cipher"
@@ -133,12 +140,13 @@ class LearningViewModel(
             .mapNotNull { it.toIntOrNull() }
             .filter { it in validModuleIds }
             .toSet()
-        val highestUnlockedId = (completedIds.maxOrNull() ?: 0)
-            .plus(1)
-            .coerceAtMost(CurriculumRepository.modules.size)
+        val highestUnlockedId = ProgressionRules.nextUnlockedModuleId(
+            CurriculumRepository.modules,
+            completedIds
+        )
         val storedActiveModuleId = progressPreferences.getInt("active_module_id", 1)
         val activeModuleId = storedActiveModuleId
-            .takeIf { it in validModuleIds && it <= highestUnlockedId }
+            .takeIf { it in validModuleIds && (it <= highestUnlockedId || it in completedIds) }
             ?: highestUnlockedId
         val hasEnteredHub = progressPreferences.getBoolean("has_entered_hub", false)
 

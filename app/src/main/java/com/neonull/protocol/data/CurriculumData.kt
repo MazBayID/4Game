@@ -27,6 +27,14 @@ data class ProtocolModule(
     val snippetChips: List<String>
 )
 
+data class ProtocolCampaign(
+    val code: String,
+    val modules: List<ProtocolModule>
+) {
+    val firstModuleId: Int get() = modules.minOf { it.id }
+    val lastModuleId: Int get() = modules.maxOf { it.id }
+}
+
 object CurriculumRepository {
     val modules: List<ProtocolModule> = listOf(
         // ACT I — MODULE 1
@@ -521,4 +529,11 @@ print(core.shutdown())""",
             snippetChips = listOf("return \"ROOT_UNLOCKED\"", "self.key = key", "print(core.shutdown())")
         )
     )
+
+
+    /** Campaigns are derived from the curriculum source, never hard-coded in the UI. */
+    val campaigns: List<ProtocolCampaign> = modules
+        .groupBy { it.actCode }
+        .map { (code, lessons) -> ProtocolCampaign(code, lessons.sortedBy { it.id }) }
+        .sortedBy { it.firstModuleId }
 }
