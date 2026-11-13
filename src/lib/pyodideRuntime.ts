@@ -80,7 +80,7 @@ class PyodideSandboxClient {
       const payload = await new Promise<WorkerPayload>((resolve, reject) => {
         const timeout = window.setTimeout(() => {
           this.resetWorker();
-          reject(new Error('Execution timed out (3000ms) — infinite loop terminated.'));
+          reject(new Error('Execution timed out (8000ms) — infinite loop terminated.'));
         }, 8000);
 
         const onMsg = (ev: MessageEvent) => {
