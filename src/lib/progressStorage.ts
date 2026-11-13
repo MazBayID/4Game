@@ -7,6 +7,9 @@ export interface SavedProgress {
   traceIntegrity: number;
   language: SavedLanguage;
   drafts?: Record<string, string>;
+  activeModuleId?: number;
+  hasEnteredHub?: boolean;
+  audioEnabled?: boolean;
 }
 
 interface StorageLike {
@@ -22,6 +25,9 @@ const DEFAULT_PROGRESS: SavedProgress = {
   traceIntegrity: 100,
   language: 'EN',
   drafts: {},
+  activeModuleId: 1,
+  hasEnteredHub: false,
+  audioEnabled: true,
 };
 
 function getStorage(storage?: StorageLike): StorageLike | null {
@@ -71,7 +77,14 @@ export function loadProgress(storage?: StorageLike): SavedProgress {
       }
     }
 
-    return { completedIds, xp, ramMb, traceIntegrity, language, drafts };
+    const highestUnlockedId = Math.min(7, (completedIds.length > 0 ? Math.max(...completedIds) : 0) + 1);
+    const activeModuleId = typeof data.activeModuleId === 'number' && Number.isInteger(data.activeModuleId)
+      ? Math.min(highestUnlockedId, Math.max(1, data.activeModuleId))
+      : highestUnlockedId;
+    const hasEnteredHub = data.hasEnteredHub === true;
+    const audioEnabled = typeof data.audioEnabled === 'boolean' ? data.audioEnabled : true;
+
+    return { completedIds, xp, ramMb, traceIntegrity, language, drafts, activeModuleId, hasEnteredHub, audioEnabled };
   } catch {
     return { ...DEFAULT_PROGRESS };
   }
