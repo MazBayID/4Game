@@ -26,7 +26,7 @@ class ByteGhostRuntimeTests(unittest.TestCase):
         sentinel = io.StringIO("host-input")
         try:
             sys.stdin = sentinel
-            success = json.loads(execute("print(input())", "runner-input\\n"))
+            success = json.loads(execute("print(input())", "runner-input\n"))
             self.assertTrue(success["ok"])
             self.assertIs(sys.stdin, sentinel)
 
