@@ -6,6 +6,7 @@ export interface SavedProgress {
   ramMb: number;
   traceIntegrity: number;
   language: SavedLanguage;
+  drafts: Record<string, string>;
 }
 
 interface StorageLike {
@@ -20,6 +21,7 @@ const DEFAULT_PROGRESS: SavedProgress = {
   ramMb: 128,
   traceIntegrity: 100,
   language: 'EN',
+  drafts: {},
 };
 
 function getStorage(storage?: StorageLike): StorageLike | null {
@@ -60,7 +62,16 @@ export function loadProgress(storage?: StorageLike): SavedProgress {
     const language: SavedLanguage =
       data.language === 'ID' || data.language === 'PH' ? data.language : 'EN';
 
-    return { completedIds, xp, ramMb, traceIntegrity, language };
+    const drafts: Record<string, string> = {};
+    if (data.drafts && typeof data.drafts === 'object' && !Array.isArray(data.drafts)) {
+      for (const [key, value] of Object.entries(data.drafts as Record<string, unknown>)) {
+        if ((/^[1-7]$/.test(key) || key === 'sandbox') && typeof value === 'string' && value.length <= 32768) {
+          drafts[key] = value;
+        }
+      }
+    }
+
+    return { completedIds, xp, ramMb, traceIntegrity, language, drafts };
   } catch {
     return { ...DEFAULT_PROGRESS };
   }
