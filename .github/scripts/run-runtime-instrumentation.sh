@@ -2,7 +2,7 @@
 set -uo pipefail
 
 echo "=== ByteGhost Android instrumentation suite ==="
-echo "Tests are ordered: Binder ping, pre-start source limit, CPython stdout, exception recovery, output cap, asset manifest, progression prerequisites."
+echo "Tests are ordered: Binder ping, pre-start source limit, CPython stdout, exception recovery, output cap, asset manifest, progression prerequisites, input() stdin."
 gradle connectedDebugAndroidTest
 test_status=$?
 
@@ -45,8 +45,8 @@ for report in reports:
         errors += int(suite.attrib.get("errors", 0))
 
 print(f"Instrumentation report: tests={total}, failures={failures}, errors={errors}")
-if total < 7:
-    print("ERROR: expected all seven instrumentation tests to be discovered and executed.")
+if total < 8:
+    print("ERROR: expected all eight instrumentation tests to be discovered and executed.")
     sys.exit(2)
 if failures or errors:
     sys.exit(1)
