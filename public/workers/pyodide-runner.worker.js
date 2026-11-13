@@ -95,8 +95,8 @@ def _neonull_run(user_code, module_id):
                 check_detail = 'Expected agent = "Null-Agent", clearance = 1, and print(agent).'
         elif module_id == 2:
             threat_val = ns.get("threat")
-            has_else = bool(re.search(r"\\belse\\s*:", user_code))
-            has_if = bool(re.search(r"\\bif\\s+threat\\s*>=\\s*50\\s*:", user_code))
+            has_else = bool(re.search(r"\belse\s*:", user_code))
+            has_if = bool(re.search(r"\bif\s+threat\s*>=\s*50\s*:", user_code))
             passed = bool(isinstance(threat_val, int) and 0 <= threat_val < 50 and has_if and has_else and output_str == "ALLOW")
             if not passed:
                 check_detail = 'Expected threat < 50, if threat >= 50 / else branch, and output "ALLOW".'
@@ -107,7 +107,7 @@ def _neonull_run(user_code, module_id):
             if not passed:
                 check_detail = 'Ensure shards == ["K1", "K2", "K3"], vault == {"code": 77}, and output == 3.'
         elif module_id == 4:
-            has_for = bool(re.search(r"for\\s+\\w+\\s+in\\s+range\\s*\\(\\s*5\\s*\\)\\s*:", user_code))
+            has_for = bool(re.search(r"for\s+\w+\s+in\s+range\s*\(\s*5\s*\)\s*:", user_code))
             passed = bool(has_for and ns.get("packets") == 5 and output_str == "5")
             if not passed:
                 check_detail = 'Use a real for i in range(5): loop incrementing packets to 5 and printing it.'
@@ -118,8 +118,8 @@ def _neonull_run(user_code, module_id):
             if not passed:
                 check_detail = 'Define craft_token(seed) returning seed * 3 + 9 and print craft_token(7).'
         elif module_id == 6:
-            has_try = bool(re.search(r"\\btry\\s*:", user_code))
-            has_except = bool(re.search(r"\\bexcept\\b.*:", user_code))
+            has_try = bool(re.search(r"\btry\s*:", user_code))
+            has_except = bool(re.search(r"\bexcept\b.*:", user_code))
             passed = bool(has_try and has_except and output_str == "SAFE_EXTRACT")
             if not passed:
                 check_detail = 'Catch the missing file exception with try / except and print "SAFE_EXTRACT".'
