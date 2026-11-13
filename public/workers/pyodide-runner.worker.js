@@ -119,7 +119,7 @@ def _neonull_has_mission_structure(module_id, source):
                 continue
             if len(node.iter.args) != 1 or not isinstance(node.iter.args[0], ast.Constant) or node.iter.args[0].value != 5:
                 continue
-            for statement in ast.walk(ast.Module(body=node.body, type_ignores=[])):
+            for statement in node.body:
                 if isinstance(statement, ast.AugAssign) and isinstance(statement.target, ast.Name) and statement.target.id == "packets" and isinstance(statement.op, ast.Add) and isinstance(statement.value, ast.Constant) and statement.value.value == 1:
                     return True
                 if isinstance(statement, ast.Assign) and len(statement.targets) == 1 and isinstance(statement.targets[0], ast.Name) and statement.targets[0].id == "packets":
