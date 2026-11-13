@@ -6,6 +6,7 @@ import sys
 import traceback
 
 MAX_SOURCE_CHARS = 128 * 1024
+MAX_STDIN_CHARS = 64 * 1024
 MAX_CAPTURED_OUTPUT = 64 * 1024
 
 
@@ -52,6 +53,17 @@ def execute(source: str, stdin_text: str = "") -> str:
             "stdoutTruncated": False,
             "stderrTruncated": False,
             "errorType": "SourceTooLarge",
+            "traceback": None,
+        })
+
+    if len(stdin_text) > MAX_STDIN_CHARS:
+        return json.dumps({
+            "ok": False,
+            "stdout": "",
+            "stderr": "",
+            "stdoutTruncated": False,
+            "stderrTruncated": False,
+            "errorType": "InputTooLarge",
             "traceback": None,
         })
 
