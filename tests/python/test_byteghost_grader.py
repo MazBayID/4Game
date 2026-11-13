@@ -82,8 +82,8 @@ class ByteGhostGraderTests(unittest.TestCase):
         result = json.loads(grade(4, source))
         self.assertFalse(result["passed"])
 
-    def test_wrong_loop_result_is_not_hidden_by_an_extra_five(self):
-        source = VALID_SUBMISSIONS[4].replace("print(packets)", 'print("5")\nprint(packets)')
+    def test_extra_output_does_not_pass_module_four(self):
+        source = VALID_SUBMISSIONS[4] + 'print("5")\\n'
         result = json.loads(grade(4, source))
         self.assertFalse(result["passed"])
 
