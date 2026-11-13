@@ -128,59 +128,69 @@ fun TerminalLearningScreen(
             // PANEL 1 (TOP): STATUS HUD & GLITCH AI MENTOR BRIEFING
             // =========================================================================
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(5.dp))
                         .background(NeoColors.TerminalSurface)
                         .border(1.dp, NeoColors.BorderSubtle, RoundedCornerShape(5.dp))
                         .padding(horizontal = 10.dp, vertical = 7.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text(
-                        text = "< ${strings.backToHubBtn}",
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 11.sp,
-                        color = NeoColors.CyberCyan,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .clickable { onBackToHub() }
-                            .padding(horizontal = 6.dp, vertical = 4.dp)
-                    )
-
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "${strings.ramStatLabel}:${state.ramMb}M",
+                            text = "< ${strings.backToHubBtn}",
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp,
-                            color = NeoColors.CyberCyan
+                            color = NeoColors.CyberCyan,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable { onBackToHub() }
+                                .padding(horizontal = 6.dp, vertical = 10.dp)
                         )
-                        Text(
-                            text = "${strings.xpStatLabel}:${state.xp}",
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
-                            color = NeoColors.MatrixGreen
-                        )
-                        Text(
-                            text = "${strings.firewallHealthLabel}:${state.firewallHealth}%",
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
-                            color = if (state.firewallHealth <= 40) NeoColors.CrimsonRed else NeoColors.TextPrimary
+                        LanguageSwitchRow(
+                            selected = state.language,
+                            onSelect = onSelectLanguage
                         )
                     }
 
-                    LanguageSwitchRow(
-                        selected = state.language,
-                        onSelect = onSelectLanguage
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "${strings.ramStatLabel}: ${state.ramMb}M",
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = NeoColors.CyberCyan,
+                            maxLines = 1
+                        )
+                        Text(
+                            text = "${strings.xpStatLabel}: ${state.xp}",
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = NeoColors.MatrixGreen,
+                            maxLines = 1
+                        )
+                        Text(
+                            text = "${strings.firewallHealthLabel}: ${state.firewallHealth}%",
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = if (state.firewallHealth <= 40) NeoColors.CrimsonRed else NeoColors.TextPrimary,
+                            maxLines = 1
+                        )
+                    }
                 }
 
                 GlitchMentorPanel(
@@ -295,7 +305,7 @@ fun TerminalLearningScreen(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
                                 .clickable { onResetCode() }
-                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                                .padding(horizontal = 8.dp, vertical = 10.dp)
                         )
                     }
                 }
@@ -323,7 +333,8 @@ fun TerminalLearningScreen(
                                 .background(NeoColors.ElevatedPanel)
                                 .border(1.dp, NeoColors.BorderSubtle, RoundedCornerShape(6.dp))
                                 .clickable { onInsertSnippet(snippet) }
-                                .padding(horizontal = 9.dp, vertical = 5.dp)
+                                .heightIn(min = 40.dp)
+                                .padding(horizontal = 9.dp, vertical = 8.dp)
                         ) {
                             Text(
                                 text = "+ $snippet",
@@ -493,7 +504,8 @@ private fun DeckTabPill(
                 shape = RoundedCornerShape(4.dp)
             )
             .clickable { onClick() }
-            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .heightIn(min = 36.dp)
+            .padding(horizontal = 8.dp, vertical = 7.dp)
     ) {
         Text(
             text = label,
