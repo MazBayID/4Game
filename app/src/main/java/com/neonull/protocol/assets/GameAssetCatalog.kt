@@ -31,7 +31,7 @@ class GameAssetCatalog private constructor(
 ) {
     private val byKey = specs.associateBy { it.key }
     private val bitmapCache = object : LruCache<String, Bitmap>(CACHE_KILOBYTES) {
-        override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount / 1024
+        override fun sizeOf(key: String, value: Bitmap): Int = (value.byteCount / 1024).coerceAtLeast(1)
     }
 
     val all: List<GameAssetSpec> = specs.toList()
