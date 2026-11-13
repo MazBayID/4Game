@@ -23,6 +23,18 @@ import java.util.concurrent.atomic.AtomicReference
 @RunWith(AndroidJUnit4::class)
 class PythonRunnerServiceTest {
     @Test
+    fun companionRunnerUsesSeparateUidAndSignaturePermission() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val runnerUid = context.applicationInfo.uid
+        val hostUid = context.packageManager.getApplicationInfo("com.neonull.protocol", 0).uid
+        assertTrue("Runner must have a separate Android UID", runnerUid != hostUid)
+        val service = context.packageManager.getServiceInfo(
+            ComponentName(context, PythonRunnerService::class.java), 0
+        )
+        assertEquals("com.neonull.protocol.permission.RUN_PYTHON", service.permission)
+    }
+
+    @Test
     fun executesPythonAndBoundsOutput() {
         val result = JSONObject(request("print('RUNNER_OK')"))
         assertTrue(result.toString(), result.getBoolean("ok"))
@@ -46,13 +58,11 @@ class PythonRunnerServiceTest {
         try {
             val connection = bind(context)
             try {
-                connection.send("while True: pass", MSG_RESULT)
-            } catch (_: Exception) {
-                // Process death may close the Binder before a reply is delivered.
+                connection.sendWithoutWaiting("while True: pass")
+                assertTrue("Watchdog did not terminate the runner process", disconnected.await(90, TimeUnit.SECONDS))
             } finally {
                 connection.close()
             }
-            assertTrue("Watchdog did not terminate the runner process", disconnected.await(15, TimeUnit.SECONDS))
         } finally {
             context.unbindService(observer)
         }
@@ -88,6 +98,17 @@ class PythonRunnerServiceTest {
         private val callback: ServiceConnection,
         private val remote: Messenger
     ) {
+        fun sendWithoutWaiting(source: String) {
+            val reply = Messenger(Handler(Looper.getMainLooper()) { true })
+            remote.send(Message.obtain(null, PythonRunnerService.MSG_EXECUTE).apply {
+                data = Bundle().apply {
+                    putString(PythonRunnerService.KEY_CODE, source)
+                    putString(PythonRunnerService.KEY_STDIN, "")
+                }
+                replyTo = reply
+            })
+        }
+
         fun send(source: String, expectedWhat: Int): String {
             val latch = CountDownLatch(1)
             val result = AtomicReference<String>()
