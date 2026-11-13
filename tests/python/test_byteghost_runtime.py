@@ -31,7 +31,7 @@ class ByteGhostRuntimeTests(unittest.TestCase):
         self.assertEqual(result["errorType"], "NameError")
 
     def test_output_is_bounded(self):
-        result = self.run_source("print('X' * (MAX_CAPTURED_OUTPUT * 2))")
+        result = self.run_source("print('X' * %d)" % (MAX_CAPTURED_OUTPUT * 2))
         self.assertTrue(result["ok"])
         self.assertEqual(len(result["stdout"]), MAX_CAPTURED_OUTPUT)
         self.assertTrue(result["stdoutTruncated"])
