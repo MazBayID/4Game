@@ -11,6 +11,7 @@ import android.os.Messenger
 import android.util.Log
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
+import org.json.JSONObject
 
 /**
  * CPython proof of concept in a dedicated Android app process.
@@ -23,7 +24,7 @@ class PythonExecutionService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        Log.i(TAG, "onCreate process=${android.app.Application.getProcessName()} pid=${android.os.Process.myPid()} uid=${android.os.Process.myUid()}")
+        Log.i(TAG, "onCreate package=$packageName pid=${android.os.Process.myPid()} uid=${android.os.Process.myUid()}")
         workerThread = HandlerThread("ByteGhost-Python-Runtime").apply { start() }
         messenger = Messenger(Handler(workerThread.looper) { message ->
             handleExecution(message)
@@ -48,11 +49,11 @@ class PythonExecutionService : Service() {
                 .callAttr("execute", code).toString()
         } catch (error: Throwable) {
             Log.e(TAG, "Python runtime execution failed", error)
-            val safeMessage = (error.message ?: "Runtime initialization failed")
-                .replace("\\\\", "\\\\\\\\")
-                .replace("\\\"", "\\\\\\"")
-                .replace("\\n", "\\\\n")
-            """{"ok":false,"errorType":"${error.javaClass.simpleName}","error":"$safeMessage"}"""
+            JSONObject()
+                .put("ok", false)
+                .put("errorType", error.javaClass.simpleName)
+                .put("error", error.message ?: "Runtime initialization failed")
+                .toString()
         }
 
         try {
