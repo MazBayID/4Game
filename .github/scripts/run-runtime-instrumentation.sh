@@ -2,6 +2,7 @@
 set -uo pipefail
 
 echo "=== ByteGhost host instrumentation suite ==="
+gradle assembleDebug
 gradle :app:connectedDebugAndroidTest
 host_test_status=$?
 
@@ -58,8 +59,8 @@ for report in reports:
         errors += int(suite.attrib.get("errors", 0))
 
 print(f"Instrumentation report: tests={total}, failures={failures}, errors={errors}")
-if total < 12:
-    print("ERROR: expected the ten host tests and two runner tests.")
+if total < 13:
+    print("ERROR: expected ten host tests and three companion-runner tests.")
     sys.exit(2)
 if failures or errors:
     sys.exit(1)
