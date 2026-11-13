@@ -681,7 +681,7 @@ class LearningViewModel(
             if (parenDepth < 0 || bracketDepth < 0 || braceDepth < 0) {
                 return lineNum to "Unmatched closing delimiter"
             }
-            val indentLevel = rawLine.takeWhile { it == ' ' || it == '\\t' }.length
+            val indentLevel = rawLine.takeWhile { it == ' ' || it == '\t' }.length
             if (expectedIndentLevel != null && indentLevel <= expectedIndentLevel) {
                 return lineNum to "Expected an indented block"
             }
@@ -689,7 +689,7 @@ class LearningViewModel(
 
             if (blockHeaders.matches(trimmedCode)) {
                 if (!trimmedCode.endsWith(":")) return lineNum to "Missing ':' at end of block header"
-                expectedIndentLevel = rawLine.takeWhile { it == ' ' || it == '\\t' }.length
+                expectedIndentLevel = rawLine.takeWhile { it == ' ' || it == '\t' }.length
             }
         }
 
