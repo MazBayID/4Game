@@ -107,6 +107,9 @@ const saved = {
   traceIntegrity: 80,
   language: 'ID' as const,
   drafts: { '1': 'agent = "Zero"', '7': 'print("boss")', sandbox: 'print("free")', '8': 'invalid', '2': 'x'.repeat(32769) },
+  activeModuleId: 2,
+  hasEnteredHub: true,
+  audioEnabled: false,
 };
 assert(saveProgress(saved, memoryStorage), 'Expected progress save to succeed');
 const restored = loadProgress(memoryStorage);
@@ -114,11 +117,15 @@ assert(restored.completedIds.join(',') === '1,2', 'Progress loader must filter i
 assert(restored.xp === 350 && restored.ramMb === 256 && restored.language === 'ID', 'Progress values should survive save/load');
 assert(restored.drafts?.['1'] === 'agent = "Zero"' && restored.drafts?.['7'] === 'print("boss")', 'Valid mission drafts should survive save/load');
 assert(restored.drafts?.sandbox === 'print("free")', 'Sandbox draft should survive save/load');
+assert(restored.activeModuleId === 2 && restored.hasEnteredHub === true, 'Campaign session should resume the saved mission and hub');
+assert(restored.audioEnabled === false, 'Audio preference should survive save/load');
 assert(!('8' in (restored.drafts ?? {})) && !('2' in (restored.drafts ?? {})), 'Invalid or oversized drafts must be filtered');
 memoryStorage.setRaw('{invalid-json');
 assert(loadProgress(memoryStorage).xp === 0, 'Corrupt save data must safely reset to defaults');
 memoryStorage.setRaw(JSON.stringify({ version: 99, completedIds: [1], xp: 999 }));
 assert(loadProgress(memoryStorage).completedIds.length === 0, 'Unknown save versions must not be loaded');
+memoryStorage.setRaw(JSON.stringify({ version: 1, completedIds: [1], activeModuleId: 7, hasEnteredHub: true }));
+assert(loadProgress(memoryStorage).activeModuleId === 2, 'Resume state must not unlock missions that have not been completed');
 
 
 console.log('All NEO-NULL verification checks passed (7/7 modules, EN/ID/PH, syntax, worker regex & Crimson error checks).');
