@@ -40,7 +40,7 @@ class PythonExecutionServiceInstrumentedTest {
     }
 
     @Test
-    fun test02ExecutesPythonAndReturnsStdoutOverBinder() {
+    fun test03ExecutesPythonAndReturnsStdoutOverBinder() {
         val result = JSONObject(executeThroughService("print('BYTEGHOST_RUNTIME_OK')"))
         assertTrue("Python execution should succeed: $result", result.getBoolean("ok"))
         assertEquals("BYTEGHOST_RUNTIME_OK\n", result.getString("stdout"))
@@ -48,7 +48,7 @@ class PythonExecutionServiceInstrumentedTest {
     }
 
     @Test
-    fun test03ReturnsPythonExceptionAndKeepsServiceAlive() {
+    fun test04ReturnsPythonExceptionAndKeepsServiceAlive() {
         val result = JSONObject(executeThroughService("raise ValueError('BYTEGHOST_EXPECTED_ERROR')"))
         assertEquals(false, result.getBoolean("ok"))
         assertEquals("ValueError", result.getString("errorType"))
@@ -59,7 +59,7 @@ class PythonExecutionServiceInstrumentedTest {
     }
 
     @Test
-    fun test04CapsLargeOutputAndKeepsServiceResponsive() {
+    fun test05CapsLargeOutputAndKeepsServiceResponsive() {
         val largeOutput = JSONObject(executeThroughService("print('X' * 70000)"))
         assertTrue("Large output execution should complete", largeOutput.getBoolean("ok"))
         assertEquals(64 * 1024, largeOutput.getString("stdout").length)
@@ -70,13 +70,10 @@ class PythonExecutionServiceInstrumentedTest {
     }
 
     @Test
-    fun test05RejectsOversizedSourceAndKeepsServiceResponsive() {
+    fun test02RejectsOversizedSourceBeforePythonStartup() {
         val oversized = JSONObject(executeThroughService(" ".repeat(128 * 1024 + 1)))
         assertEquals(false, oversized.getBoolean("ok"))
         assertEquals("SourceTooLarge", oversized.getString("errorType"))
-        val followUp = JSONObject(executeThroughService("print('AFTER_SIZE_LIMIT_OK')"))
-        assertTrue(followUp.getBoolean("ok"))
-        assertEquals("AFTER_SIZE_LIMIT_OK\n", followUp.getString("stdout"))
     }
 
     @Test
