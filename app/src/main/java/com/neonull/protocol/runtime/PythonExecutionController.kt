@@ -11,7 +11,7 @@ import android.os.Message
 import android.os.Messenger
 import android.os.RemoteException
 
-/** Binder client for the isolated Python runtime PoC. Not wired to the editor yet. */
+/** Binder client for the CPython process PoC; not wired to the editor yet. */
 class PythonExecutionController(
     private val context: Context,
     private val onResult: (String) -> Unit
@@ -32,6 +32,7 @@ class PythonExecutionController(
             serviceMessenger = binder?.let { Messenger(it) }
             sendPendingCode()
         }
+
         override fun onServiceDisconnected(name: ComponentName?) {
             serviceMessenger = null
         }
@@ -39,8 +40,9 @@ class PythonExecutionController(
 
     fun execute(code: String) {
         pendingCode = code
-        if (serviceMessenger != null) sendPendingCode()
-        else if (!isBound) {
+        if (serviceMessenger != null) {
+            sendPendingCode()
+        } else if (!isBound) {
             isBound = context.bindService(
                 Intent(context, PythonExecutionService::class.java),
                 connection,
@@ -53,6 +55,7 @@ class PythonExecutionController(
         val code = pendingCode ?: return
         val messenger = serviceMessenger ?: return
         pendingCode = null
+
         try {
             val message = Message.obtain(null, PythonExecutionService.MSG_EXECUTE).apply {
                 data = Bundle().apply { putString(PythonExecutionService.KEY_CODE, code) }
@@ -60,12 +63,18 @@ class PythonExecutionController(
             }
             messenger.send(message)
         } catch (error: RemoteException) {
-            onResult("""{"ok":false,"errorType":"RemoteException","error":"${error.message ?: "Binder communication failed"}"}""")
+            val safeMessage = (error.message ?: "Binder communication failed")
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+            onResult("""{"ok":false,"errorType":"RemoteException","error":"$safeMessage"}""")
         }
     }
 
     fun close() {
-        if (isBound) context.unbindService(connection)
+        if (isBound) {
+            context.unbindService(connection)
+        }
         isBound = false
         serviceMessenger = null
         pendingCode = null
