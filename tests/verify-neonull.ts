@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { CURRICULUM_MODULES, UI_STRINGS } from '../src/data/neoNullData';
 import { evaluatePythonSubmission, tokenizePythonLine } from '../src/lib/pythonHighlightAndEval';
 
@@ -44,4 +45,15 @@ for (const mod of CURRICULUM_MODULES) {
   assert(res.isSuccess, `Module ${mod.id} solution failed: ${res.outputText}`);
 }
 
-console.log('All NEO-NULL verification checks passed (7/7 modules, EN/ID/PH, syntax & Crimson error checks).');
+
+// 5. Verify the production Pyodide worker uses valid Python regex patterns
+const workerSource = readFileSync('public/workers/pyodide-runner.worker.js', 'utf8');
+assert(workerSource.includes('r"\\belse\\s*:"'), 'Worker else-branch regex must use Python word-boundary syntax');
+assert(workerSource.includes('r"\\bif\\s+threat\\s*>=\\s*50\\s*:"'), 'Worker threat-if regex must be valid');
+assert(workerSource.includes('r"for\\s+\\w+\\s+in\\s+range\\s*\\(\\s*5\\s*\\)\\s*:"'), 'Worker for-loop regex must be valid');
+assert(workerSource.includes('r"\\btry\\s*:"'), 'Worker try regex must be valid');
+assert(workerSource.includes('r"\\bexcept\\b.*:"'), 'Worker except regex must be valid');
+
+console.log('Production Pyodide worker regex checks passed.');
+
+console.log('All NEO-NULL verification checks passed (7/7 modules, EN/ID/PH, syntax, worker regex & Crimson error checks).');
