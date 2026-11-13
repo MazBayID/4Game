@@ -2,7 +2,7 @@
 set -uo pipefail
 
 echo "=== ByteGhost Android instrumentation suite ==="
-echo "Tests are ordered: Binder ping, CPython stdout, exception recovery, output cap, source limit, asset manifest, progression prerequisites."
+echo "Tests are ordered: Binder ping, pre-start source limit, CPython stdout, exception recovery, output cap, asset manifest, progression prerequisites."
 gradle connectedDebugAndroidTest
 test_status=$?
 
