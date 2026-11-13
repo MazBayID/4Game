@@ -50,7 +50,11 @@ class CompanionPythonRunnerControllerTest {
             assertTrue("Runner did not return the filesystem isolation result", completed.await(120, TimeUnit.SECONDS))
             val result = JSONObject(response.get() ?: error("Runner returned no result"))
             assertTrue(result.toString(), result.getBoolean("ok"))
-            assertEquals("PermissionError\n", result.getString("stdout"))
+            val output = result.getString("stdout")
+            assertTrue(
+                "Runner must not read host-private data; observed: $output",
+                output == "PermissionError\n" || output == "FileNotFoundError\n"
+            )
         } finally {
             controller.close()
             secretFile.delete()
