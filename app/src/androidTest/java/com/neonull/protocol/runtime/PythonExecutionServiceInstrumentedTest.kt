@@ -103,6 +103,27 @@ class PythonExecutionServiceInstrumentedTest {
     }
 
     @Test
+    fun test10EveryMissionHasSixCompleteLearningPhases() {
+        val modules = CurriculumRepository.modules
+        val expected = com.neonull.protocol.data.LessonPhase.values().toList()
+        val sequences = com.neonull.protocol.data.LessonSequenceRepository.allSteps(modules)
+        assertEquals(modules.map { it.id }.toSet(), sequences.keys)
+        modules.forEach { module ->
+            val steps = sequences.getValue(module.id)
+            assertEquals("Mission ${module.id} must have six phases", expected, steps.map { it.phase })
+            assertTrue("Mission ${module.id} has a blank instruction", steps.all {
+                it.instruction.en.isNotBlank() && it.instruction.id.isNotBlank()
+            })
+            assertTrue("Mission ${module.id} has a blank success criterion", steps.all {
+                it.acceptanceCriteria.en.isNotBlank() && it.acceptanceCriteria.id.isNotBlank()
+            })
+            assertTrue("Mission ${module.id} has no observation example", steps[1].code.isNotBlank())
+            assertTrue("Mission ${module.id} has no practice starter", steps[2].code.isNotBlank())
+            assertTrue("Mission ${module.id} has no mastery starter", steps[5].code.isNotBlank())
+        }
+    }
+
+    @Test
     fun test07ProgressionRequiresContiguousPrerequisites() {
         val modules = CurriculumRepository.modules
         assertEquals(1, ProgressionRules.nextUnlockedModuleId(modules, setOf(3)))
