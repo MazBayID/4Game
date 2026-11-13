@@ -20,9 +20,22 @@ translation is still required before claiming full three-language parity.
 ## Evaluation boundary
 
 A lesson step's acceptance criteria describe what competence means; they are
-not yet an executable grader. Do not infer success by searching source text
-with regular expressions. Do not ship hidden expected answers in the client
-APK and call them secret: local APK contents can be inspected.
+not yet a complete executable grader. The original Kotlin mission evaluators
+still use source-pattern checks and must not be treated as authoritative Python
+semantics.
+
+A new Python-side AST-assisted grader has been added for the seven original
+missions. It parses Python syntax, inspects structural requirements, executes
+the submission through CPython, and checks runtime output. Its checks include
+branch structure, loop behavior, function results on additional inputs, file
+exception handling, and class method behavior. This is a testable foundation,
+not a finished assessment system: AST checks can still be gamed, some task
+contracts remain tightly coupled to the original seven missions, and the grader
+currently runs in the same process as the execution helper.
+
+Do not infer success by searching source text with regular expressions. Do not
+ship hidden expected answers in the client APK and call them secret: local APK
+contents can be inspected.
 
 Before real graded submissions are enabled:
 - execute submissions only in a separately packaged runner with a distinct
