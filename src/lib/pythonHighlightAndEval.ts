@@ -173,7 +173,7 @@ function detectPythonSyntaxIssue(code: string): { line: number; reason: string }
     if (parenDepth < 0 || bracketDepth < 0 || braceDepth < 0) {
       return { line: lineNum, reason: 'Unmatched closing delimiter' };
     }
-    const indentLevel = rawLine.match(/^[ \\t]*/)?.[0].length ?? 0;
+    const indentLevel = rawLine.match(/^[ \t]*/)?.[0].length ?? 0;
     if (expectedIndentLevel !== null && indentLevel <= expectedIndentLevel) {
       return { line: lineNum, reason: 'Expected an indented block' };
     }
@@ -183,7 +183,7 @@ function detectPythonSyntaxIssue(code: string): { line: number; reason: string }
       if (!trimmedCode.endsWith(':')) {
         return { line: lineNum, reason: "Missing ':' at end of block header" };
       }
-      expectedIndentLevel = rawLine.match(/^[ \\t]*/)?.[0].length ?? 0;
+      expectedIndentLevel = rawLine.match(/^[ \t]*/)?.[0].length ?? 0;
     }
   }
 
