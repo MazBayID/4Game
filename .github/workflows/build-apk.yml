@@ -1,6 +1,9 @@
 name: Build Android APK
 
 on:
+  push:
+    branches:
+      - mod-development
   workflow_dispatch:
     inputs:
       build_type:
@@ -25,6 +28,10 @@ on:
 jobs:
   build-android-apk:
     runs-on: ubuntu-latest
+    env:
+      BUILD_TYPE: ${{ inputs.build_type || 'debug' }}
+      VERSION_CODE: ${{ inputs.version_code || '1' }}
+      VERSION_NAME: ${{ inputs.version_name || '1.0.0' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -52,18 +59,18 @@ jobs:
 
       - name: Build APK
         run: |
-          if [ "${{ inputs.build_type }}" = "release" ]; then
-            gradle assembleRelease -PVERSION_CODE=${{ inputs.version_code }} -PVERSION_NAME=${{ inputs.version_name }}
+          if [ "$BUILD_TYPE" = "release" ]; then
+            gradle assembleRelease -PVERSION_CODE="$VERSION_CODE" -PVERSION_NAME="$VERSION_NAME"
           else
-            gradle assembleDebug -PVERSION_CODE=${{ inputs.version_code }} -PVERSION_NAME=${{ inputs.version_name }}
+            gradle assembleDebug -PVERSION_CODE="$VERSION_CODE" -PVERSION_NAME="$VERSION_NAME"
           fi
 
       - name: Collect APK Artifact
         run: |
           mkdir -p apk-output
-          APK_PATH=$(find app/build/outputs/apk -name "*.apk" -print -quit)
+          APK_PATH=$(find "app/build/outputs/apk/$BUILD_TYPE" -name "*.apk" -print -quit)
           test -n "$APK_PATH"
-          APK_NAME="NEO-NULL-v${{ inputs.version_name }}-${{ inputs.build_type }}.apk"
+          APK_NAME="NEO-NULL-v$VERSION_NAME-$BUILD_TYPE.apk"
           cp "$APK_PATH" "apk-output/$APK_NAME"
           ls -lh apk-output/
           sha256sum apk-output/*.apk > apk-output/SHA256SUMS.txt
@@ -71,6 +78,6 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NEO-NULL-${{ inputs.version_name }}-${{ inputs.build_type }}
+          name: NEO-NULL-${{ env.VERSION_NAME }}-${{ env.BUILD_TYPE }}
           path: apk-output/
           if-no-files-found: error
