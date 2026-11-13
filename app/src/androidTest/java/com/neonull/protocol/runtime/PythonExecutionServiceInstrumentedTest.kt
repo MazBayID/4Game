@@ -89,6 +89,13 @@ class PythonExecutionServiceInstrumentedTest {
     }
 
     @Test
+    fun test08PythonInputUsesProvidedStdin() {
+        val result = JSONObject(executeThroughService("name = input('Alias? ')\\nprint('Hello', name)", "Zero\\n"))
+        assertTrue(result.getBoolean("ok"))
+        assertEquals("Alias? Hello Zero\\n", result.getString("stdout"))
+    }
+
+    @Test
     fun test07ProgressionRequiresContiguousPrerequisites() {
         val modules = CurriculumRepository.modules
         assertEquals(1, ProgressionRules.nextUnlockedModuleId(modules, setOf(3)))
@@ -98,15 +105,19 @@ class PythonExecutionServiceInstrumentedTest {
         assertEquals(false, ProgressionRules.isAccessible(4, modules, setOf(1, 3)))
     }
 
-    private fun executeThroughService(source: String): String =
+    private fun executeThroughService(source: String, stdinText: String? = null): String =
         sendMessageThroughService(
-            PythonExecutionService.MSG_EXECUTE, source, PythonExecutionService.MSG_RESULT
+            PythonExecutionService.MSG_EXECUTE,
+            source,
+            PythonExecutionService.MSG_RESULT,
+            stdinText
         )
 
     private fun sendMessageThroughService(
         messageWhat: Int,
         source: String?,
-        expectedReplyWhat: Int
+        expectedReplyWhat: Int,
+        stdinText: String? = null
     ): String {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val component = ComponentName(context, PythonExecutionService::class.java)
@@ -163,6 +174,7 @@ class PythonExecutionServiceInstrumentedTest {
             val request = Message.obtain(null, messageWhat).apply {
                 if (source != null) data = Bundle().apply {
                     putString(PythonExecutionService.KEY_CODE, source)
+                    if (stdinText != null) putString(PythonExecutionService.KEY_STDIN, stdinText)
                 }
                 replyTo = replyMessenger
             }
