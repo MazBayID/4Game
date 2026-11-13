@@ -129,7 +129,7 @@ class PythonRunnerServiceTest {
         private val callback: ServiceConnection,
         private val remote: Messenger
     ) {
-        fun sendWithoutWaiting(source: String, onReply: () -> Unit) {
+        fun sendWithoutWaiting(source: String, onReply: () -> Unit = {}) {
             val reply = Messenger(Handler(Looper.getMainLooper()) {
                 onReply()
                 true
