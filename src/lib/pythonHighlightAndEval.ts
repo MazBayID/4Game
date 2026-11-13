@@ -279,7 +279,7 @@ export function evaluatePythonSubmission(
 
   const normalized = code
     .split('\n')
-    .filter((l) => !l.trim().startsWith('#'))
+    .map(stripTrailingComment)
     .join('\n');
 
   const fail = (msg: string, line: number, useHint2 = false): EvaluationResult => {
@@ -287,12 +287,12 @@ export function evaluatePythonSubmission(
     const detail = checkpoint?.message ?? msg;
     const errorLine = checkpoint?.line ?? line;
     return {
-    isSuccess: false,
-    isSyntaxError: false,
-    outputText: `${strings.testFailedPrefix}: ${detail}`,
-    errorLines: [errorLine],
-    glitchFeedback: useHint2 ? module.solutionHint2[language] : module.solutionHint1[language],
-  };
+      isSuccess: false,
+      isSyntaxError: false,
+      outputText: `${strings.testFailedPrefix}: ${detail}`,
+      errorLines: [errorLine],
+      glitchFeedback: useHint2 ? module.solutionHint2[language] : module.solutionHint1[language],
+    };
   };
 
   const pass = (out: string): EvaluationResult => ({
