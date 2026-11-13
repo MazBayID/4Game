@@ -269,7 +269,7 @@ def grade(module_id, source, stdin_text=""):
 
     if not output_complete:
         feedback = "Output limit reached; remove excessive output and retry."
-    if module_id == 4 and execution.get("stdout", "").splitlines()[-1:] != ["5"]:
+    if module_id == 4 and execution.get("stdout", "").splitlines() != ["5"]:
         passed = False
         feedback = "The loop must finish with packets equal to 5."
     if module_id == 5:
