@@ -1,40 +1,12 @@
-name: Source Validation
+name: Android Validation
 
 on:
   push:
-    branches: [main, mod-development]
+    branches: [main]
   pull_request:
     branches: [main]
 
 jobs:
-  validate:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Install dependencies
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci --legacy-peer-deps
-          else
-            npm install --legacy-peer-deps
-          fi
-
-      - name: TypeScript typecheck
-        run: npm run lint
-
-      - name: Production web build
-        run: npm run build
-
-      - name: Run NEO-NULL verification tests
-        run: npm run verify
-
   android-compile:
     runs-on: ubuntu-latest
     steps:

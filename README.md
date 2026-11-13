@@ -1,28 +1,24 @@
-# NEO-NULL: PYTHON LEARNING PROTOCOL
+# NEO-NULL — Native Android Game
 
-Story-driven cyberpunk Python learning platform and Android Jetpack Compose IDE simulation set in Year 2142 against **SYNTHEX** and **AI OVERLORD**.
+NEO-NULL is a story-driven cyberpunk Python-learning game set in 2142. The production application is built natively for Android using Kotlin and Jetpack Compose.
 
-## Native Android Architecture (Kotlin + Jetpack Compose)
+## Android application
 
-- `app/src/main/java/com/neonull/protocol/MainActivity.kt` — Edge-to-edge Compose entry point & screen router
-- `app/src/main/java/com/neonull/protocol/localization/LanguageManager.kt` — Reactive `StateFlow` localization (`EN`, `ID`, `PH`)
-- `app/src/main/java/com/neonull/protocol/ui/theme/Color.kt` & `Theme.kt` — Deep navy/black (`#0A0A12` / `#05050A`), Matrix Green (`#00FF66`), Cyan (`#00E5FF`), Crimson Red (`#DC143C`), monospace typography
-- `app/src/main/java/com/neonull/protocol/syntax/SyntaxHighlighter.kt` — Real-time Python lexical highlighter + `VisualTransformation` + Crimson error line marking
-- `app/src/main/java/com/neonull/protocol/data/CurriculumData.kt` — 6 Acts, 7 Missions localized in English, Bahasa Indonesia, and Filipino
-- `app/src/main/java/com/neonull/protocol/viewmodel/LearningViewModel.kt` — Progress, RAM/XP stats, offline Python evaluator, and GLITCH hints
-- `app/src/main/java/com/neonull/protocol/ui/screens/` — `OnboardingScreen.kt`, `StoryHubScreen.kt`, `TheoryViewerScreen.kt`, `TerminalLearningScreen.kt`
-- `app/src/main/java/com/neonull/protocol/ui/components/CyberHudComponents.kt` — Original Compose `Canvas` chamfered HUD frames
+- **Entry point:** `app/src/main/java/com/neonull/protocol/MainActivity.kt`
+- **Campaign and curriculum:** `data/CurriculumData.kt`
+- **Gameplay state, mission evaluation, progress and drafts:** `viewmodel/LearningViewModel.kt`
+- **Python syntax highlighting:** `syntax/SyntaxHighlighter.kt`
+- **Screens:** onboarding, Story Hub, theory viewer and terminal learning
+- **Audio:** `audio/CyberAudioEngine.kt`
+- **Localization:** English, Bahasa Indonesia and Filipino
+- **UI:** Jetpack Compose / Material 3
 
-## Building Android APK via GitHub Actions
+## Build APK
 
-Run `.github/workflows/build-apk.yml` manually from GitHub **Actions -> Build Android APK -> Run workflow** (`debug` or `release`) to compile the native Kotlin project with Gradle 8.11.1 + Android SDK 35 and download the `.apk` artifact.
+GitHub Actions automatically builds a debug APK when changes are pushed to `main`.
 
-## Interactive Web Preview & Source Inspector
+To build manually, run **Actions → Build Android APK → Run workflow** and choose `debug` or `release`. The workflow uses JDK 17, Android SDK 35 and Gradle 8.11.1. The APK is uploaded as a downloadable workflow artifact.
 
-```bash
-npm install
-npm run dev
-npm run lint
-npm run build
-npx tsx tests/verify-neonull.ts
-```
+## Project scope
+
+This repository is dedicated to the native Android application. The former React/Vite web prototype, Pyodide web runtime, Node server and web-only tests have been removed. Android is the source of truth for gameplay and runtime development.
