@@ -19,6 +19,7 @@ class PythonExecutionController(
     private var serviceMessenger: Messenger? = null
     private var isBound = false
     private var pendingCode: String? = null
+    private var pendingStdin: String = ""
 
     private val replyMessenger = Messenger(Handler(Looper.getMainLooper()) { message ->
         if (message.what == PythonExecutionService.MSG_RESULT) {
@@ -38,8 +39,9 @@ class PythonExecutionController(
         }
     }
 
-    fun execute(code: String) {
+    fun execute(code: String, stdinText: String = "") {
         pendingCode = code
+        pendingStdin = stdinText
         if (serviceMessenger != null) {
             sendPendingCode()
         } else if (!isBound) {
@@ -58,7 +60,10 @@ class PythonExecutionController(
 
         try {
             val message = Message.obtain(null, PythonExecutionService.MSG_EXECUTE).apply {
-                data = Bundle().apply { putString(PythonExecutionService.KEY_CODE, code) }
+                data = Bundle().apply {
+                    putString(PythonExecutionService.KEY_CODE, code)
+                    putString(PythonExecutionService.KEY_STDIN, pendingStdin)
+                }
                 replyTo = replyMessenger
             }
             messenger.send(message)
@@ -78,5 +83,6 @@ class PythonExecutionController(
         isBound = false
         serviceMessenger = null
         pendingCode = null
+        pendingStdin = ""
     }
 }
