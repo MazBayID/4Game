@@ -225,7 +225,7 @@ function hasMissionBlockStructure(moduleId: number, code: string): boolean {
     return hasIndentedStatementAfter(code, /^def\s+craft_token\s*\(\s*seed\s*\)\s*:/, /^return\s+seed\s*\*\s*3\s*\+\s*9\b/);
   }
   if (moduleId === 6) {
-    return hasIndentedStatementAfter(code, /^try\s*:/, /^open\s*\(\s*["']corrupt\.log["']/) &&
+    return hasIndentedStatementAfter(code, /^try\s*:/, /^(?:with\s+)?open\s*\(\s*["']corrupt\.log["']/) &&
       hasIndentedStatementAfter(code, /^except\b.*:/, /^print\s*\(\s*["']SAFE_EXTRACT["']\s*\)/);
   }
   if (moduleId === 7) {
