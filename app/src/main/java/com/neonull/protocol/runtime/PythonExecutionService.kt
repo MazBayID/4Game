@@ -27,7 +27,11 @@ class PythonExecutionService : Service() {
         Log.i(TAG, "onCreate package=$packageName pid=${android.os.Process.myPid()} uid=${android.os.Process.myUid()}")
         workerThread = HandlerThread("ByteGhost-Python-Runtime").apply { start() }
         messenger = Messenger(Handler(workerThread.looper) { message ->
-            handleExecution(message)
+            when (message.what) {
+                MSG_PING -> handlePing(message)
+                MSG_EXECUTE -> handleExecution(message)
+                else -> Log.w(TAG, "Ignoring unknown message type=${message.what}")
+            }
             true
         })
     }
@@ -35,6 +39,20 @@ class PythonExecutionService : Service() {
     override fun onBind(intent: Intent?): IBinder {
         Log.i(TAG, "onBind action=${intent?.action}")
         return messenger.binder
+    }
+
+    /** Binder-only health check. This path must never initialize Chaquopy. */
+    private fun handlePing(message: Message) {
+        val replyTo = message.replyTo ?: return
+        try {
+            val reply = Message.obtain(null, MSG_PING_RESULT).apply {
+                data = Bundle().apply { putString(KEY_RESULT, "BINDER_OK") }
+            }
+            replyTo.send(reply)
+            Log.i(TAG, "Binder ping replied without starting Python")
+        } catch (error: Exception) {
+            Log.w(TAG, "Unable to deliver Binder ping response", error)
+        }
     }
 
     private fun handleExecution(message: Message) {
@@ -76,6 +94,8 @@ class PythonExecutionService : Service() {
         private const val TAG = "ByteGhostPythonService"
         const val MSG_EXECUTE = 1
         const val MSG_RESULT = 2
+        const val MSG_PING = 3
+        const val MSG_PING_RESULT = 4
         const val KEY_CODE = "code"
         const val KEY_RESULT = "result"
     }
