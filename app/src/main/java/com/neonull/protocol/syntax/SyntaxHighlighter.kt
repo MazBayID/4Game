@@ -327,7 +327,7 @@ fun SyntaxHighlightedCodeEditor(
             var y = gridStep
             while (y < size.height) {
                 drawLine(
-                    color = NeoColors.DeckGridLine.copy(alpha = 0.45f),
+                    color = NeoColors.DeckGridLine.copy(alpha = 0.22f),
                     start = Offset(0f, y),
                     end = Offset(size.width, y),
                     strokeWidth = 0.8.dp.toPx()
