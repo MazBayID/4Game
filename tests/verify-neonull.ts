@@ -86,6 +86,12 @@ assert(workerSource.includes('r"\\bif\\s+threat\\s*>=\\s*50\\s*:"'), 'Worker thr
 assert(workerSource.includes('r"for\\s+\\w+\\s+in\\s+range\\s*\\(\\s*5\\s*\\)\\s*:"'), 'Worker for-loop regex must be valid');
 assert(workerSource.includes('r"\\btry\\s*:"'), 'Worker try regex must be valid');
 assert(workerSource.includes('r"\\bexcept\\b.*:"'), 'Worker except regex must be valid');
+assert(workerSource.includes('import sys, io, json, traceback, re, tokenize'), 'Worker must tokenize Python comments safely');
+assert(workerSource.includes('def _neonull_strip_comments(source):'), 'Worker must strip comments without altering string literals');
+assert(workerSource.includes('normalized_source = _neonull_strip_comments(user_code)'), 'Runtime mission checks must use comment-free source');
+for (const moduleId of [1, 2, 3, 4, 5, 6, 7]) {
+  assert(workerSource.includes(`elif module_id == ${moduleId}:\\n            user_code = normalized_source`), `Module ${moduleId} must ignore commented-out requirements`);
+}
 
 console.log('Production Pyodide worker regex checks passed.');
 
