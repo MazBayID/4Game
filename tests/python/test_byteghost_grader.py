@@ -72,8 +72,18 @@ class ByteGhostGraderTests(unittest.TestCase):
         result = json.loads(grade(3, source))
         self.assertFalse(result["passed"])
 
+    def test_printing_list_instead_of_its_length_fails_module_three(self):
+        source = VALID_SUBMISSIONS[3].replace("print(len(shards))", "print(shards)")
+        result = json.loads(grade(3, source))
+        self.assertFalse(result["passed"])
+
     def test_wrong_loop_count_fails_module_four(self):
         source = VALID_SUBMISSIONS[4].replace("range(5)", "range(4)")
+        result = json.loads(grade(4, source))
+        self.assertFalse(result["passed"])
+
+    def test_wrong_loop_result_is_not_hidden_by_an_extra_five(self):
+        source = VALID_SUBMISSIONS[4].replace("print(packets)", 'print("5")\nprint(packets)')
         result = json.loads(grade(4, source))
         self.assertFalse(result["passed"])
 
@@ -83,7 +93,8 @@ class ByteGhostGraderTests(unittest.TestCase):
         self.assertFalse(result["passed"])
 
     def test_missing_exception_handler_fails_module_six(self):
-        source = """with open("corrupt.log") as log_file:\n    print(log_file.read())"""
+        source = """with open("corrupt.log") as log_file:
+    print(log_file.read())"""
         result = json.loads(grade(6, source))
         self.assertFalse(result["passed"])
 
