@@ -83,7 +83,8 @@ class ByteGhostGraderTests(unittest.TestCase):
         self.assertFalse(result["passed"])
 
     def test_missing_exception_handler_fails_module_six(self):
-        result = json.loads(grade(6, 'with open("corrupt.log") as log_file:\n    print(log_file.read())'))
+        source = """with open("corrupt.log") as log_file:\n    print(log_file.read())"""
+        result = json.loads(grade(6, source))
         self.assertFalse(result["passed"])
 
     def test_wrong_class_return_fails_module_seven(self):
