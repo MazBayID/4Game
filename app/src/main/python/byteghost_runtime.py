@@ -1,6 +1,8 @@
 """Minimal CPython execution PoC; not a security sandbox."""
 import contextlib
+import io
 import json
+import sys
 import traceback
 
 MAX_SOURCE_CHARS = 128 * 1024
@@ -36,9 +38,11 @@ class BoundedTextBuffer:
         return "".join(self.parts)
 
 
-def execute(source: str) -> str:
+def execute(source: str, stdin_text: str = "") -> str:
     if not isinstance(source, str):
         source = str(source)
+    if not isinstance(stdin_text, str):
+        stdin_text = str(stdin_text)
 
     if len(source) > MAX_SOURCE_CHARS:
         return json.dumps({
@@ -55,8 +59,10 @@ def execute(source: str) -> str:
     stderr = BoundedTextBuffer(MAX_CAPTURED_OUTPUT)
     namespace = {"__name__": "__byteghost_submission__"}
 
+    original_stdin = sys.stdin
     try:
         compiled = compile(source, "<byteghost-submission>", "exec")
+        sys.stdin = io.StringIO(stdin_text)
         with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
             exec(compiled, namespace, namespace)
         result = {
@@ -78,5 +84,7 @@ def execute(source: str) -> str:
             "errorType": type(error).__name__,
             "traceback": traceback.format_exc()[-MAX_CAPTURED_OUTPUT:],
         }
+    finally:
+        sys.stdin = original_stdin
 
     return json.dumps(result)
