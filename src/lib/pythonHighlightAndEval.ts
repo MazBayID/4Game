@@ -196,6 +196,47 @@ function detectPythonSyntaxIssue(code: string): { line: number; reason: string }
   return null;
 }
 
+function hasIndentedStatementAfter(
+  code: string,
+  headerPattern: RegExp,
+  statementPattern: RegExp
+): boolean {
+  const lines = code.split('\\n');
+  for (let headerIndex = 0; headerIndex < lines.length; headerIndex++) {
+    const header = stripTrailingComment(lines[headerIndex]);
+    if (!headerPattern.test(header.trim())) continue;
+    const headerIndent = header.match(/^[ \\t]*/)?.[0].length ?? 0;
+    for (let bodyIndex = headerIndex + 1; bodyIndex < lines.length; bodyIndex++) {
+      const body = stripTrailingComment(lines[bodyIndex]);
+      if (!body.trim()) continue;
+      const bodyIndent = body.match(/^[ \\t]*/)?.[0].length ?? 0;
+      if (bodyIndent <= headerIndent) break;
+      if (statementPattern.test(body.trim())) return true;
+    }
+  }
+  return false;
+}
+
+function hasMissionBlockStructure(moduleId: number, code: string): boolean {
+  if (moduleId === 4) {
+    return hasIndentedStatementAfter(code, /^for\\s+\\w+\\s+in\\s+range\\s*\\(\\s*5\\s*\\)\\s*:/, /^packets\\s*(?:\\+=|=\\s*packets\\s*\\+)\\s*1\\b/);
+  }
+  if (moduleId === 5) {
+    return hasIndentedStatementAfter(code, /^def\\s+craft_token\\s*\\(\\s*seed\\s*\\)\\s*:/, /^return\\s+seed\\s*\\*\\s*3\\s*\\+\\s*9\\b/);
+  }
+  if (moduleId === 6) {
+    return hasIndentedStatementAfter(code, /^try\\s*:/, /^open\\s*\\(\\s*["']corrupt\\.log["']/) &&
+      hasIndentedStatementAfter(code, /^except\\b.*:/, /^print\\s*\\(\\s*["']SAFE_EXTRACT["']\\s*\\)/);
+  }
+  if (moduleId === 7) {
+    return hasIndentedStatementAfter(code, /^class\\s+OverlordOverride\\s*:/, /^def\\s+__init__\\s*\\(\\s*self\\s*,\\s*key\\s*\\)\\s*:/) &&
+      hasIndentedStatementAfter(code, /^def\\s+__init__\\s*\\(\\s*self\\s*,\\s*key\\s*\\)\\s*:/, /^self\\.key\\s*=\\s*key$/) &&
+      hasIndentedStatementAfter(code, /^class\\s+OverlordOverride\\s*:/, /^def\\s+shutdown\\s*\\(\\s*self\\s*\\)\\s*:/) &&
+      hasIndentedStatementAfter(code, /^def\\s+shutdown\\s*\\(\\s*self\\s*\\)\\s*:/, /^return\\s*["']ROOT_UNLOCKED["']$/);
+  }
+  return true;
+}
+
 interface MissionCheckpoint {
   pattern: RegExp;
   message: string;
@@ -350,6 +391,8 @@ export function evaluatePythonSubmission(
         /for\s+\w+\s+in\s+range\s*\(\s*5\s*\)\s*:/.test(normalized) &&
         /packets\s*(\+=|=\s*packets\s*\+)\s*1\b/.test(normalized) &&
         /print\s*\(\s*packets\s*\)/.test(normalized);
+
+      ok = ok && hasMissionBlockStructure(module.id, normalized);
       return ok
         ? pass('5\n[EXIT 0] 5/5 relay ports flooded via for-loop.')
         : fail('Use `for i in range(5):` with `packets += 1` and `print(packets)`.', 2, true);
@@ -359,6 +402,8 @@ export function evaluatePythonSubmission(
         /def\s+craft_token\s*\(\s*seed\s*\)\s*:/.test(normalized) &&
         /return\s+seed\s*\*\s*3\s*\+\s*9/.test(normalized) &&
         /print\s*\(\s*craft_token\s*\(\s*7\s*\)\s*\)/.test(normalized);
+
+      ok = ok && hasMissionBlockStructure(module.id, normalized);
       return ok
         ? pass('30\n[EXIT 0] craft_token(7) returned 30.')
         : fail('Define `craft_token(seed)` returning `seed * 3 + 9` and print `craft_token(7)`.', 2);
@@ -369,6 +414,8 @@ export function evaluatePythonSubmission(
         /open\s*\(\s*["']corrupt\.log["']/.test(normalized) &&
         /\bexcept\b.*:/.test(normalized) &&
         /print\s*\(\s*["']SAFE_EXTRACT["']\s*\)/.test(normalized);
+
+      ok = ok && hasMissionBlockStructure(module.id, normalized);
       return ok
         ? pass('SAFE_EXTRACT\n[EXIT 0] Trap exception caught cleanly without crash.')
         : fail('Handle the trap with `except` and print `"SAFE_EXTRACT"`.', 4);
@@ -382,6 +429,8 @@ export function evaluatePythonSubmission(
         /return\s+["']ROOT_UNLOCKED["']/.test(normalized) &&
         /core\s*=\s*OverlordOverride\s*\(/.test(normalized) &&
         /print\s*\(\s*core\.shutdown\s*\(\s*\)\s*\)/.test(normalized);
+
+      ok = ok && hasMissionBlockStructure(module.id, normalized);
       return ok
         ? pass('ROOT_UNLOCKED\n[EXIT 0] AI OVERLORD KERNEL OVERWRITTEN.')
         : fail('OverlordOverride.shutdown() must return "ROOT_UNLOCKED" and be printed.', 6);
