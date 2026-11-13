@@ -50,9 +50,9 @@ for name, score in power.items():
 
 export function App() {
   const [savedProgress] = useState(loadProgress);
-  const [screen, setScreen] = useState<NeoScreen>('ONBOARDING');
+  const [screen, setScreen] = useState<NeoScreen>(savedProgress.hasEnteredHub ? 'HUB' : 'ONBOARDING');
   const [language, setLanguage] = useState<AppLanguage>(savedProgress.language);
-  const [activeModuleId, setActiveModuleId] = useState<number>(1);
+  const [activeModuleId, setActiveModuleId] = useState<number>(savedProgress.activeModuleId ?? 1);
   const [isSandboxMode, setIsSandboxMode] = useState<boolean>(false);
   const [completedIds, setCompletedIds] = useState<number[]>(savedProgress.completedIds);
   const [xp, setXp] = useState<number>(savedProgress.xp);
@@ -72,13 +72,20 @@ export function App() {
   const [ramSnapshot, setRamSnapshot] = useState<RamVariableItem[]>([]);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [pulseMode, setPulseMode] = useState<'idle' | 'deploy' | 'success' | 'alert'>('idle');
-  const [audioEnabled, setAudioEnabled] = useState<boolean>(true);
+  const [audioEnabled, setAudioEnabled] = useState<boolean>(savedProgress.audioEnabled ?? true);
+
+  useEffect(() => {
+    soundEngine.enabled = audioEnabled;
+  }, [audioEnabled]);
   const [sourceDrawerOpen, setSourceDrawerOpen] = useState<boolean>(false);
   const [codexOpen, setCodexOpen] = useState<boolean>(false);
 
   useEffect(() => {
-    saveProgress({ completedIds, xp, ramMb, traceIntegrity, language, drafts });
-  }, [completedIds, xp, ramMb, traceIntegrity, language, drafts]);
+    saveProgress({
+      completedIds, xp, ramMb, traceIntegrity, language, drafts,
+      activeModuleId, hasEnteredHub: screen !== 'ONBOARDING', audioEnabled,
+    });
+  }, [completedIds, xp, ramMb, traceIntegrity, language, drafts, activeModuleId, screen, audioEnabled]);
 
   useEffect(() => {
     const key = isSandboxMode ? 'sandbox' : String(activeModuleId);
