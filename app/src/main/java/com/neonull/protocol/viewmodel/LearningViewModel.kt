@@ -526,12 +526,14 @@ class LearningViewModel(
             val header = stripTrailingComment(lines[headerIndex]).trim()
             if (!headerPattern.matches(header)) continue
             val headerIndent = lines[headerIndex].takeWhile { it == ' ' || it == '\t' }.length
+            var suiteIndent: Int? = null
             for (bodyIndex in headerIndex + 1 until lines.size) {
                 val body = stripTrailingComment(lines[bodyIndex])
                 if (body.isBlank()) continue
                 val bodyIndent = body.takeWhile { it == ' ' || it == '\t' }.length
                 if (bodyIndent <= headerIndent) break
-                if (statementPattern.matches(body.trim())) return true
+                if (suiteIndent == null) suiteIndent = bodyIndent
+                if (bodyIndent == suiteIndent && statementPattern.matches(body.trim())) return true
             }
         }
         return false
