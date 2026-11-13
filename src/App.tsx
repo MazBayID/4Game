@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -36,6 +36,7 @@ import {
 } from './data/neoNullData';
 import { RamVariableItem, RichExecutionResult, pyodideClient } from './lib/pyodideRuntime';
 import { getRankTitle } from './lib/pythonHighlightAndEval';
+import { loadProgress, saveProgress } from './lib/progressStorage';
 import { soundEngine } from './lib/soundEngine';
 
 type NeoScreen = 'ONBOARDING' | 'HUB' | 'THEORY' | 'TERMINAL';
@@ -48,14 +49,15 @@ for name, score in power.items():
     print(f"{name} -> {score} MHz")`;
 
 export function App() {
+  const [savedProgress] = useState(loadProgress);
   const [screen, setScreen] = useState<NeoScreen>('ONBOARDING');
-  const [language, setLanguage] = useState<AppLanguage>('EN');
+  const [language, setLanguage] = useState<AppLanguage>(savedProgress.language);
   const [activeModuleId, setActiveModuleId] = useState<number>(1);
   const [isSandboxMode, setIsSandboxMode] = useState<boolean>(false);
-  const [completedIds, setCompletedIds] = useState<number[]>([]);
-  const [xp, setXp] = useState<number>(0);
-  const [ramMb, setRamMb] = useState<number>(128);
-  const [traceIntegrity, setTraceIntegrity] = useState<number>(100);
+  const [completedIds, setCompletedIds] = useState<number[]>(savedProgress.completedIds);
+  const [xp, setXp] = useState<number>(savedProgress.xp);
+  const [ramMb, setRamMb] = useState<number>(savedProgress.ramMb);
+  const [traceIntegrity, setTraceIntegrity] = useState<number>(savedProgress.traceIntegrity);
   const [moduleAttemptFailed, setModuleAttemptFailed] = useState<boolean>(false);
   const [codeBuffer, setCodeBuffer] = useState<string>(CURRICULUM_MODULES[0].starterCode);
   const [hintLevel, setHintLevel] = useState<number>(0);
@@ -70,6 +72,10 @@ export function App() {
   const [audioEnabled, setAudioEnabled] = useState<boolean>(true);
   const [sourceDrawerOpen, setSourceDrawerOpen] = useState<boolean>(false);
   const [codexOpen, setCodexOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    saveProgress({ completedIds, xp, ramMb, traceIntegrity, language });
+  }, [completedIds, xp, ramMb, traceIntegrity, language]);
 
   const strings = UI_STRINGS[language];
   const activeModule =
