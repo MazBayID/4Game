@@ -5,6 +5,9 @@ on:
     branches:
       - main
       - python-runtime-poc
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       build_type:
