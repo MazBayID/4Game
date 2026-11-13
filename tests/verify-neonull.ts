@@ -32,14 +32,14 @@ assert(brokenRes.errorLines.includes(1), 'Line 1 should be flagged in errorLines
 
 const twoSpaceIndent = evaluatePythonSubmission(
   CURRICULUM_MODULES[1],
-  'threat = 25\\nif threat >= 50:\\n  print("DENIED")\\nelse:\\n  print("ALLOW")',
+  'threat = 25\nif threat >= 50:\n  print("DENIED")\nelse:\n  print("ALLOW")',
   'EN'
 );
 assert(twoSpaceIndent.isSuccess, 'Valid Python blocks using two-space indentation must be accepted');
 
 const missingIndent = evaluatePythonSubmission(
   CURRICULUM_MODULES[1],
-  'threat = 25\\nif threat >= 50:\\nprint("DENIED")\\nelse:\\n  print("ALLOW")',
+  'threat = 25\nif threat >= 50:\nprint("DENIED")\nelse:\n  print("ALLOW")',
   'EN'
 );
 assert(missingIndent.isSyntaxError, 'A Python block without indentation must be rejected');
