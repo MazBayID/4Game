@@ -262,9 +262,9 @@ def grade(module_id, source, stdin_text=""):
     passed_structure, feedback = _grade_structure(module_id, tree)
     execution_source = source
     if module_id == 5:
-        execution_source += "\\nprint(craft_token(7))\\nprint(craft_token(-2))"
+        execution_source += "\nprint(craft_token(7))\nprint(craft_token(-2))"
     elif module_id == 7:
-        execution_source += '\\nprint(OverlordOverride("TEST-KEY").shutdown())'
+        execution_source += '\nprint(OverlordOverride("TEST-KEY").shutdown())'
 
     execution = json.loads(execute(execution_source, stdin_text))
     output_complete = not execution.get("stdoutTruncated", False) and not execution.get("stderrTruncated", False)
