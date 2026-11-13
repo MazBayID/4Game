@@ -1,0 +1,699 @@
+{
+  "schemaVersion": 1,
+  "assetRoot": "byteghost",
+  "notes": "Planned assets are catalog entries; add the PNG at its path to activate it. Sprite frames are read left-to-right, top-to-bottom.",
+  "assets": [
+    {
+      "key": "ic_dashboard",
+      "category": "icon",
+      "path": "byteghost/icons/ic_dashboard.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_campaign",
+      "category": "icon",
+      "path": "byteghost/icons/ic_campaign.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_lesson",
+      "category": "icon",
+      "path": "byteghost/icons/ic_lesson.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_practice",
+      "category": "icon",
+      "path": "byteghost/icons/ic_practice.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_challenge",
+      "category": "icon",
+      "path": "byteghost/icons/ic_challenge.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_operation",
+      "category": "icon",
+      "path": "byteghost/icons/ic_operation.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_mastery",
+      "category": "icon",
+      "path": "byteghost/icons/ic_mastery.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_codex",
+      "category": "icon",
+      "path": "byteghost/icons/ic_codex.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_inventory",
+      "category": "icon",
+      "path": "byteghost/icons/ic_inventory.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_profile",
+      "category": "icon",
+      "path": "byteghost/icons/ic_profile.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_settings",
+      "category": "icon",
+      "path": "byteghost/icons/ic_settings.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_exit",
+      "category": "icon",
+      "path": "byteghost/icons/ic_exit.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_xp",
+      "category": "icon",
+      "path": "byteghost/icons/ic_xp.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_level",
+      "category": "icon",
+      "path": "byteghost/icons/ic_level.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_ram",
+      "category": "icon",
+      "path": "byteghost/icons/ic_ram.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_trace",
+      "category": "icon",
+      "path": "byteghost/icons/ic_trace.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_credit",
+      "category": "icon",
+      "path": "byteghost/icons/ic_credit.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_energy",
+      "category": "icon",
+      "path": "byteghost/icons/ic_energy.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_rank",
+      "category": "icon",
+      "path": "byteghost/icons/ic_rank.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_achievement",
+      "category": "icon",
+      "path": "byteghost/icons/ic_achievement.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_streak",
+      "category": "icon",
+      "path": "byteghost/icons/ic_streak.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_completed",
+      "category": "icon",
+      "path": "byteghost/icons/ic_completed.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_locked",
+      "category": "icon",
+      "path": "byteghost/icons/ic_locked.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_unlocked",
+      "category": "icon",
+      "path": "byteghost/icons/ic_unlocked.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_python",
+      "category": "icon",
+      "path": "byteghost/icons/ic_python.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_code",
+      "category": "icon",
+      "path": "byteghost/icons/ic_code.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_terminal",
+      "category": "icon",
+      "path": "byteghost/icons/ic_terminal.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_run",
+      "category": "icon",
+      "path": "byteghost/icons/ic_run.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_stop",
+      "category": "icon",
+      "path": "byteghost/icons/ic_stop.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_reset",
+      "category": "icon",
+      "path": "byteghost/icons/ic_reset.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_hint",
+      "category": "icon",
+      "path": "byteghost/icons/ic_hint.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_solution",
+      "category": "icon",
+      "path": "byteghost/icons/ic_solution.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_copy",
+      "category": "icon",
+      "path": "byteghost/icons/ic_copy.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_console",
+      "category": "icon",
+      "path": "byteghost/icons/ic_console.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_stdout",
+      "category": "icon",
+      "path": "byteghost/icons/ic_stdout.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_stderr",
+      "category": "icon",
+      "path": "byteghost/icons/ic_stderr.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_debug",
+      "category": "icon",
+      "path": "byteghost/icons/ic_debug.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_variable",
+      "category": "icon",
+      "path": "byteghost/icons/ic_variable.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_function",
+      "category": "icon",
+      "path": "byteghost/icons/ic_function.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_database",
+      "category": "icon",
+      "path": "byteghost/icons/ic_database.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_string",
+      "category": "icon",
+      "path": "byteghost/icons/ic_string.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_integer",
+      "category": "icon",
+      "path": "byteghost/icons/ic_integer.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_float",
+      "category": "icon",
+      "path": "byteghost/icons/ic_float.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_boolean",
+      "category": "icon",
+      "path": "byteghost/icons/ic_boolean.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_list",
+      "category": "icon",
+      "path": "byteghost/icons/ic_list.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_tuple",
+      "category": "icon",
+      "path": "byteghost/icons/ic_tuple.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_dictionary",
+      "category": "icon",
+      "path": "byteghost/icons/ic_dictionary.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_set",
+      "category": "icon",
+      "path": "byteghost/icons/ic_set.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_condition",
+      "category": "icon",
+      "path": "byteghost/icons/ic_condition.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_loop",
+      "category": "icon",
+      "path": "byteghost/icons/ic_loop.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_class",
+      "category": "icon",
+      "path": "byteghost/icons/ic_class.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_object",
+      "category": "icon",
+      "path": "byteghost/icons/ic_object.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_lambda",
+      "category": "icon",
+      "path": "byteghost/icons/ic_lambda.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_recursion",
+      "category": "icon",
+      "path": "byteghost/icons/ic_recursion.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_exception",
+      "category": "icon",
+      "path": "byteghost/icons/ic_exception.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_file",
+      "category": "icon",
+      "path": "byteghost/icons/ic_file.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_json",
+      "category": "icon",
+      "path": "byteghost/icons/ic_json.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_async",
+      "category": "icon",
+      "path": "byteghost/icons/ic_async.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_network",
+      "category": "icon",
+      "path": "byteghost/icons/ic_network.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "ic_security",
+      "category": "icon",
+      "path": "byteghost/icons/ic_security.png",
+      "width": 64,
+      "height": 64
+    },
+    {
+      "key": "glitch_idle",
+      "category": "spritesheet",
+      "path": "byteghost/sprites/glitch_idle.png",
+      "width": 1024,
+      "height": 1024,
+      "columns": 4,
+      "rows": 4,
+      "frameCount": 16,
+      "fps": 8,
+      "loop": true
+    },
+    {
+      "key": "glitch_talking",
+      "category": "spritesheet",
+      "path": "byteghost/sprites/glitch_talking.png",
+      "width": 1024,
+      "height": 1024,
+      "columns": 4,
+      "rows": 4,
+      "frameCount": 16,
+      "fps": 12,
+      "loop": true
+    },
+    {
+      "key": "glitch_happy",
+      "category": "spritesheet",
+      "path": "byteghost/sprites/glitch_happy.png",
+      "width": 1024,
+      "height": 512,
+      "columns": 4,
+      "rows": 2,
+      "frameCount": 8,
+      "fps": 10,
+      "loop": false
+    },
+    {
+      "key": "glitch_warning",
+      "category": "spritesheet",
+      "path": "byteghost/sprites/glitch_warning.png",
+      "width": 1024,
+      "height": 512,
+      "columns": 4,
+      "rows": 2,
+      "frameCount": 8,
+      "fps": 10,
+      "loop": false
+    },
+    {
+      "key": "glitch_angry",
+      "category": "spritesheet",
+      "path": "byteghost/sprites/glitch_angry.png",
+      "width": 1024,
+      "height": 512,
+      "columns": 4,
+      "rows": 2,
+      "frameCount": 8,
+      "fps": 10,
+      "loop": false
+    },
+    {
+      "key": "overlord_idle",
+      "category": "spritesheet",
+      "path": "byteghost/sprites/overlord_idle.png",
+      "width": 1024,
+      "height": 1024,
+      "columns": 4,
+      "rows": 4,
+      "frameCount": 16,
+      "fps": 8,
+      "loop": true
+    },
+    {
+      "key": "overlord_attack",
+      "category": "spritesheet",
+      "path": "byteghost/sprites/overlord_attack.png",
+      "width": 1024,
+      "height": 1024,
+      "columns": 4,
+      "rows": 4,
+      "frameCount": 16,
+      "fps": 12,
+      "loop": false
+    },
+    {
+      "key": "overlord_damage",
+      "category": "spritesheet",
+      "path": "byteghost/sprites/overlord_damage.png",
+      "width": 1024,
+      "height": 512,
+      "columns": 4,
+      "rows": 2,
+      "frameCount": 8,
+      "fps": 10,
+      "loop": false
+    },
+    {
+      "key": "fx_data_stream",
+      "category": "effect",
+      "path": "byteghost/effects/fx_data_stream.png",
+      "width": 1024,
+      "height": 1024,
+      "columns": 4,
+      "rows": 4,
+      "frameCount": 16,
+      "fps": 12,
+      "loop": false
+    },
+    {
+      "key": "fx_glitch",
+      "category": "effect",
+      "path": "byteghost/effects/fx_glitch.png",
+      "width": 1024,
+      "height": 1024,
+      "columns": 4,
+      "rows": 4,
+      "frameCount": 16,
+      "fps": 12,
+      "loop": false
+    },
+    {
+      "key": "fx_breach",
+      "category": "effect",
+      "path": "byteghost/effects/fx_breach.png",
+      "width": 1024,
+      "height": 1024,
+      "columns": 4,
+      "rows": 4,
+      "frameCount": 16,
+      "fps": 12,
+      "loop": false
+    },
+    {
+      "key": "fx_explosion",
+      "category": "effect",
+      "path": "byteghost/effects/fx_explosion.png",
+      "width": 1024,
+      "height": 1024,
+      "columns": 4,
+      "rows": 4,
+      "frameCount": 16,
+      "fps": 12,
+      "loop": false
+    },
+    {
+      "key": "fx_firewall_break",
+      "category": "effect",
+      "path": "byteghost/effects/fx_firewall_break.png",
+      "width": 1024,
+      "height": 1024,
+      "columns": 4,
+      "rows": 4,
+      "frameCount": 16,
+      "fps": 12,
+      "loop": false
+    },
+    {
+      "key": "fx_scan",
+      "category": "effect",
+      "path": "byteghost/effects/fx_scan.png",
+      "width": 1024,
+      "height": 512,
+      "columns": 4,
+      "rows": 2,
+      "frameCount": 8,
+      "fps": 12,
+      "loop": false
+    },
+    {
+      "key": "fx_energy_pulse",
+      "category": "effect",
+      "path": "byteghost/effects/fx_energy_pulse.png",
+      "width": 1024,
+      "height": 512,
+      "columns": 4,
+      "rows": 2,
+      "frameCount": 8,
+      "fps": 12,
+      "loop": false
+    },
+    {
+      "key": "fx_data_packet",
+      "category": "effect",
+      "path": "byteghost/effects/fx_data_packet.png",
+      "width": 1024,
+      "height": 512,
+      "columns": 4,
+      "rows": 2,
+      "frameCount": 8,
+      "fps": 12,
+      "loop": false
+    },
+    {
+      "key": "fx_success",
+      "category": "effect",
+      "path": "byteghost/effects/fx_success.png",
+      "width": 1024,
+      "height": 512,
+      "columns": 4,
+      "rows": 2,
+      "frameCount": 8,
+      "fps": 12,
+      "loop": false
+    },
+    {
+      "key": "fx_error",
+      "category": "effect",
+      "path": "byteghost/effects/fx_error.png",
+      "width": 1024,
+      "height": 512,
+      "columns": 4,
+      "rows": 2,
+      "frameCount": 8,
+      "fps": 12,
+      "loop": false
+    },
+    {
+      "key": "bg_hacker_base",
+      "category": "background",
+      "path": "byteghost/backgrounds/bg_hacker_base.png",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "key": "bg_server_room",
+      "category": "background",
+      "path": "byteghost/backgrounds/bg_server_room.png",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "key": "bg_security_facility",
+      "category": "background",
+      "path": "byteghost/backgrounds/bg_security_facility.png",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "key": "bg_cyberspace",
+      "category": "background",
+      "path": "byteghost/backgrounds/bg_cyberspace.png",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "key": "bg_ai_lab",
+      "category": "background",
+      "path": "byteghost/backgrounds/bg_ai_lab.png",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "key": "bg_overlord_domain",
+      "category": "background",
+      "path": "byteghost/backgrounds/bg_overlord_domain.png",
+      "width": 1280,
+      "height": 720
+    },
+    {
+      "key": "glitch_portrait",
+      "category": "character",
+      "path": "byteghost/characters/glitch_portrait.png",
+      "width": 512,
+      "height": 512
+    },
+    {
+      "key": "overlord_portrait",
+      "category": "character",
+      "path": "byteghost/characters/overlord_portrait.png",
+      "width": 512,
+      "height": 512
+    }
+  ]
+}

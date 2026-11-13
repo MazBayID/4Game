@@ -93,8 +93,7 @@ jobs:
         with:
           gradle-version: "8.11.1"
 
-      # Google ATD images are trimmed for automated testing. Compile SDK stays 35.
-      - name: Run CPython + Binder instrumentation tests
+      - name: Run ordered CPython, Binder, and asset tests
         uses: ReactiveCircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -107,33 +106,4 @@ jobs:
           emulator-boot-timeout: 600
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
-          script: |
-            echo "=== Emulator diagnostics ==="
-            adb devices -l
-            adb shell getprop ro.build.version.sdk
-            adb shell getprop sys.boot_completed
-
-            TEST_CLASS="com.neonull.protocol.runtime.PythonExecutionServiceInstrumentedTest"
-            test_exit=0
-
-            echo "=== Stage 1: Binder without CPython ==="
-            gradle connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$TEST_CLASS#binderPingReturnsWithoutStartingPython" || test_exit=$?
-
-            if [ "$test_exit" -eq 0 ]; then
-              echo "=== Stage 2: CPython print() ==="
-              gradle connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$TEST_CLASS#executesPythonAndReturnsStdoutOverBinder" || test_exit=$?
-            fi
-
-            if [ "$test_exit" -eq 0 ]; then
-              echo "=== Stage 3: Python exception and service recovery ==="
-              gradle connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$TEST_CLASS#returnsPythonExceptionOverBinderWithoutCrashingService" || test_exit=$?
-            fi
-
-            if [ "$test_exit" -eq 0 ]; then
-              echo "=== Stage 4: Output stress and service recovery ==="
-              gradle connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class="$TEST_CLASS#capsLargeOutputAndKeepsServiceResponsive" || test_exit=$?
-            fi
-
-            echo "=== Runtime service and Android binding diagnostics ==="
-            adb logcat -d -v threadtime | grep -E "ByteGhostRuntimeTest|ByteGhostPythonService|ActivityManager|AndroidRuntime|SecurityException|Permission Denial" || true
-            exit "$test_exit"
+          script: bash .github/scripts/run-runtime-instrumentation.sh
