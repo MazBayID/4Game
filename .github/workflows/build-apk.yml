@@ -3,7 +3,7 @@ name: Build Android APK
 on:
   push:
     branches:
-      - mod-development
+      - main
   workflow_dispatch:
     inputs:
       build_type:
