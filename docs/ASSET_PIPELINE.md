@@ -56,3 +56,23 @@ The manifest currently includes planned keys for navigation, progression, Python
 5. Prefer Compose `Image` for static assets. For animation, drive `loadFrame` from a lifecycle-aware frame clock; do not create one coroutine/timer per frame per item.
 6. Keep image decoding off the main thread before production use. The current catalog is a lightweight foundation and its synchronous decode methods should be called from an IO dispatcher.
 7. Add tests for manifest validity, missing-file behavior, dimensions, and sprite-frame bounds whenever assets are imported.
+
+
+## Compose rendering
+
+Use `GameAssetSprite(catalog, assetKey, modifier, playing)` for a manifest-backed image or sprite animation. It decodes the cached bitmap on an IO dispatcher, crops frames using the manifest grid, and advances according to `fps` and `loop`. If the planned image file is not present or its dimensions do not match, the composable displays the supplied fallback content. The renderer does not create placeholder art or modify the frozen screen layout.
+
+Example:
+
+```kotlin
+GameAssetSprite(
+    catalog = assetCatalog,
+    assetKey = "glitch_idle",
+    modifier = Modifier.size(112.dp),
+    playing = true
+) {
+    GlitchMentorFallback()
+}
+```
+
+Keep one `GameAssetCatalog` instance at the app/game layer and share it; do not parse the manifest in each composable.
