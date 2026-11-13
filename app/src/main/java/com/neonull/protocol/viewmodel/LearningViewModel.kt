@@ -9,6 +9,8 @@ import com.neonull.protocol.data.ProtocolModule
 import com.neonull.protocol.localization.AppLanguage
 import com.neonull.protocol.localization.LanguageManager
 import com.neonull.protocol.localization.LocalizedText
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -108,6 +110,8 @@ class LearningViewModel(
         Context.MODE_PRIVATE
     )
 
+    private var draftSaveJob: Job? = null
+
     private val _uiState = MutableStateFlow(restoreProgress())
     val uiState: StateFlow<LearningUiState> = _uiState.asStateFlow()
 
@@ -146,7 +150,9 @@ class LearningViewModel(
             completedModuleIds = completedIds,
             xp = progressPreferences.getInt("xp", 0).coerceAtLeast(0),
             ramMb = progressPreferences.getInt("ram_mb", 128).coerceIn(128, 4096),
-            traceIntegrity = progressPreferences.getInt("trace_integrity", 100).coerceIn(20, 100)
+            traceIntegrity = progressPreferences.getInt("trace_integrity", 100).coerceIn(20, 100),
+            codeBuffer = loadDraft(activeModuleId)
+                ?: CurriculumRepository.modules.first { it.id == activeModuleId }.starterCode
         )
     }
 
@@ -161,6 +167,21 @@ class LearningViewModel(
             .putInt("ram_mb", state.ramMb.coerceIn(128, 4096))
             .putInt("trace_integrity", state.traceIntegrity.coerceIn(20, 100))
             .apply()
+    }
+
+    private fun loadDraft(moduleId: Int, sandbox: Boolean = false): String? {
+        val key = if (sandbox) "draft_sandbox" else "draft_module_$moduleId"
+        return progressPreferences.getString(key, null)
+            ?.takeIf { it.length <= MAX_DRAFT_LENGTH }
+    }
+
+    private fun scheduleDraftSave(code: String, moduleId: Int, sandbox: Boolean = false) {
+        draftSaveJob?.cancel()
+        draftSaveJob = viewModelScope.launch {
+            delay(DRAFT_SAVE_DEBOUNCE_MS)
+            val key = if (sandbox) "draft_sandbox" else "draft_module_$moduleId"
+            progressPreferences.edit().putString(key, code.take(MAX_DRAFT_LENGTH)).apply()
+        }
     }
 
     fun getStrings(language: AppLanguage = _uiState.value.language) =
@@ -238,7 +259,7 @@ class LearningViewModel(
                 currentScreen = targetScreen,
                 isSandboxMode = false,
                 activeModuleId = module.id,
-                codeBuffer = module.starterCode,
+                codeBuffer = loadDraft(module.id) ?: module.starterCode,
                 hintLevel = 0,
                 moduleAttemptFailed = false,
                 glitchDialogue = module.glitchIntroDialogue.resolve(state.language),
@@ -249,6 +270,8 @@ class LearningViewModel(
     }
 
     fun updateCode(newCode: String) {
+        val state = _uiState.value
+        scheduleDraftSave(newCode, state.activeModuleId, state.isSandboxMode)
         _uiState.update { it.copy(codeBuffer = newCode) }
     }
 
@@ -256,6 +279,7 @@ class LearningViewModel(
         _uiState.update { state ->
             val current = state.codeBuffer
             val updated = if (current.isBlank()) snippet else "$current\n$snippet"
+            scheduleDraftSave(updated, state.activeModuleId, state.isSandboxMode)
             state.copy(codeBuffer = updated)
         }
     }
@@ -264,6 +288,7 @@ class LearningViewModel(
         _uiState.update { state ->
             if (state.isSandboxMode) {
                 val strings = languageManager.getUiStrings(state.language)
+                scheduleDraftSave(SANDBOX_STARTER_CODE, state.activeModuleId, sandbox = true)
                 return@update state.copy(
                     codeBuffer = SANDBOX_STARTER_CODE,
                     hintLevel = 0,
@@ -273,6 +298,7 @@ class LearningViewModel(
                 )
             }
             val mod = state.activeModule
+            scheduleDraftSave(mod.starterCode, mod.id)
             state.copy(
                 codeBuffer = mod.starterCode,
                 hintLevel = 0,
@@ -307,7 +333,7 @@ class LearningViewModel(
             state.copy(
                 activeModuleId = nextMod.id,
                 currentScreen = NeoScreen.THEORY,
-                codeBuffer = nextMod.starterCode,
+                codeBuffer = loadDraft(nextMod.id) ?: nextMod.starterCode,
                 hintLevel = 0,
                 moduleAttemptFailed = false,
                 isWarningState = nextMod.isBossStage,
@@ -530,6 +556,8 @@ class LearningViewModel(
     }
 
     companion object {
+        private const val MAX_DRAFT_LENGTH = 32_768
+        private const val DRAFT_SAVE_DEBOUNCE_MS = 400L
         val SANDBOX_STARTER_CODE = """
             # NEO-NULL Python Free-Play Sandbox
             agent = "Null-Agent"
