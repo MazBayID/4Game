@@ -55,7 +55,7 @@ import com.neonull.protocol.viewmodel.LearningUiState
  * EXAPUNKS / Hacknet-inspired 3-Panel Split-Screen Terminal Deck:
  * 1. Top Panel: Status HUD (RAM, XP, Firewall Health) + GLITCH AI Mentor Briefing & Objective
  * 2. Center Panel: Flexible-height Code Editor with line-number gutter & live Python highlighting
- * 3. Bottom Panel: Prominent Crimson Red [ RUN EXPLOIT ] control + Docked Output / RAM Console
+ * 3. Bottom Panel: Context-colored [ RUN EXPLOIT ] control + Docked Output / RAM Console
  */
 @Composable
 fun TerminalLearningScreen(
@@ -294,7 +294,7 @@ fun TerminalLearningScreen(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
                                 .clickable { onOpenCodex() }
-                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                                .padding(horizontal = 8.dp, vertical = 10.dp)
                         )
                         Text(
                             text = strings.resetCodeBtn,
@@ -348,7 +348,7 @@ fun TerminalLearningScreen(
             }
 
             // =========================================================================
-            // PANEL 3 (BOTTOM): CRIMSON [ RUN EXPLOIT ] & CONSOLE / RAM OUTPUT DECK
+            // PANEL 3 (BOTTOM): EXECUTION CONTROL & CONSOLE / RAM OUTPUT DECK
             // =========================================================================
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(
