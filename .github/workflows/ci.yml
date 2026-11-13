@@ -47,7 +47,7 @@ jobs:
 
   android-instrumentation:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -78,12 +78,26 @@ jobs:
         with:
           gradle-version: "8.11.1"
 
+      # The instrumentation tests only need Android framework + test runner APIs.
+      # Google ATD images are trimmed for automated testing and boot faster than
+      # the full Google APIs image. Compile SDK remains 35 in the separate job.
       - name: Run CPython + Binder instrumentation tests
         uses: ReactiveCircus/android-emulator-runner@v2
         with:
-          api-level: 35
-          target: google_apis
+          api-level: 34
+          target: google_atd
           arch: x86_64
-          profile: pixel_6
+          profile: pixel_2
+          cores: 2
+          ram-size: 2048M
+          heap-size: 512M
+          emulator-boot-timeout: 600
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           disable-animations: true
-          script: gradle connectedDebugAndroidTest
+          script: |
+            echo "=== Emulator diagnostics ==="
+            adb devices -l
+            adb shell getprop ro.build.version.sdk
+            adb shell getprop sys.boot_completed
+            echo "=== Running CPython + Binder instrumentation tests ==="
+            gradle connectedDebugAndroidTest
