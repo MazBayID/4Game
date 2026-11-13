@@ -68,7 +68,17 @@ class PythonExecutionServiceInstrumentedTest {
     }
 
     @Test
-    fun test05LoadsAssetManifestAndChecksPlannedEntries() {
+    fun test05RejectsOversizedSourceAndKeepsServiceResponsive() {
+        val oversized = JSONObject(executeThroughService(" ".repeat(128 * 1024 + 1)))
+        assertEquals(false, oversized.getBoolean("ok"))
+        assertEquals("SourceTooLarge", oversized.getString("errorType"))
+        val followUp = JSONObject(executeThroughService("print('AFTER_SIZE_LIMIT_OK')"))
+        assertTrue(followUp.getBoolean("ok"))
+        assertEquals("AFTER_SIZE_LIMIT_OK\\n", followUp.getString("stdout"))
+    }
+
+    @Test
+    fun test06LoadsAssetManifestAndChecksPlannedEntries() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val catalog = GameAssetCatalog.load(context)
         assertTrue("Asset manifest should contain planned entries", catalog.all.size >= 50)
