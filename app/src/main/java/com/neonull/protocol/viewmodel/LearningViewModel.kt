@@ -516,6 +516,57 @@ class LearningViewModel(
         return expr
     }
 
+    private fun hasIndentedStatementAfter(
+        code: String,
+        headerPattern: Regex,
+        statementPattern: Regex
+    ): Boolean {
+        val lines = code.lines()
+        for (headerIndex in lines.indices) {
+            val header = stripTrailingComment(lines[headerIndex]).trim()
+            if (!headerPattern.matches(header)) continue
+            val headerIndent = lines[headerIndex].takeWhile { it == ' ' || it == '\\t' }.length
+            for (bodyIndex in headerIndex + 1 until lines.size) {
+                val body = stripTrailingComment(lines[bodyIndex])
+                if (body.isBlank()) continue
+                val bodyIndent = body.takeWhile { it == ' ' || it == '\\t' }.length
+                if (bodyIndent <= headerIndent) break
+                if (statementPattern.matches(body.trim())) return true
+            }
+        }
+        return false
+    }
+
+    private fun hasMissionBlockStructure(moduleId: Int, code: String): Boolean {
+        return when (moduleId) {
+            4 -> hasIndentedStatementAfter(
+                code,
+                Regex("""for\\s+\\w+\\s+in\\s+range\\s*\\(\\s*5\\s*\\)\\s*:"""),
+                Regex("""packets\\s*(?:\\+=|=\\s*packets\\s*\\+)\\s*1\\b""")
+            )
+            5 -> hasIndentedStatementAfter(
+                code,
+                Regex("""def\\s+craft_token\\s*\\(\\s*seed\\s*\\)\\s*:"""),
+                Regex("""return\\s+seed\\s*\\*\\s*3\\s*\\+\\s*9\\b""")
+            )
+            6 -> hasIndentedStatementAfter(
+                code, Regex("""try\\s*:"""), Regex("""open\\s*\\(\\s*["']corrupt\\.log["']""")
+            ) && hasIndentedStatementAfter(
+                code, Regex("""except\\b.*:"""), Regex("""print\\s*\\(\\s*["']SAFE_EXTRACT["']\\s*\\)""")
+            )
+            7 -> hasIndentedStatementAfter(
+                code, Regex("""class\\s+OverlordOverride\\s*:"""), Regex("""def\\s+__init__\\s*\\(\\s*self\\s*,\\s*key\\s*\\)\\s*:""")
+            ) && hasIndentedStatementAfter(
+                code, Regex("""def\\s+__init__\\s*\\(\\s*self\\s*,\\s*key\\s*\\)\\s*:"""), Regex("""self\\.key\\s*=\\s*key""")
+            ) && hasIndentedStatementAfter(
+                code, Regex("""class\\s+OverlordOverride\\s*:"""), Regex("""def\\s+shutdown\\s*\\(\\s*self\\s*\\)\\s*:""")
+            ) && hasIndentedStatementAfter(
+                code, Regex("""def\\s+shutdown\\s*\\(\\s*self\\s*\\)\\s*:"""), Regex("""return\\s*["']ROOT_UNLOCKED["']""")
+            )
+            else -> true
+        }
+    }
+
     private fun firstFailedMissionCheckpoint(moduleId: Int, code: String): Pair<String, Int>? {
         val checks: List<Pair<Regex, Pair<String, Int>>> = when (moduleId) {
             1 -> listOf(
@@ -830,7 +881,10 @@ class LearningViewModel(
             Regex("""packets\s*(\+=|=\s*packets\s*\+)\s*1\b""").containsMatchIn(code) &&
             Regex("""print\s*\(\s*packets\s*\)""").containsMatchIn(code)
 
-        return if (ok) {
+        val structurallyValid = hasMissionBlockStructure(4, code)
+        val accepted = ok && structurallyValid
+
+        return if (accepted) {
             EvaluationResult(
                 isSuccess = true,
                 isSyntaxError = false,
@@ -859,7 +913,10 @@ class LearningViewModel(
             Regex("""return\s+seed\s*\*\s*3\s*\+\s*9""").containsMatchIn(code) &&
             Regex("""print\s*\(\s*craft_token\s*\(\s*7\s*\)\s*\)""").containsMatchIn(code)
 
-        return if (ok) {
+        val structurallyValid = hasMissionBlockStructure(5, code)
+        val accepted = ok && structurallyValid
+
+        return if (accepted) {
             EvaluationResult(
                 isSuccess = true,
                 isSyntaxError = false,
@@ -889,7 +946,10 @@ class LearningViewModel(
             Regex("""\bexcept\b.*:""").containsMatchIn(code) &&
             Regex("""print\s*\(\s*["']SAFE_EXTRACT["']\s*\)""").containsMatchIn(code)
 
-        return if (ok) {
+        val structurallyValid = hasMissionBlockStructure(6, code)
+        val accepted = ok && structurallyValid
+
+        return if (accepted) {
             EvaluationResult(
                 isSuccess = true,
                 isSyntaxError = false,
@@ -922,7 +982,10 @@ class LearningViewModel(
             Regex("""core\s*=\s*OverlordOverride\s*\(""").containsMatchIn(code) &&
             Regex("""print\s*\(\s*core\.shutdown\s*\(\s*\)\s*\)""").containsMatchIn(code)
 
-        return if (ok) {
+        val structurallyValid = hasMissionBlockStructure(7, code)
+        val accepted = ok && structurallyValid
+
+        return if (accepted) {
             EvaluationResult(
                 isSuccess = true,
                 isSyntaxError = false,
