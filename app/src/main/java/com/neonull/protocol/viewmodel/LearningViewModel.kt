@@ -564,14 +564,13 @@ class LearningViewModel(
             )
             else -> return "Unknown mission." to 1
         }
-        val failed = checks.firstOrNull { (pattern, _) -> !pattern.containsMatchIn(code) }?.second ?: return null
-        if (moduleId == 2 && failed.second == 2) {
+        if (moduleId == 2) {
             val threat = Regex("""threat\s*=\s*(\d+)""").find(code)?.groupValues?.get(1)?.toIntOrNull()
             if (threat != null && threat !in 0..49) {
                 return "Set threat below 50 so the ALLOW branch can be tested." to 1
             }
         }
-        return failed
+        return checks.firstOrNull { (pattern, _) -> !pattern.containsMatchIn(code) }?.second
     }
 
     private fun evaluatePythonSubmission(
