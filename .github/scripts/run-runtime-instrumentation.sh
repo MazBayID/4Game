@@ -1,26 +1,30 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-echo "=== ByteGhost Android instrumentation suite ==="
-echo "Tests are ordered: Binder ping, pre-start source limit, CPython stdout, exception recovery, output cap, asset manifest, progression prerequisites, input() stdin, oversized stdin rejection, six-phase curriculum completeness."
-gradle connectedDebugAndroidTest
-test_status=$?
+echo "=== ByteGhost host instrumentation suite ==="
+gradle :app:connectedDebugAndroidTest
+host_test_status=$?
+
+echo "=== ByteGhost companion runner instrumentation suite ==="
+if [ "$host_test_status" -eq 0 ]; then
+  gradle :runner:connectedDebugAndroidTest
+  runner_test_status=$?
+else
+  runner_test_status=0
+fi
 
 echo "=== Android runtime diagnostics ==="
 adb logcat -b all -d -v threadtime | grep -Ei \
-  "ByteGhostRuntimeTest|ByteGhostPythonService|Chaquopy|python|AndroidRuntime|FATAL EXCEPTION|am_crash|am_anr|lowmemorykiller|lmkd|ActivityManager|Process .* died|Killing .*com\\.neonull\\.protocol|tombstoned|DEBUG|libc|linker|SecurityException|Permission Denial" || true
+  "ByteGhostRuntimeTest|ByteGhostPythonService|ByteGhostRunner|Chaquopy|python|AndroidRuntime|FATAL EXCEPTION|am_crash|am_anr|lowmemorykiller|lmkd|ActivityManager|Process .* died|Killing .*com\\.neonull\\.protocol|tombstoned|DEBUG|libc|linker|SecurityException|Permission Denial" || true
 
-if [ "$test_status" -ne 0 ]; then
-  echo "=== Service state after instrumentation failure ==="
+if [ "$host_test_status" -ne 0 ] || [ "$runner_test_status" -ne 0 ]; then
+  echo "=== Relevant service state ==="
   adb shell dumpsys activity services com.neonull.protocol || true
-  echo "=== App process state after instrumentation failure ==="
-  adb shell dumpsys activity processes | grep -A 12 -B 4 -E "com\\.neonull\\.protocol|python_runtime" || true
-  echo "=== App memory state after instrumentation failure ==="
-  adb shell dumpsys meminfo com.neonull.protocol || true
-fi
-
-if [ "$test_status" -ne 0 ]; then
-  exit "$test_status"
+  adb shell dumpsys activity services com.neonull.protocol.runner || true
+  echo "=== Relevant process state ==="
+  adb shell dumpsys activity processes | grep -A 12 -B 4 -E "com\\.neonull\\.protocol" || true
+  adb shell dumpsys meminfo com.neonull.protocol.runner || true
+  exit 1
 fi
 
 python3 - <<'PY'
@@ -31,6 +35,8 @@ import xml.etree.ElementTree as ET
 result_roots = [
     Path("app/build/outputs/androidTest-results"),
     Path("app/build/reports/androidTests"),
+    Path("runner/build/outputs/androidTest-results"),
+    Path("runner/build/reports/androidTests"),
 ]
 reports = []
 for root in result_roots:
@@ -43,20 +49,17 @@ for report in reports:
         root = ET.parse(report).getroot()
     except ET.ParseError:
         continue
+    suites = list(root) if root.tag == "testsuites" else [root]
     if root.tag not in ("testsuite", "testsuites"):
         continue
-    if root.tag == "testsuites":
-        suites = list(root)
-    else:
-        suites = [root]
     for suite in suites:
         total += int(suite.attrib.get("tests", 0))
         failures += int(suite.attrib.get("failures", 0))
         errors += int(suite.attrib.get("errors", 0))
 
 print(f"Instrumentation report: tests={total}, failures={failures}, errors={errors}")
-if total < 10:
-    print("ERROR: expected all ten instrumentation tests to be discovered and executed.")
+if total < 12:
+    print("ERROR: expected the ten host tests and two runner tests.")
     sys.exit(2)
 if failures or errors:
     sys.exit(1)
