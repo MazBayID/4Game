@@ -16,20 +16,36 @@ import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
 import org.json.JSONObject
 import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 
 /** Separate-package runner. UID isolation is an OS boundary, not a perfect Python sandbox. */
 class PythonRunnerService : Service() {
     private lateinit var worker: HandlerThread
     private lateinit var messenger: Messenger
+    private lateinit var workerHandler: Handler
+    private val executing = AtomicBoolean(false)
     private val watchdog = Handler(Looper.getMainLooper())
 
     override fun onCreate() {
         super.onCreate()
         worker = HandlerThread("ByteGhost-Runner").apply { start() }
-        messenger = Messenger(Handler(worker.looper) { message ->
+        workerHandler = Handler(worker.looper)
+        messenger = Messenger(Handler(Looper.getMainLooper()) { message ->
             when (message.what) {
                 MSG_PING -> reply(message, MSG_PING_RESULT, "BINDER_OK")
-                MSG_EXECUTE -> execute(message)
+                MSG_EXECUTE -> {
+                    if (executing.compareAndSet(false, true)) {
+                        workerHandler.post {
+                            try {
+                                execute(message)
+                            } finally {
+                                executing.set(false)
+                            }
+                        }
+                    } else {
+                        sendJson(message.replyTo ?: return@Handler true, errorResult("RunnerBusy", "Only one execution is allowed at a time"))
+                    }
+                }
                 else -> Log.w(TAG, "Ignoring unknown message " + message.what)
             }
             true
