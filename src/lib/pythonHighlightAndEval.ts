@@ -218,6 +218,10 @@ function hasIndentedStatementAfter(
 }
 
 function hasMissionBlockStructure(moduleId: number, code: string): boolean {
+  if (moduleId === 2) {
+    return hasIndentedStatementAfter(code, /^if\s+threat\s*>=\s*50\s*:/, /^print\s*\(\s*["']DENIED["']\s*\)/) &&
+      hasIndentedStatementAfter(code, /^else\s*:/, /^print\s*\(\s*["']ALLOW["']\s*\)/);
+  }
   if (moduleId === 4) {
     return hasIndentedStatementAfter(code, /^for\s+\w+\s+in\s+range\s*\(\s*5\s*\)\s*:/, /^packets\s*(?:\+=|=\s*packets\s*\+)\s*1\b/);
   }
@@ -371,7 +375,8 @@ export function evaluatePythonSubmission(
         /print\s*\(\s*["']DENIED["']\s*\)/.test(normalized) &&
         /\belse\s*:/.test(normalized) &&
         /print\s*\(\s*["']ALLOW["']\s*\)/.test(normalized);
-      return ok
+      const missionPassed = ok && hasMissionBlockStructure(module.id, normalized);
+      return missionPassed
         ? pass('ALLOW\n[EXIT 0] Gatekeeper branch routed cleanly.')
         : fail('Expected threat < 50 with if/else printing DENIED or ALLOW.', 4);
     }
