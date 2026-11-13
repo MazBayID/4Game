@@ -62,12 +62,15 @@ class PythonRunnerServiceTest {
     @Test
     fun rejectsConcurrentExecutionInsteadOfQueueingIt() {
         val connection = bind(InstrumentationRegistry.getInstrumentation().targetContext)
+        val firstFinished = CountDownLatch(1)
         try {
-            connection.sendWithoutWaiting("import time; time.sleep(1); print('FIRST_DONE')")
+            connection.sendWithoutWaiting("import time; time.sleep(1); print('FIRST_DONE')") {
+                firstFinished.countDown()
+            }
             val second = JSONObject(connection.send("print('SHOULD_NOT_RUN')", "", MSG_RESULT))
             assertFalse(second.getBoolean("ok"))
             assertEquals("RunnerBusy", second.getString("errorType"))
-            Thread.sleep(1_500)
+            assertTrue("First execution did not finish", firstFinished.await(120, TimeUnit.SECONDS))
         } finally {
             connection.close()
         }
@@ -126,8 +129,11 @@ class PythonRunnerServiceTest {
         private val callback: ServiceConnection,
         private val remote: Messenger
     ) {
-        fun sendWithoutWaiting(source: String) {
-            val reply = Messenger(Handler(Looper.getMainLooper()) { true })
+        fun sendWithoutWaiting(source: String, onReply: () -> Unit) {
+            val reply = Messenger(Handler(Looper.getMainLooper()) {
+                onReply()
+                true
+            })
             remote.send(Message.obtain(null, PythonRunnerService.MSG_EXECUTE).apply {
                 data = Bundle().apply {
                     putString(PythonRunnerService.KEY_CODE, source)
