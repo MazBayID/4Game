@@ -249,7 +249,7 @@ function firstFailedMissionCheckpoint(moduleId: number, code: string): MissionCh
     ],
   };
   if (moduleId === 2) {
-    const threat = Number(code.match(/threat\\s*=\\s*(\\d+)/)?.[1] ?? NaN);
+    const threat = Number(code.match(/threat\s*=\s*(\d+)/)?.[1] ?? NaN);
     if (Number.isFinite(threat) && (threat < 0 || threat >= 50)) {
       return { message: 'Set threat below 50 so the ALLOW branch can be tested.', line: 1, pattern: /threat/ };
     }
