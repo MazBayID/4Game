@@ -7,7 +7,17 @@ gradle connectedDebugAndroidTest
 test_status=$?
 
 echo "=== Android runtime diagnostics ==="
-adb logcat -d -v threadtime | grep -E "ByteGhostRuntimeTest|ByteGhostPythonService|AndroidRuntime|SecurityException|Permission Denial" || true
+adb logcat -b all -d -v threadtime | grep -Ei \
+  "ByteGhostRuntimeTest|ByteGhostPythonService|Chaquopy|python|AndroidRuntime|FATAL EXCEPTION|am_crash|am_anr|lowmemorykiller|lmkd|ActivityManager|Process .* died|Killing .*com\\.neonull\\.protocol|tombstoned|DEBUG|libc|linker|SecurityException|Permission Denial" || true
+
+if [ "$test_status" -ne 0 ]; then
+  echo "=== Service state after instrumentation failure ==="
+  adb shell dumpsys activity services com.neonull.protocol || true
+  echo "=== App process state after instrumentation failure ==="
+  adb shell dumpsys activity processes | grep -A 12 -B 4 -E "com\\.neonull\\.protocol|python_runtime" || true
+  echo "=== App memory state after instrumentation failure ==="
+  adb shell dumpsys meminfo com.neonull.protocol || true
+fi
 
 if [ "$test_status" -ne 0 ]; then
   exit "$test_status"
