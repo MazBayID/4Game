@@ -30,6 +30,21 @@ const brokenRes = evaluatePythonSubmission(CURRICULUM_MODULES[1], brokenCode, 'E
 assert(!brokenRes.isSuccess && brokenRes.isSyntaxError, 'Missing colon should fail with syntax error');
 assert(brokenRes.errorLines.includes(1), 'Line 1 should be flagged in errorLines');
 
+const twoSpaceIndent = evaluatePythonSubmission(
+  CURRICULUM_MODULES[1],
+  'threat = 25\\nif threat >= 50:\\n  print("DENIED")\\nelse:\\n  print("ALLOW")',
+  'EN'
+);
+assert(twoSpaceIndent.isSuccess, 'Valid Python blocks using two-space indentation must be accepted');
+
+const missingIndent = evaluatePythonSubmission(
+  CURRICULUM_MODULES[1],
+  'threat = 25\\nif threat >= 50:\\nprint("DENIED")\\nelse:\\n  print("ALLOW")',
+  'EN'
+);
+assert(missingIndent.isSyntaxError, 'A Python block without indentation must be rejected');
+
+
 // 4. Verify passing solutions across all 7 modules
 const solutions: Record<number, string> = {
   1: 'agent = "Null-Agent"\nclearance = 1\nprint(agent)',
