@@ -153,12 +153,28 @@ const invalidExceptScope = evaluatePythonSubmission(
 );
 assert(!invalidExceptScope.isSuccess, 'Mission 6 must require SAFE_EXTRACT inside the except block');
 
+const nestedFakeExceptOutput = evaluatePythonSubmission(
+  CURRICULUM_MODULES[5],
+  'try:\\n    open("corrupt.log", "r")\\nexcept FileNotFoundError:\\n    def fake():\\n        print("SAFE_EXTRACT")\\nprint("SAFE_EXTRACT")',
+  'EN'
+);
+assert(!nestedFakeExceptOutput.isSuccess, 'Mission 6 must not accept output hidden inside a nested function');
+
+
 const invalidMethodScope = evaluatePythonSubmission(
   CURRICULUM_MODULES[6],
   'class OverlordOverride:\n    def __init__(self, key):\n        self.key = key\n    def shutdown(self):\n        pass\nreturn "ROOT_UNLOCKED"\ncore = OverlordOverride("NULL-2142")\nprint(core.shutdown())',
   'EN'
 );
 assert(!invalidMethodScope.isSuccess, 'Mission 7 must require ROOT_UNLOCKED return inside shutdown');
+
+const nestedFakeMethodReturn = evaluatePythonSubmission(
+  CURRICULUM_MODULES[6],
+  'class OverlordOverride:\\n    def __init__(self, key):\\n        self.key = key\\n    def shutdown(self):\\n        def fake():\\n            return "ROOT_UNLOCKED"\\ncore = OverlordOverride("NULL-2142")\\nprint(core.shutdown())',
+  'EN'
+);
+assert(!nestedFakeMethodReturn.isSuccess, 'Mission 7 must not accept a return hidden inside a nested function');
+
 
 console.log('Production Pyodide worker regex checks passed.');
 
