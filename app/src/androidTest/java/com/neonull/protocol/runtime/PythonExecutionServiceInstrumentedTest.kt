@@ -82,7 +82,7 @@ class PythonExecutionServiceInstrumentedTest {
 
         val followUp = JSONObject(executeThroughService("print('AFTER_STRESS_OK')"))
         assertTrue(followUp.getBoolean("ok"))
-        assertEquals("AFTER_STRESS_OK\\n", followUp.getString("stdout"))
+        assertEquals("AFTER_STRESS_OK\n", followUp.getString("stdout"))
     }
 
     private fun sendMessageThroughService(
