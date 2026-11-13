@@ -124,7 +124,7 @@ class LearningViewModel(
             AppLanguage.valueOf(progressPreferences.getString("language", AppLanguage.EN.name) ?: AppLanguage.EN.name)
         }.getOrDefault(AppLanguage.EN)
         val validModuleIds = CurriculumRepository.modules.map { it.id }.toSet()
-        val completedIds = progressPreferences.getStringSet("completed_modules", emptySet())
+        val completedIds = progressPreferences.getStringSet("completed_modules", mutableSetOf<String>())
             .orEmpty()
             .mapNotNull { it.toIntOrNull() }
             .filter { it in validModuleIds }
@@ -144,7 +144,7 @@ class LearningViewModel(
         progressPreferences.edit()
             .putString("language", state.language.name)
             .putBoolean("audio_enabled", state.audioEnabled)
-            .putStringSet("completed_modules", state.completedModuleIds.map(Int::toString).toSet())
+            .putStringSet("completed_modules", state.completedModuleIds.map { it.toString() }.toSet())
             .putInt("xp", state.xp.coerceAtLeast(0))
             .putInt("ram_mb", state.ramMb.coerceAtLeast(128))
             .putInt("trace_integrity", state.traceIntegrity.coerceIn(20, 100))
