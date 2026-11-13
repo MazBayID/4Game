@@ -74,18 +74,21 @@ data class LearningUiState(
         ProgressionRules.nextUnlockedModuleId(modules, completedModuleIds)
 
     fun rankTitle(lang: AppLanguage): String {
+        val totalLessons = modules.size.coerceAtLeast(1)
+        val rootbreakerThreshold = (totalLessons * 7 + 9) / 10
+        val cipherRunnerThreshold = (totalLessons * 4 + 9) / 10
         return when {
-            completedModuleIds.size >= 7 -> LocalizedText(
+            completedModuleIds.size >= totalLessons -> LocalizedText(
                 en = "Zero-Day Legend",
                 id = "Legenda Zero-Day",
                 ph = "Alamat ng Zero-Day"
             ).resolve(lang)
-            completedModuleIds.size >= 5 -> LocalizedText(
+            completedModuleIds.size >= rootbreakerThreshold -> LocalizedText(
                 en = "Rootbreaker",
                 id = "Pembobol Root",
                 ph = "Tagawasak ng Root"
             ).resolve(lang)
-            completedModuleIds.size >= 3 -> LocalizedText(
+            completedModuleIds.size >= cipherRunnerThreshold -> LocalizedText(
                 en = "Cipher Runner",
                 id = "Pelari Sandi",
                 ph = "Tagapagbukas ng Cipher"
