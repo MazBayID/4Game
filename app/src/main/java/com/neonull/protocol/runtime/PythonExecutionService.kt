@@ -58,7 +58,17 @@ class PythonExecutionService : Service() {
     private fun handleExecution(message: Message) {
         val replyTo = message.replyTo ?: return
         val code = message.data.getString(KEY_CODE).orEmpty()
-        val response = try {
+        val response = if (code.length > MAX_SOURCE_CHARS) {
+            JSONObject()
+                .put("ok", false)
+                .put("stdout", "")
+                .put("stderr", "")
+                .put("stdoutTruncated", false)
+                .put("stderrTruncated", false)
+                .put("errorType", "SourceTooLarge")
+                .put("traceback", JSONObject.NULL)
+                .toString()
+        } else try {
             if (!Python.isStarted()) {
                 Log.i(TAG, "Starting Chaquopy CPython")
                 Python.start(AndroidPlatform(applicationContext))
@@ -98,5 +108,6 @@ class PythonExecutionService : Service() {
         const val MSG_PING_RESULT = 4
         const val KEY_CODE = "code"
         const val KEY_RESULT = "result"
+        private const val MAX_SOURCE_CHARS = 128 * 1024
     }
 }
