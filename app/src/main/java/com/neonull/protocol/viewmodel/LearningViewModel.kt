@@ -516,6 +516,64 @@ class LearningViewModel(
         return expr
     }
 
+    private fun firstFailedMissionCheckpoint(moduleId: Int, code: String): Pair<String, Int>? {
+        val checks: List<Pair<Regex, Pair<String, Int>>> = when (moduleId) {
+            1 -> listOf(
+                Regex("""agent\s*=\s*["']Null-Agent["']""") to ("Create agent = \"Null-Agent\"." to 1),
+                Regex("""clearance\s*=\s*1\b""") to ("Set clearance to 1." to 2),
+                Regex("""print\s*\(\s*agent\s*\)""") to ("Display the agent variable with print(agent)." to 3)
+            )
+            2 -> listOf(
+                Regex("""threat\s*=\s*\d+""") to ("Assign a numeric value to threat." to 1),
+                Regex("""if\s+threat\s*>=\s*50\s*:""") to ("Add the if threat >= 50: condition." to 2),
+                Regex("""print\s*\(\s*["']DENIED["']\s*\)""") to ("Print DENIED inside the if branch." to 3),
+                Regex("""\belse\s*:""") to ("Add an else: branch." to 4),
+                Regex("""print\s*\(\s*["']ALLOW["']\s*\)""") to ("Print ALLOW inside the else branch." to 5)
+            )
+            3 -> listOf(
+                Regex("""shards\s*=\s*\[\s*["']K1["']\s*,\s*["']K2["']\s*\]""") to ("Initialize shards with K1 and K2." to 1),
+                Regex("""shards\.append\s*\(\s*["']K3["']\s*\)""") to ("Append K3 using shards.append(\"K3\")." to 2),
+                Regex("""vault\s*=\s*\{\s*["']code["']\s*:\s*77\s*\}""") to ("Set vault code to 77." to 3),
+                Regex("""print\s*\(\s*len\s*\(\s*shards\s*\)\s*\)""") to ("Print len(shards)." to 4)
+            )
+            4 -> listOf(
+                Regex("""packets\s*=\s*0\b""") to ("Initialize packets = 0." to 1),
+                Regex("""for\s+\w+\s+in\s+range\s*\(\s*5\s*\)\s*:""") to ("Create a for-loop using range(5)." to 2),
+                Regex("""packets\s*(?:\+=|=\s*packets\s*\+)\s*1\b""") to ("Increase packets by one inside the loop." to 3),
+                Regex("""print\s*\(\s*packets\s*\)""") to ("Print the final packets value." to 4)
+            )
+            5 -> listOf(
+                Regex("""def\s+craft_token\s*\(\s*seed\s*\)\s*:""") to ("Define craft_token(seed)." to 1),
+                Regex("""return\s+seed\s*\*\s*3\s*\+\s*9""") to ("Return seed * 3 + 9." to 2),
+                Regex("""print\s*\(\s*craft_token\s*\(\s*7\s*\)\s*\)""") to ("Call and print craft_token(7)." to 3)
+            )
+            6 -> listOf(
+                Regex("""\btry\s*:""") to ("Start exception handling with try:." to 1),
+                Regex("""open\s*\(\s*["']corrupt\.log["']""") to ("Open corrupt.log inside try." to 2),
+                Regex("""\bexcept\b.*:""") to ("Add an except handler." to 4),
+                Regex("""print\s*\(\s*["']SAFE_EXTRACT["']\s*\)""") to ("Print SAFE_EXTRACT in the handler." to 5)
+            )
+            7 -> listOf(
+                Regex("""class\s+OverlordOverride\b\s*:""") to ("Declare the OverlordOverride class." to 1),
+                Regex("""def\s+__init__\s*\(\s*self\s*,\s*key\s*\)\s*:""") to ("Create __init__(self, key)." to 2),
+                Regex("""self\.key\s*=\s*key""") to ("Store the key with self.key = key." to 3),
+                Regex("""def\s+shutdown\s*\(\s*self\s*\)\s*:""") to ("Define shutdown(self)." to 4),
+                Regex("""return\s*["']ROOT_UNLOCKED["']""") to ("Return ROOT_UNLOCKED." to 5),
+                Regex("""core\s*=\s*OverlordOverride\s*\(""") to ("Create an OverlordOverride instance named core." to 6),
+                Regex("""print\s*\(\s*core\.shutdown\s*\(\s*\)\s*\)""") to ("Print core.shutdown()." to 7)
+            )
+            else -> return "Unknown mission." to 1
+        }
+        val failed = checks.firstOrNull { (pattern, _) -> !pattern.containsMatchIn(code) }?.second ?: return null
+        if (moduleId == 2 && failed.second == 2) {
+            val threat = Regex("""threat\s*=\s*(\d+)""").find(code)?.groupValues?.get(1)?.toIntOrNull()
+            if (threat != null && threat !in 0..49) {
+                return "Set threat below 50 so the ALLOW branch can be tested." to 1
+            }
+        }
+        return failed
+    }
+
     private fun evaluatePythonSubmission(
         module: ProtocolModule,
         code: String,
@@ -541,10 +599,9 @@ class LearningViewModel(
         }
 
         val normalized = code.lines()
-            .filterNot { it.trim().startsWith("#") }
-            .joinToString("\n")
+            .joinToString("\n") { stripTrailingComment(it) }
 
-        return when (module.id) {
+        val result = when (module.id) {
             1 -> evaluateModule1(normalized, language, module, strings.testFailedPrefix)
             2 -> evaluateModule2(normalized, language, module, strings.testFailedPrefix)
             3 -> evaluateModule3(normalized, language, module, strings.testFailedPrefix)
@@ -554,6 +611,12 @@ class LearningViewModel(
             7 -> evaluateModule7(normalized, language, module, strings.testFailedPrefix)
             else -> EvaluationResult(false, false, "Unknown module", emptySet(), "")
         }
+        if (result.isSuccess || result.isSyntaxError) return result
+        val checkpoint = firstFailedMissionCheckpoint(module.id, normalized) ?: return result
+        return result.copy(
+            outputText = "${strings.testFailedPrefix}: ${checkpoint.first}",
+            errorLines = setOf(checkpoint.second)
+        )
     }
 
     companion object {
