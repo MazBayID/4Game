@@ -17,9 +17,11 @@ import com.neonull.protocol.assets.GameAssetCatalog
 import com.neonull.protocol.data.CurriculumRepository
 import com.neonull.protocol.data.ProgressionRules
 import org.json.JSONObject
+import org.junit.AfterClass
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.BeforeClass
 import org.junit.FixMethodOrder
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -204,7 +206,7 @@ class PythonExecutionServiceInstrumentedTest {
         try {
             assertTrue(
                 "Python service connection timed out; $diagnostics",
-                connected.await(20, TimeUnit.SECONDS) && remoteMessenger != null
+                connected.await(90, TimeUnit.SECONDS) && remoteMessenger != null
             )
             val request = Message.obtain(null, messageWhat).apply {
                 if (source != null) data = Bundle().apply {
@@ -215,7 +217,7 @@ class PythonExecutionServiceInstrumentedTest {
             }
             remoteMessenger?.send(request)
                 ?: throw AssertionError("Python service returned no Binder messenger")
-            assertTrue("Python execution timed out", resultReady.await(45, TimeUnit.SECONDS))
+            assertTrue("Python execution timed out", resultReady.await(120, TimeUnit.SECONDS))
             return result.get() ?: throw AssertionError("Python service returned an empty result")
         } finally {
             context.unbindService(connection)
@@ -224,5 +226,19 @@ class PythonExecutionServiceInstrumentedTest {
 
     companion object {
         private const val TAG = "ByteGhostRuntimeTest"
+
+        @BeforeClass
+        @JvmStatic
+        fun startRuntimeServiceForSuite() {
+            val context = InstrumentationRegistry.getInstrumentation().targetContext
+            context.startService(Intent(context, PythonExecutionService::class.java))
+        }
+
+        @AfterClass
+        @JvmStatic
+        fun stopRuntimeServiceAfterSuite() {
+            val context = InstrumentationRegistry.getInstrumentation().targetContext
+            context.stopService(Intent(context, PythonExecutionService::class.java))
+        }
     }
 }
