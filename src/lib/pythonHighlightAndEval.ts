@@ -386,7 +386,7 @@ export function evaluatePythonSubmission(
         : fail('Ensure shards.append("K3"), vault = {"code": 77}, and print(len(shards)).', 3);
     }
     case 4: {
-      const ok =
+      let ok =
         /packets\s*=\s*0\b/.test(normalized) &&
         /for\s+\w+\s+in\s+range\s*\(\s*5\s*\)\s*:/.test(normalized) &&
         /packets\s*(\+=|=\s*packets\s*\+)\s*1\b/.test(normalized) &&
@@ -398,7 +398,7 @@ export function evaluatePythonSubmission(
         : fail('Use `for i in range(5):` with `packets += 1` and `print(packets)`.', 2, true);
     }
     case 5: {
-      const ok =
+      let ok =
         /def\s+craft_token\s*\(\s*seed\s*\)\s*:/.test(normalized) &&
         /return\s+seed\s*\*\s*3\s*\+\s*9/.test(normalized) &&
         /print\s*\(\s*craft_token\s*\(\s*7\s*\)\s*\)/.test(normalized);
@@ -409,7 +409,7 @@ export function evaluatePythonSubmission(
         : fail('Define `craft_token(seed)` returning `seed * 3 + 9` and print `craft_token(7)`.', 2);
     }
     case 6: {
-      const ok =
+      let ok =
         /\btry\s*:/.test(normalized) &&
         /open\s*\(\s*["']corrupt\.log["']/.test(normalized) &&
         /\bexcept\b.*:/.test(normalized) &&
@@ -421,7 +421,7 @@ export function evaluatePythonSubmission(
         : fail('Handle the trap with `except` and print `"SAFE_EXTRACT"`.', 4);
     }
     case 7: {
-      const ok =
+      let ok =
         /class\s+OverlordOverride\b\s*:/.test(normalized) &&
         /def\s+__init__\s*\(\s*self\s*,\s*key\s*\)\s*:/.test(normalized) &&
         /self\.key\s*=\s*key/.test(normalized) &&
