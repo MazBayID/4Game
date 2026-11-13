@@ -70,7 +70,7 @@ jobs:
           mkdir -p apk-output
           APK_PATH=$(find "app/build/outputs/apk/$BUILD_TYPE" -name "*.apk" -print -quit)
           test -n "$APK_PATH"
-          APK_NAME="NEO-NULL-v$VERSION_NAME-$BUILD_TYPE.apk"
+          APK_NAME="ByteGhost-The-Synthex-Files-v$VERSION_NAME-$BUILD_TYPE.apk"
           cp "$APK_PATH" "apk-output/$APK_NAME"
           ls -lh apk-output/
           sha256sum apk-output/*.apk > apk-output/SHA256SUMS.txt
@@ -78,6 +78,6 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NEO-NULL-${{ env.VERSION_NAME }}-${{ env.BUILD_TYPE }}
+          name: ByteGhost-The-Synthex-Files-${{ env.VERSION_NAME }}-${{ env.BUILD_TYPE }}
           path: apk-output/
           if-no-files-found: error
