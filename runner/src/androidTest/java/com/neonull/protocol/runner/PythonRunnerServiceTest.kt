@@ -51,6 +51,20 @@ class PythonRunnerServiceTest {
     }
 
     @Test
+    fun rejectsConcurrentExecutionInsteadOfQueueingIt() {
+        val connection = bind(InstrumentationRegistry.getInstrumentation().targetContext)
+        try {
+            connection.sendWithoutWaiting("import time; time.sleep(1); print('FIRST_DONE')")
+            val second = JSONObject(connection.send("print('SHOULD_NOT_RUN')", "", MSG_RESULT))
+            assertFalse(second.getBoolean("ok"))
+            assertEquals("RunnerBusy", second.getString("errorType"))
+            Thread.sleep(1_500)
+        } finally {
+            connection.close()
+        }
+    }
+
+    @Test
     fun watchdogKillsInfiniteLoopAndRunnerCanRestart() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val disconnected = CountDownLatch(1)
