@@ -4,40 +4,40 @@ import androidx.compose.ui.graphics.Color
 
 /**
  * NEO-NULL: PYTHON LEARNING PROTOCOL
- * Year 2142 EXAPUNKS / Hacknet Cyberpunk Palette with Crimson Red Tactical Accents.
+ * Industrial Matrix palette: restrained phosphor accents on layered dark surfaces.
  */
 object NeoColors {
-    // Deep Obsidian Backgrounds
-    val ObsidianVoid = Color(0xFF05050A)
-    val DeepNavyBlack = Color(0xFF0A0A12)
-    val TerminalSurface = Color(0xFF10121E)
-    val ElevatedPanel = Color(0xFF161928)
-    val GutterSurface = Color(0xFF080912)
-    val DeckGridLine = Color(0xFF181D30)
-    val BorderSubtle = Color(0xFF23283D)
+    // Layered dark surfaces
+    val ObsidianVoid = Color(0xFF080C0F)
+    val DeepNavyBlack = Color(0xFF0B0F12)
+    val TerminalSurface = Color(0xFF111820)
+    val ElevatedPanel = Color(0xFF172129)
+    val GutterSurface = Color(0xFF0D1419)
+    val DeckGridLine = Color(0xFF1D2A31)
+    val BorderSubtle = Color(0xFF34434A)
 
-    // Primary Neon Glows
-    val MatrixGreen = Color(0xFF00FF66)
-    val MatrixGreenDim = Color(0x3300FF66)
-    val CyberCyan = Color(0xFF00E5FF)
-    val CyberCyanDim = Color(0x2E00E5FF)
+    // Restrained functional accents
+    val MatrixGreen = Color(0xFF65E6A5)
+    val MatrixGreenDim = Color(0x3365E6A5)
+    val CyberCyan = Color(0xFF74DCE8)
+    val CyberCyanDim = Color(0x2E74DCE8)
 
-    // Special Alert, [ RUN EXPLOIT ] Action & OVERLORD Boss Accent
-    val CrimsonRed = Color(0xFFDC143C)
-    val CrimsonRedPressed = Color(0xFFB90F32)
-    val CrimsonRedGlow = Color(0x40DC143C)
-    val CrimsonDarkTint = Color(0xFF240912)
+    // Critical alerts, exploit action and OVERLORD identity
+    val CrimsonRed = Color(0xFFFF858B)
+    val CrimsonRedPressed = Color(0xFFE56D76)
+    val CrimsonRedGlow = Color(0x40FF858B)
+    val CrimsonDarkTint = Color(0xFF241519)
 
-    // Syntax Highlighting Tokens
-    val SyntaxKeyword = Color(0xFF00E5FF)      // def, if, else, return, for, class, import
-    val SyntaxControl = Color(0xFF00FF66)      // builtins, self, True/False, decorators
-    val SyntaxString = Color(0xFFFFD600)       // "...", '...', f-strings
-    val SyntaxComment = Color(0xFF6B7280)      // # comments
-    val SyntaxNumber = Color(0xFF7DD3FC)       // numeric literals
-    val SyntaxAlert = Color(0xFFDC143C)        // errors & OVERLORD identifiers
+    // Syntax highlighting tokens
+    val SyntaxKeyword = Color(0xFF74DCE8)      // def, if, else, return, for, class, import
+    val SyntaxControl = Color(0xFF65E6A5)      // builtins, self, True/False, decorators
+    val SyntaxString = Color(0xFFFFD27A)       // "...", '...', f-strings
+    val SyntaxComment = Color(0xFF7C8982)      // # comments
+    val SyntaxNumber = Color(0xFFB6C8F0)       // numeric literals
+    val SyntaxAlert = Color(0xFFFF858B)        // errors & OVERLORD identifiers
 
-    // Text Hierarchy
-    val TextPrimary = Color(0xFFE6EDF3)
-    val TextSecondary = Color(0xFF94A3B8)
-    val TextMuted = Color(0xFF64748B)
+    // Text hierarchy
+    val TextPrimary = Color(0xFFD7E0DA)
+    val TextSecondary = Color(0xFFA7B3AC)
+    val TextMuted = Color(0xFF7C8982)
 }
