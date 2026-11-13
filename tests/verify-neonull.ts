@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { loadProgress, saveProgress } from '../src/lib/progressStorage';
 import { CURRICULUM_MODULES, UI_STRINGS } from '../src/data/neoNullData';
 import { evaluatePythonSubmission, tokenizePythonLine } from '../src/lib/pythonHighlightAndEval';
 
@@ -55,5 +56,33 @@ assert(workerSource.includes('r"\\btry\\s*:"'), 'Worker try regex must be valid'
 assert(workerSource.includes('r"\\bexcept\\b.*:"'), 'Worker except regex must be valid');
 
 console.log('Production Pyodide worker regex checks passed.');
+
+ // 6. Verify versioned progress persistence and defensive recovery
+const memoryStorage = (() => {
+  let value: string | null = null;
+  return {
+    getItem: (_key: string) => value,
+    setItem: (_key: string, next: string) => { value = next; },
+    setRaw: (next: string | null) => { value = next; },
+  };
+})();
+const defaultProgress = loadProgress(memoryStorage);
+assert(defaultProgress.completedIds.length === 0 && defaultProgress.xp === 0, 'Expected clean progress defaults');
+const saved = {
+  completedIds: [1, 2, 2, 99, -1],
+  xp: 350,
+  ramMb: 256,
+  traceIntegrity: 80,
+  language: 'ID' as const,
+};
+assert(saveProgress(saved, memoryStorage), 'Expected progress save to succeed');
+const restored = loadProgress(memoryStorage);
+assert(restored.completedIds.join(',') === '1,2', 'Progress loader must filter invalid and duplicate mission IDs');
+assert(restored.xp === 350 && restored.ramMb === 256 && restored.language === 'ID', 'Progress values should survive save/load');
+memoryStorage.setRaw('{invalid-json');
+assert(loadProgress(memoryStorage).xp === 0, 'Corrupt save data must safely reset to defaults');
+memoryStorage.setRaw(JSON.stringify({ version: 99, completedIds: [1], xp: 999 }));
+assert(loadProgress(memoryStorage).completedIds.length === 0, 'Unknown save versions must not be loaded');
+
 
 console.log('All NEO-NULL verification checks passed (7/7 modules, EN/ID/PH, syntax, worker regex & Crimson error checks).');
