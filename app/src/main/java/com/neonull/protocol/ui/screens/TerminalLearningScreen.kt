@@ -35,10 +35,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.neonull.protocol.R
 import com.neonull.protocol.localization.AppLanguage
 import com.neonull.protocol.localization.UiStrings
 import com.neonull.protocol.syntax.SyntaxHighlightedCodeEditor
@@ -466,6 +468,9 @@ fun TerminalLearningScreen(
                             Text(
                                 text = eval?.outputText ?: strings.noOutputPlaceholder,
                                 style = ConsoleTextStyle.copy(
+                                    fontFamily = FontFamily(Font(R.font.vt323_regular)),
+                                    fontSize = 16.sp,
+                                    lineHeight = 19.sp,
                                     color = when {
                                         eval == null -> NeoColors.TextMuted
                                         eval.isSuccess -> NeoColors.MatrixGreen

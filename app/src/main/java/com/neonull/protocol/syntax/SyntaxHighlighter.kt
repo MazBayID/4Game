@@ -5,6 +5,33 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.input.TextRange
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -309,8 +336,104 @@ fun SyntaxHighlightedCodeEditor(
     val verticalScroll = rememberScrollState()
     val horizontalScroll = rememberScrollState()
     val hasErrors = errorLines.isNotEmpty()
+    val focusRequester = remember { FocusRequester() }
 
-    Box(
+    var editorValue by remember {
+        mutableStateOf(TextFieldValue(text = code, selection = TextRange(code.length)))
+    }
+    var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+    var ctrlActive by remember { mutableStateOf(false) }
+    var altActive by remember { mutableStateOf(false) }
+    var shiftActive by remember { mutableStateOf(false) }
+
+    LaunchedEffect(code) {
+        if (editorValue.text != code) {
+            val cursor = editorValue.selection.end.coerceIn(0, code.length)
+            editorValue = TextFieldValue(text = code, selection = TextRange(cursor))
+        }
+    }
+
+    fun updateText(nextText: String, cursor: Int) {
+        val safeCursor = cursor.coerceIn(0, nextText.length)
+        editorValue = TextFieldValue(nextText, TextRange(safeCursor))
+        onCodeChange(nextText)
+    }
+
+    fun setCursor(target: Int) {
+        val safeTarget = target.coerceIn(0, editorValue.text.length)
+        val selection = if (shiftActive) {
+            TextRange(editorValue.selection.start, safeTarget)
+        } else {
+            TextRange(safeTarget)
+        }
+        editorValue = editorValue.copy(selection = selection)
+    }
+
+    fun moveHorizontal(direction: Int) {
+        val text = editorValue.text
+        var target = editorValue.selection.end.coerceIn(0, text.length)
+        when {
+            altActive -> {
+                target = if (direction < 0) {
+                    text.lastIndexOf('\n', (target - 1).coerceAtLeast(0)) + 1
+                } else {
+                    val lineEnd = text.indexOf('\n', target)
+                    if (lineEnd < 0) text.length else lineEnd
+                }
+            }
+            ctrlActive && direction < 0 -> {
+                while (target > 0 && text[target - 1].isWhitespace()) target--
+                while (target > 0 && !text[target - 1].isWhitespace()) target--
+            }
+            ctrlActive && direction > 0 -> {
+                while (target < text.length && !text[target].isWhitespace()) target++
+                while (target < text.length && text[target].isWhitespace()) target++
+            }
+            else -> target += direction
+        }
+        setCursor(target)
+    }
+
+    fun moveVertical(direction: Int) {
+        val text = editorValue.text
+        val cursor = editorValue.selection.end.coerceIn(0, text.length)
+        val lineStart = text.lastIndexOf('\n', (cursor - 1).coerceAtLeast(0)) + 1
+        val column = cursor - lineStart
+        val target = if (direction < 0) {
+            if (lineStart == 0) return
+            val previousEnd = lineStart - 1
+            val previousStart = text.lastIndexOf('\n', (previousEnd - 1).coerceAtLeast(0)) + 1
+            (previousStart + column).coerceAtMost(previousEnd)
+        } else {
+            val currentEnd = text.indexOf('\n', cursor).let { if (it < 0) text.length else it }
+            if (currentEnd == text.length) return
+            val nextStart = currentEnd + 1
+            val nextEnd = text.indexOf('\n', nextStart).let { if (it < 0) text.length else it }
+            (nextStart + column).coerceAtMost(nextEnd)
+        }
+        setCursor(target)
+    }
+
+    fun insertText(insert: String) {
+        val selection = editorValue.selection
+        val start = minOf(selection.start, selection.end)
+        val end = maxOf(selection.start, selection.end)
+        val nextText = editorValue.text.replaceRange(start, end, insert)
+        updateText(nextText, start + insert.length)
+    }
+
+    fun deleteBackward() {
+        val selection = editorValue.selection
+        val start = minOf(selection.start, selection.end)
+        val end = maxOf(selection.start, selection.end)
+        if (start != end) {
+            updateText(editorValue.text.removeRange(start, end), start)
+        } else if (start > 0) {
+            updateText(editorValue.text.removeRange(start - 1, start), start - 1)
+        }
+    }
+
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
@@ -320,73 +443,174 @@ fun SyntaxHighlightedCodeEditor(
                 color = if (hasErrors) NeoColors.CrimsonRed else accentBorderColor.copy(alpha = 0.65f),
                 shape = RoundedCornerShape(8.dp)
             )
+            .padding(bottom = 4.dp)
     ) {
-        // Subtle EXAPUNKS terminal grid lines
-        Canvas(modifier = Modifier.matchParentSize()) {
-            val gridStep = 21.dp.toPx()
-            var y = gridStep
-            while (y < size.height) {
-                drawLine(
-                    color = NeoColors.DeckGridLine.copy(alpha = 0.22f),
-                    start = Offset(0f, y),
-                    end = Offset(size.width, y),
-                    strokeWidth = 0.8.dp.toPx()
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) {
+            val editorMinHeight = (maxHeight - 18.dp).coerceAtLeast(120.dp)
+
+            Canvas(modifier = Modifier.matchParentSize()) {
+                val gridStep = 21.dp.toPx()
+                var y = gridStep
+                while (y < size.height) {
+                    drawLine(
+                        color = NeoColors.DeckGridLine.copy(alpha = 0.22f),
+                        start = Offset(0f, y),
+                        end = Offset(size.width, y),
+                        strokeWidth = 0.8.dp.toPx()
+                    )
+                    y += gridStep
+                }
+            }
+
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(verticalScroll)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .width(42.dp)
+                        .background(NeoColors.GutterSurface.copy(alpha = 0.92f))
+                        .padding(vertical = 10.dp, horizontal = 6.dp)
+                ) {
+                    lines.forEachIndexed { idx, _ ->
+                        val lineNo = idx + 1
+                        val isErr = lineNo in errorLines
+                        Text(
+                            text = if (isErr) "!${lineNo}" else lineNo.toString().padStart(2, '0'),
+                            style = CodeTextStyle.copy(
+                                color = if (isErr) NeoColors.CrimsonRed else NeoColors.TextMuted,
+                                fontWeight = if (isErr) FontWeight.Bold else FontWeight.Normal,
+                                textAlign = TextAlign.End
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+
+                Spacer(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .fillMaxHeight()
+                        .background(
+                            if (hasErrors) NeoColors.CrimsonRed.copy(alpha = 0.5f)
+                            else NeoColors.BorderSubtle
+                        )
                 )
-                y += gridStep
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .horizontalScroll(horizontalScroll)
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                ) {
+                    BasicTextField(
+                        value = editorValue,
+                        onValueChange = { next ->
+                            editorValue = next
+                            onCodeChange(next.text)
+                        },
+                        onTextLayout = { textLayoutResult = it },
+                        textStyle = CodeTextStyle,
+                        cursorBrush = SolidColor(
+                            if (hasErrors) NeoColors.CrimsonRed else NeoColors.MatrixGreen
+                        ),
+                        visualTransformation = visualTransformation,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = editorMinHeight)
+                            .focusRequester(focusRequester)
+                            .pointerInput(textLayoutResult, editorValue.text) {
+                                detectTapGestures { tapPosition ->
+                                    focusRequester.requestFocus()
+                                    val offset = textLayoutResult
+                                        ?.getOffsetForPosition(tapPosition)
+                                        ?.coerceIn(0, editorValue.text.length)
+                                    if (offset != null) {
+                                        editorValue = editorValue.copy(selection = TextRange(offset))
+                                    }
+                                }
+                            }
+                    )
+                }
             }
         }
 
         Row(
             modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(verticalScroll)
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 5.dp, vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Line-number gutter
-            Column(
-                modifier = Modifier
-                    .width(42.dp)
-                    .background(NeoColors.GutterSurface.copy(alpha = 0.92f))
-                    .padding(vertical = 10.dp, horizontal = 6.dp)
-            ) {
-                lines.forEachIndexed { idx, _ ->
-                    val lineNo = idx + 1
-                    val isErr = lineNo in errorLines
-                    Text(
-                        text = if (isErr) "!${lineNo}" else lineNo.toString().padStart(2, '0'),
-                        style = CodeTextStyle.copy(
-                            color = if (isErr) NeoColors.CrimsonRed else NeoColors.TextMuted,
-                            fontWeight = if (isErr) FontWeight.Bold else FontWeight.Normal,
-                            textAlign = TextAlign.End
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
+            EditorKeyButton("TAB") { insertText("    ") }
+            EditorKeyButton("CTRL", ctrlActive) { ctrlActive = !ctrlActive }
+            EditorKeyButton("ALT", altActive) { altActive = !altActive }
+            EditorKeyButton("SHIFT", shiftActive) { shiftActive = !shiftActive }
+
+            IconButton(onClick = { moveHorizontal(-1) }, modifier = Modifier.size(36.dp)) {
+                Icon(Icons.Default.KeyboardArrowLeft, contentDescription = "Move cursor left", tint = NeoColors.CyberCyan)
+            }
+            IconButton(onClick = { moveVertical(-1) }, modifier = Modifier.size(36.dp)) {
+                Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Move cursor up", tint = NeoColors.CyberCyan)
+            }
+            IconButton(onClick = { moveVertical(1) }, modifier = Modifier.size(36.dp)) {
+                Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Move cursor down", tint = NeoColors.CyberCyan)
+            }
+            IconButton(onClick = { moveHorizontal(1) }, modifier = Modifier.size(36.dp)) {
+                Icon(Icons.Default.KeyboardArrowRight, contentDescription = "Move cursor right", tint = NeoColors.CyberCyan)
+            }
+
+            EditorKeyButton("HOME") {
+                val cursor = editorValue.selection.end
+                setCursor(editorValue.text.lastIndexOf('\n', (cursor - 1).coerceAtLeast(0)) + 1)
+            }
+            EditorKeyButton("END") {
+                val cursor = editorValue.selection.end
+                val lineEnd = editorValue.text.indexOf('\n', cursor)
+                setCursor(if (lineEnd < 0) editorValue.text.length else lineEnd)
+            }
+            EditorKeyButton("BKSP") { deleteBackward() }
+            EditorKeyButton("ENTER") { insertText("\n") }
+            EditorKeyButton("A") {
+                if (ctrlActive) {
+                    editorValue = editorValue.copy(selection = TextRange(0, editorValue.text.length))
+                    ctrlActive = false
+                } else {
+                    insertText("a")
                 }
             }
-
-            Spacer(
-                modifier = Modifier
-                    .width(1.dp)
-                    .fillMaxHeight()
-                    .background(if (hasErrors) NeoColors.CrimsonRed.copy(alpha = 0.5f) else NeoColors.BorderSubtle)
-            )
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .horizontalScroll(horizontalScroll)
-                    .padding(horizontal = 12.dp, vertical = 10.dp)
-            ) {
-                BasicTextField(
-                    value = code,
-                    onValueChange = onCodeChange,
-                    textStyle = CodeTextStyle,
-                    cursorBrush = SolidColor(
-                        if (hasErrors) NeoColors.CrimsonRed else NeoColors.MatrixGreen
-                    ),
-                    visualTransformation = visualTransformation,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
         }
+    }
+}
+
+@Composable
+private fun EditorKeyButton(
+    label: String,
+    active: Boolean = false,
+    onClick: () -> Unit
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier.height(34.dp),
+        shape = RoundedCornerShape(5.dp),
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+        colors = ButtonDefaults.outlinedButtonColors(
+            contentColor = if (active) NeoColors.ObsidianVoid else NeoColors.CyberCyan,
+            containerColor = if (active) NeoColors.MatrixGreen else NeoColors.TerminalSurface
+        )
+    ) {
+        Text(
+            text = label,
+            fontFamily = FontFamily.Monospace,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1
+        )
     }
 }
