@@ -61,13 +61,16 @@ jobs:
       - name: Collect APK Artifact
         run: |
           mkdir -p apk-output
-          find app/build/outputs/apk -name "*.apk" -exec cp {} apk-output/ \;
+          APK_PATH=$(find app/build/outputs/apk -name "*.apk" -print -quit)
+          test -n "$APK_PATH"
+          APK_NAME="NEO-NULL-v${{ inputs.version_name }}-${{ inputs.build_type }}.apk"
+          cp "$APK_PATH" "apk-output/$APK_NAME"
           ls -lh apk-output/
           sha256sum apk-output/*.apk > apk-output/SHA256SUMS.txt
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: neo-null-protocol-${{ inputs.build_type }}-apk
+          name: NEO-NULL-${{ inputs.version_name }}-${{ inputs.build_type }}
           path: apk-output/
           if-no-files-found: error
