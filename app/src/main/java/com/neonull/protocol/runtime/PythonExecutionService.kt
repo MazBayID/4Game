@@ -58,6 +58,7 @@ class PythonExecutionService : Service() {
     private fun handleExecution(message: Message) {
         val replyTo = message.replyTo ?: return
         val code = message.data.getString(KEY_CODE).orEmpty()
+        val stdinText = message.data.getString(KEY_STDIN).orEmpty()
         val response = if (code.length > MAX_SOURCE_CHARS) {
             JSONObject()
                 .put("ok", false)
@@ -74,7 +75,7 @@ class PythonExecutionService : Service() {
                 Python.start(AndroidPlatform(applicationContext))
             }
             Python.getInstance().getModule("byteghost_runtime")
-                .callAttr("execute", code).toString()
+                .callAttr("execute", code, stdinText).toString()
         } catch (error: Throwable) {
             Log.e(TAG, "Python runtime execution failed", error)
             JSONObject()
@@ -107,6 +108,7 @@ class PythonExecutionService : Service() {
         const val MSG_PING = 3
         const val MSG_PING_RESULT = 4
         const val KEY_CODE = "code"
+        const val KEY_STDIN = "stdin"
         const val KEY_RESULT = "result"
         private const val MAX_SOURCE_CHARS = 128 * 1024
     }
