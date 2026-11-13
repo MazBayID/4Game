@@ -45,12 +45,12 @@ class CompanionPythonRunnerControllerTest {
             completed.countDown()
         }
         try {
-            val source = "try:\\n    open('" + secretFile.absolutePath + "').read()\\n    print('HOST_FILE_READABLE')\\nexcept Exception as error:\\n    print(type(error).__name__)"
+            val source = "try:\n    open('" + secretFile.absolutePath + "').read()\n    print('HOST_FILE_READABLE')\nexcept Exception as error:\n    print(type(error).__name__)"
             controller.execute(source)
             assertTrue("Runner did not return the filesystem isolation result", completed.await(120, TimeUnit.SECONDS))
             val result = JSONObject(response.get() ?: error("Runner returned no result"))
             assertTrue(result.toString(), result.getBoolean("ok"))
-            assertEquals("PermissionError\\n", result.getString("stdout"))
+            assertEquals("PermissionError\n", result.getString("stdout"))
         } finally {
             controller.close()
             secretFile.delete()
