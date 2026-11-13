@@ -9,6 +9,8 @@ import android.os.Handler
 import android.os.Looper
 import android.os.Message
 import android.os.Messenger
+import android.os.Process
+import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.json.JSONObject
@@ -35,7 +37,7 @@ class PythonExecutionServiceInstrumentedTest {
         val json = JSONObject(result)
 
         assertTrue("Python execution should succeed: $result", json.getBoolean("ok"))
-        assertEquals("BYTEGHOST_RUNTIME_OK\n", json.getString("stdout"))
+        assertEquals("BYTEGHOST_RUNTIME_OK\\n", json.getString("stdout"))
         assertEquals("", json.getString("stderr"))
     }
 
@@ -52,11 +54,24 @@ class PythonExecutionServiceInstrumentedTest {
 
         val followUp = JSONObject(executeThroughService("print('SERVICE_STILL_ALIVE')"))
         assertTrue("Service should accept a request after a Python exception", followUp.getBoolean("ok"))
-        assertEquals("SERVICE_STILL_ALIVE\n", followUp.getString("stdout"))
+        assertEquals("SERVICE_STILL_ALIVE\\n", followUp.getString("stdout"))
     }
 
     private fun executeThroughService(source: String): String {
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val context = instrumentation.targetContext
+        val component = ComponentName(context, PythonExecutionService::class.java)
+        val intent = Intent().setComponent(component)
+        val serviceInfo = runCatching {
+            context.packageManager.getServiceInfo(component, 0)
+        }.getOrNull()
+        val diagnostics = "targetPackage=${context.packageName}, " +
+            "targetUid=${context.applicationInfo.uid}, processUid=${Process.myUid()}, " +
+            "serviceFound=${serviceInfo != null}, exported=${serviceInfo?.exported}, " +
+            "serviceProcess=${serviceInfo?.processName}, permission=${serviceInfo?.permission}"
+
+        Log.i(TAG, "Binding Python service: $diagnostics")
+
         val connected = CountDownLatch(1)
         val resultReady = CountDownLatch(1)
         val result = AtomicReference<String>()
@@ -74,24 +89,36 @@ class PythonExecutionServiceInstrumentedTest {
         var remoteMessenger: Messenger? = null
         val connection = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName?, binder: android.os.IBinder?) {
+                Log.i(TAG, "onServiceConnected: component=$name binderPresent=${binder != null}")
                 remoteMessenger = binder?.let { Messenger(it) }
                 connected.countDown()
             }
 
             override fun onServiceDisconnected(name: ComponentName?) {
+                Log.e(TAG, "onServiceDisconnected: component=$name")
                 remoteMessenger = null
+            }
+
+            override fun onBindingDied(name: ComponentName?) {
+                Log.e(TAG, "onBindingDied: component=$name")
+                connected.countDown()
+            }
+
+            override fun onNullBinding(name: ComponentName?) {
+                Log.e(TAG, "onNullBinding: component=$name")
+                connected.countDown()
             }
         }
 
-        val bound = context.bindService(
-            Intent(context, PythonExecutionService::class.java),
-            connection,
-            Context.BIND_AUTO_CREATE
-        )
-        assertTrue("Could not bind to PythonExecutionService", bound)
+        val bound = context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+        Log.i(TAG, "bindService returned=$bound; $diagnostics")
+        assertTrue("Could not bind to PythonExecutionService; $diagnostics", bound)
 
         try {
-            assertTrue("Python service connection timed out", connected.await(15, TimeUnit.SECONDS))
+            assertTrue(
+                "Python service connection timed out; $diagnostics",
+                connected.await(15, TimeUnit.SECONDS) && remoteMessenger != null
+            )
             val request = Message.obtain(null, PythonExecutionService.MSG_EXECUTE).apply {
                 data = Bundle().apply {
                     putString(PythonExecutionService.KEY_CODE, source)
@@ -106,5 +133,9 @@ class PythonExecutionServiceInstrumentedTest {
         } finally {
             context.unbindService(connection)
         }
+    }
+
+    companion object {
+        private const val TAG = "ByteGhostRuntimeTest"
     }
 }
