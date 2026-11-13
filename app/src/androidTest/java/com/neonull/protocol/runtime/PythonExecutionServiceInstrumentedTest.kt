@@ -77,7 +77,7 @@ class PythonExecutionServiceInstrumentedTest {
     fun capsLargeOutputAndKeepsServiceResponsive() {
         val largeOutput = JSONObject(executeThroughService("print('X' * 70000)"))
         assertTrue("Large output execution should complete", largeOutput.getBoolean("ok"))
-        assertEquals(64 * 1024, largeOutput.getString("stdout").length())
+        assertEquals(64 * 1024, largeOutput.getString("stdout").length)
         assertTrue(largeOutput.getBoolean("stdoutTruncated"))
 
         val followUp = JSONObject(executeThroughService("print('AFTER_STRESS_OK')"))
