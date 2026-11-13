@@ -73,8 +73,12 @@ jobs:
           mkdir -p apk-output
           APK_PATH=$(find "app/build/outputs/apk/$BUILD_TYPE" -name "*.apk" -print -quit)
           test -n "$APK_PATH"
+          RUNNER_APK_PATH=$(find "runner/build/outputs/apk/$BUILD_TYPE" -name "*.apk" -print -quit)
+          test -n "$RUNNER_APK_PATH"
           APK_NAME="ByteGhost-The-Synthex-Files-v$VERSION_NAME-$BUILD_TYPE.apk"
+          RUNNER_APK_NAME="ByteGhost-Python-Runner-v$VERSION_NAME-$BUILD_TYPE.apk"
           cp "$APK_PATH" "apk-output/$APK_NAME"
+          cp "$RUNNER_APK_PATH" "apk-output/$RUNNER_APK_NAME"
           ls -lh apk-output/
           sha256sum apk-output/*.apk > apk-output/SHA256SUMS.txt
 
