@@ -7,7 +7,7 @@ once that runner is implemented and adversarially tested.
 import ast
 import json
 
-from byteghost_runtime import execute
+from byteghost_runtime import MAX_SOURCE_CHARS, execute
 
 
 def _assigned_value(tree, name):
@@ -231,6 +231,23 @@ def _grade_structure(module_id, tree):
 def grade(module_id, source, stdin_text=""):
     """Run a mission and return JSON with CPython output and AST-based checks."""
     try:
+        module_id = int(module_id)
+    except (TypeError, ValueError):
+        module_id = -1
+    if module_id not in range(1, 8):
+        return json.dumps({
+            "ok": False, "passed": False, "stdout": "", "stderr": "",
+            "errorType": "UnknownMission", "feedback": "Unknown mission.",
+        })
+    if not isinstance(source, str):
+        source = str(source)
+    if len(source) > MAX_SOURCE_CHARS:
+        return json.dumps({
+            "ok": False, "passed": False, "stdout": "", "stderr": "",
+            "errorType": "SourceTooLarge", "feedback": "Source exceeds the mission limit.",
+        })
+
+    try:
         tree = ast.parse(source)
     except SyntaxError as error:
         return json.dumps({
@@ -242,28 +259,31 @@ def grade(module_id, source, stdin_text=""):
             "feedback": f"Syntax error on line {error.lineno}: {error.msg}",
         })
 
-    passed_structure, feedback = _grade_structure(int(module_id), tree)
+    passed_structure, feedback = _grade_structure(module_id, tree)
     execution_source = source
-    if int(module_id) == 5:
-        execution_source += "\nprint(craft_token(7))\nprint(craft_token(-2))"
-    elif int(module_id) == 7:
-        execution_source += '\nprint(OverlordOverride("TEST-KEY").shutdown())'
+    if module_id == 5:
+        execution_source += "\\nprint(craft_token(7))\\nprint(craft_token(-2))"
+    elif module_id == 7:
+        execution_source += '\\nprint(OverlordOverride("TEST-KEY").shutdown())'
 
     execution = json.loads(execute(execution_source, stdin_text))
-    passed = bool(execution.get("ok")) and passed_structure
+    output_complete = not execution.get("stdoutTruncated", False) and not execution.get("stderrTruncated", False)
+    passed = bool(execution.get("ok")) and output_complete and passed_structure
 
-    if int(module_id) == 4 and "5" not in execution.get("stdout", "").split():
+    if not output_complete:
+        feedback = "Output limit reached; remove excessive output and retry."
+    if module_id == 4 and "5" not in execution.get("stdout", "").split():
         passed = False
         feedback = "The loop must finish with packets equal to 5."
-    if int(module_id) == 5:
+    if module_id == 5:
         lines = execution.get("stdout", "").splitlines()
         if lines[-2:] != ["30", "3"]:
             passed = False
             feedback = "craft_token must return 30 for seed 7 and 3 for seed -2."
-    if int(module_id) == 6 and "SAFE_EXTRACT" not in execution.get("stdout", ""):
+    if module_id == 6 and "SAFE_EXTRACT" not in execution.get("stdout", ""):
         passed = False
         feedback = "The except handler must print SAFE_EXTRACT when corrupt.log is missing."
-    if int(module_id) == 7 and execution.get("stdout", "").splitlines()[-1:] != ["ROOT_UNLOCKED"]:
+    if module_id == 7 and execution.get("stdout", "").splitlines()[-1:] != ["ROOT_UNLOCKED"]:
         passed = False
         feedback = "shutdown() must return ROOT_UNLOCKED for a different instance key."
 
