@@ -4,9 +4,11 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.chaquo.python")
 }
+
 android {
     namespace = "com.neonull.protocol"
     compileSdk = 35
+
     defaultConfig {
         applicationId = "com.neonull.protocol"
         minSdk = 26
@@ -15,8 +17,11 @@ android {
         versionName = (project.findProperty("VERSION_NAME") as String?) ?: "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
-        python { version = "3.13" }
+        ndk {
+            abiFilters += listOf("arm64-v8a", "x86_64")
+        }
     }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -31,6 +36,13 @@ android {
     buildFeatures { compose = true }
     packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
 }
+
+chaquopy {
+    defaultConfig {
+        version = "3.13"
+    }
+}
+
 dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2024.12.01")
     implementation(composeBom)
