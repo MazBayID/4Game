@@ -1,9 +1,11 @@
-# NEO-NULL — Native Android Game
+# ByteGhost: The Synthex Files — Native Android Game
 
-NEO-NULL is a story-driven cyberpunk Python-learning game set in 2142. The production application is built natively for Android using Kotlin and Jetpack Compose.
+ByteGhost: The Synthex Files is a story-driven cyberpunk Python-learning game set in 2142. The production application is built natively for Android using Kotlin and Jetpack Compose.
 
 ## Android application
 
+- **Launcher title:** ByteGhost: The Synthex Files
+- **Application ID:** `com.neonull.protocol` (kept unchanged for update compatibility)
 - **Entry point:** `app/src/main/java/com/neonull/protocol/MainActivity.kt`
 - **Campaign and curriculum:** `data/CurriculumData.kt`
 - **Gameplay state, mission evaluation, progress and drafts:** `viewmodel/LearningViewModel.kt`
@@ -17,7 +19,7 @@ NEO-NULL is a story-driven cyberpunk Python-learning game set in 2142. The produ
 
 GitHub Actions automatically builds a debug APK when changes are pushed to `main`.
 
-To build manually, run **Actions → Build Android APK → Run workflow** and choose `debug` or `release`. The workflow uses JDK 17, Android SDK 35 and Gradle 8.11.1. The APK is uploaded as a downloadable workflow artifact.
+To build manually, run **Actions → Build Android APK → Run workflow** and choose `debug` or `release`. The workflow uses JDK 17, Android SDK 35 and Gradle 8.11.1. The APK file and workflow artifact use the `ByteGhost-The-Synthex-Files` name prefix.
 
 ## Project scope
 
