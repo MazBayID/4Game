@@ -525,11 +525,11 @@ class LearningViewModel(
         for (headerIndex in lines.indices) {
             val header = stripTrailingComment(lines[headerIndex]).trim()
             if (!headerPattern.matches(header)) continue
-            val headerIndent = lines[headerIndex].takeWhile { it == ' ' || it == '\\t' }.length
+            val headerIndent = lines[headerIndex].takeWhile { it == ' ' || it == '\t' }.length
             for (bodyIndex in headerIndex + 1 until lines.size) {
                 val body = stripTrailingComment(lines[bodyIndex])
                 if (body.isBlank()) continue
-                val bodyIndent = body.takeWhile { it == ' ' || it == '\\t' }.length
+                val bodyIndent = body.takeWhile { it == ' ' || it == '\t' }.length
                 if (bodyIndent <= headerIndent) break
                 if (statementPattern.matches(body.trim())) return true
             }
@@ -541,27 +541,27 @@ class LearningViewModel(
         return when (moduleId) {
             4 -> hasIndentedStatementAfter(
                 code,
-                Regex("""for\\s+\\w+\\s+in\\s+range\\s*\\(\\s*5\\s*\\)\\s*:"""),
-                Regex("""packets\\s*(?:\\+=|=\\s*packets\\s*\\+)\\s*1\\b""")
+                Regex("""for\s+\w+\s+in\s+range\s*\(\s*5\s*\)\s*:"""),
+                Regex("""packets\s*(?:\+=|=\s*packets\s*\+)\s*1\b""")
             )
             5 -> hasIndentedStatementAfter(
                 code,
-                Regex("""def\\s+craft_token\\s*\\(\\s*seed\\s*\\)\\s*:"""),
-                Regex("""return\\s+seed\\s*\\*\\s*3\\s*\\+\\s*9\\b""")
+                Regex("""def\s+craft_token\s*\(\s*seed\s*\)\s*:"""),
+                Regex("""return\s+seed\s*\*\s*3\s*\+\s*9\b""")
             )
             6 -> hasIndentedStatementAfter(
-                code, Regex("""try\\s*:"""), Regex("""open\\s*\\(\\s*["']corrupt\\.log["']""")
+                code, Regex("""try\s*:"""), Regex("""open\s*\(\s*["']corrupt\.log["']""")
             ) && hasIndentedStatementAfter(
-                code, Regex("""except\\b.*:"""), Regex("""print\\s*\\(\\s*["']SAFE_EXTRACT["']\\s*\\)""")
+                code, Regex("""except\b.*:"""), Regex("""print\s*\(\s*["']SAFE_EXTRACT["']\s*\)""")
             )
             7 -> hasIndentedStatementAfter(
-                code, Regex("""class\\s+OverlordOverride\\s*:"""), Regex("""def\\s+__init__\\s*\\(\\s*self\\s*,\\s*key\\s*\\)\\s*:""")
+                code, Regex("""class\s+OverlordOverride\s*:"""), Regex("""def\s+__init__\s*\(\s*self\s*,\s*key\s*\)\s*:""")
             ) && hasIndentedStatementAfter(
-                code, Regex("""def\\s+__init__\\s*\\(\\s*self\\s*,\\s*key\\s*\\)\\s*:"""), Regex("""self\\.key\\s*=\\s*key""")
+                code, Regex("""def\s+__init__\s*\(\s*self\s*,\s*key\s*\)\s*:"""), Regex("""self\.key\s*=\s*key""")
             ) && hasIndentedStatementAfter(
-                code, Regex("""class\\s+OverlordOverride\\s*:"""), Regex("""def\\s+shutdown\\s*\\(\\s*self\\s*\\)\\s*:""")
+                code, Regex("""class\s+OverlordOverride\s*:"""), Regex("""def\s+shutdown\s*\(\s*self\s*\)\s*:""")
             ) && hasIndentedStatementAfter(
-                code, Regex("""def\\s+shutdown\\s*\\(\\s*self\\s*\\)\\s*:"""), Regex("""return\\s*["']ROOT_UNLOCKED["']""")
+                code, Regex("""def\s+shutdown\s*\(\s*self\s*\)\s*:"""), Regex("""return\s*["']ROOT_UNLOCKED["']""")
             )
             else -> true
         }
