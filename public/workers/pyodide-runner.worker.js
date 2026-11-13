@@ -31,7 +31,7 @@ async function ensurePyodide() {
     pyodideReadyPromise = loadPyodide({ indexURL: '/pyodide/' }).then(async (py) => {
       pyodideInitialized = true;
       await py.runPythonAsync(`
-import sys, io, json, traceback, re
+import sys, io, json, traceback, re, tokenize
 
 def _neonull_serialize_value(val):
     tname = type(val).__name__
@@ -51,6 +51,22 @@ def _neonull_serialize_value(val):
         attrs = [f"{k}={repr(v)}" for k, v in list(val.__dict__.items())[:8]]
         return {"type": f"instance:{tname}", "preview": f"{tname}({', '.join(attrs)})", "items": attrs}
     return {"type": tname, "preview": repr(val), "items": None}
+
+def _neonull_strip_comments(source):
+    try:
+        tokens = tokenize.generate_tokens(io.StringIO(source).readline)
+        chars = [list(line) for line in source.splitlines(keepends=True)]
+        for token in tokens:
+            if token.type == tokenize.COMMENT:
+                row, col = token.start
+                end_row, end_col = token.end
+                if row == end_row:
+                    for index in range(col, end_col):
+                        if chars[row - 1][index] not in '\\r\\n':
+                            chars[row - 1][index] = ' '
+        return ''.join(''.join(line) for line in chars)
+    except (tokenize.TokenError, IndentationError):
+        return source
 
 def _neonull_run(user_code, module_id):
     stdout_buf = io.StringIO()
@@ -81,12 +97,14 @@ def _neonull_run(user_code, module_id):
             })
 
         output_str = stdout_buf.getvalue().strip()
+        normalized_source = _neonull_strip_comments(user_code)
 
         if module_id == 0:
             # Free-play sandbox mode
             passed = True
             check_detail = "SANDBOX_OK"
         elif module_id == 1:
+            user_code = normalized_source
             ok_agent = ns.get("agent") == "Null-Agent"
             ok_clear = ns.get("clearance") == 1
             ok_out = "Null-Agent" in output_str.splitlines()
@@ -94,6 +112,7 @@ def _neonull_run(user_code, module_id):
             if not passed:
                 check_detail = 'Expected agent = "Null-Agent", clearance = 1, and print(agent).'
         elif module_id == 2:
+            user_code = normalized_source
             threat_val = ns.get("threat")
             has_else = bool(re.search(r"\belse\s*:", user_code))
             has_if = bool(re.search(r"\bif\s+threat\s*>=\s*50\s*:", user_code))
@@ -101,29 +120,34 @@ def _neonull_run(user_code, module_id):
             if not passed:
                 check_detail = 'Expected threat < 50, if threat >= 50 / else branch, and output "ALLOW".'
         elif module_id == 3:
+            user_code = normalized_source
             shards = ns.get("shards")
             vault = ns.get("vault")
             passed = bool(isinstance(shards, list) and shards == ["K1", "K2", "K3"] and isinstance(vault, dict) and vault.get("code") == 77 and output_str == "3")
             if not passed:
                 check_detail = 'Ensure shards == ["K1", "K2", "K3"], vault == {"code": 77}, and output == 3.'
         elif module_id == 4:
+            user_code = normalized_source
             has_for = bool(re.search(r"for\s+\w+\s+in\s+range\s*\(\s*5\s*\)\s*:", user_code))
             passed = bool(has_for and ns.get("packets") == 5 and output_str == "5")
             if not passed:
                 check_detail = 'Use a real for i in range(5): loop incrementing packets to 5 and printing it.'
         elif module_id == 5:
+            user_code = normalized_source
             fn = ns.get("craft_token")
             if callable(fn):
                 passed = bool(fn(7) == 30 and fn(10) == 39 and output_str == "30")
             if not passed:
                 check_detail = 'Define craft_token(seed) returning seed * 3 + 9 and print craft_token(7).'
         elif module_id == 6:
+            user_code = normalized_source
             has_try = bool(re.search(r"\btry\s*:", user_code))
             has_except = bool(re.search(r"\bexcept\b.*:", user_code))
             passed = bool(has_try and has_except and output_str == "SAFE_EXTRACT")
             if not passed:
                 check_detail = 'Catch the missing file exception with try / except and print "SAFE_EXTRACT".'
         elif module_id == 7:
+            user_code = normalized_source
             cls = ns.get("OverlordOverride")
             core = ns.get("core")
             if isinstance(cls, type) and core is not None and isinstance(core, cls):
