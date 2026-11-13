@@ -31,7 +31,7 @@ async function ensurePyodide() {
     pyodideReadyPromise = loadPyodide({ indexURL: '/pyodide/' }).then(async (py) => {
       pyodideInitialized = true;
       await py.runPythonAsync(`
-import sys, io, json, traceback, re, tokenize
+import sys, io, json, traceback, re, tokenize, ast
 
 def _neonull_serialize_value(val):
     tname = type(val).__name__
@@ -67,6 +67,124 @@ def _neonull_strip_comments(source):
         return ''.join(''.join(line) for line in chars)
     except (tokenize.TokenError, IndentationError):
         return source
+
+
+def _neonull_has_mission_structure(module_id, source):
+    try:
+        tree = ast.parse(source)
+    except (SyntaxError, IndentationError):
+        return False
+
+    def is_print_string(node, value):
+        return (
+            isinstance(node, ast.Expr)
+            and isinstance(node.value, ast.Call)
+            and isinstance(node.value.func, ast.Name)
+            and node.value.func.id == "print"
+            and len(node.value.args) == 1
+            and isinstance(node.value.args[0], ast.Constant)
+            and node.value.args[0].value == value
+        )
+
+    def contains_open_corrupt(nodes):
+        for node in ast.walk(ast.Module(body=nodes, type_ignores=[])):
+            call = node if isinstance(node, ast.Call) else None
+            if call and isinstance(call.func, ast.Name) and call.func.id == "open":
+                if call.args and isinstance(call.args[0], ast.Constant) and call.args[0].value == "corrupt.log":
+                    return True
+        return False
+
+    if module_id == 2:
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.If):
+                continue
+            test = node.test
+            valid_test = (
+                isinstance(test, ast.Compare)
+                and isinstance(test.left, ast.Name) and test.left.id == "threat"
+                and len(test.ops) == 1 and isinstance(test.ops[0], ast.GtE)
+                and len(test.comparators) == 1
+                and isinstance(test.comparators[0], ast.Constant)
+                and test.comparators[0].value == 50
+            )
+            if valid_test and any(is_print_string(item, "DENIED") for item in node.body) and any(is_print_string(item, "ALLOW") for item in node.orelse):
+                return True
+        return False
+
+    if module_id == 4:
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.For) or not isinstance(node.iter, ast.Call):
+                continue
+            if not isinstance(node.iter.func, ast.Name) or node.iter.func.id != "range":
+                continue
+            if len(node.iter.args) != 1 or not isinstance(node.iter.args[0], ast.Constant) or node.iter.args[0].value != 5:
+                continue
+            for statement in ast.walk(ast.Module(body=node.body, type_ignores=[])):
+                if isinstance(statement, ast.AugAssign) and isinstance(statement.target, ast.Name) and statement.target.id == "packets" and isinstance(statement.op, ast.Add) and isinstance(statement.value, ast.Constant) and statement.value.value == 1:
+                    return True
+                if isinstance(statement, ast.Assign) and len(statement.targets) == 1 and isinstance(statement.targets[0], ast.Name) and statement.targets[0].id == "packets":
+                    value = statement.value
+                    if isinstance(value, ast.BinOp) and isinstance(value.left, ast.Name) and value.left.id == "packets" and isinstance(value.op, ast.Add) and isinstance(value.right, ast.Constant) and value.right.value == 1:
+                        return True
+        return False
+
+    if module_id == 5:
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) or node.name != "craft_token":
+                continue
+            if len(node.args.args) != 1 or node.args.args[0].arg != "seed":
+                continue
+            for statement in node.body:
+                if not isinstance(statement, ast.Return):
+                    continue
+                value = statement.value
+                if (
+                    isinstance(value, ast.BinOp) and isinstance(value.op, ast.Add)
+                    and isinstance(value.left, ast.BinOp) and isinstance(value.left.op, ast.Mult)
+                    and isinstance(value.left.left, ast.Name) and value.left.left.id == "seed"
+                    and isinstance(value.left.right, ast.Constant) and value.left.right.value == 3
+                    and isinstance(value.right, ast.Constant) and value.right.value == 9
+                ):
+                    return True
+        return False
+
+    if module_id == 6:
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Try):
+                continue
+            if not contains_open_corrupt(node.body):
+                continue
+            if any(is_print_string(statement, "SAFE_EXTRACT") for handler in node.handlers for statement in handler.body):
+                return True
+        return False
+
+    if module_id == 7:
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ClassDef) or node.name != "OverlordOverride":
+                continue
+            methods = {item.name: item for item in node.body if isinstance(item, ast.FunctionDef)}
+            init = methods.get("__init__")
+            shutdown = methods.get("shutdown")
+            if init is None or shutdown is None:
+                continue
+            init_ok = any(
+                isinstance(item, ast.Assign) and len(item.targets) == 1
+                and isinstance(item.targets[0], ast.Attribute)
+                and isinstance(item.targets[0].value, ast.Name) and item.targets[0].value.id == "self"
+                and item.targets[0].attr == "key"
+                and isinstance(item.value, ast.Name) and item.value.id == "key"
+                for item in init.body
+            )
+            shutdown_ok = any(
+                isinstance(item, ast.Return) and isinstance(item.value, ast.Constant)
+                and item.value.value == "ROOT_UNLOCKED"
+                for item in shutdown.body
+            )
+            if init_ok and shutdown_ok:
+                return True
+        return False
+
+    return True
 
 def _neonull_run(user_code, module_id):
     stdout_buf = io.StringIO()
@@ -113,10 +231,11 @@ def _neonull_run(user_code, module_id):
                 check_detail = 'Expected agent = "Null-Agent", clearance = 1, and print(agent).'
         elif module_id == 2:
             user_code = normalized_source
+            structure_ok = _neonull_has_mission_structure(module_id, user_code)
             threat_val = ns.get("threat")
             has_else = bool(re.search(r"\belse\s*:", user_code))
             has_if = bool(re.search(r"\bif\s+threat\s*>=\s*50\s*:", user_code))
-            passed = bool(isinstance(threat_val, int) and 0 <= threat_val < 50 and has_if and has_else and output_str == "ALLOW")
+            passed = bool(structure_ok and isinstance(threat_val, int) and 0 <= threat_val < 50 and has_if and has_else and output_str == "ALLOW")
             if not passed:
                 check_detail = 'Expected threat < 50, if threat >= 50 / else branch, and output "ALLOW".'
         elif module_id == 3:
@@ -128,31 +247,35 @@ def _neonull_run(user_code, module_id):
                 check_detail = 'Ensure shards == ["K1", "K2", "K3"], vault == {"code": 77}, and output == 3.'
         elif module_id == 4:
             user_code = normalized_source
+            structure_ok = _neonull_has_mission_structure(module_id, user_code)
             has_for = bool(re.search(r"for\s+\w+\s+in\s+range\s*\(\s*5\s*\)\s*:", user_code))
-            passed = bool(has_for and ns.get("packets") == 5 and output_str == "5")
+            passed = bool(structure_ok and has_for and ns.get("packets") == 5 and output_str == "5")
             if not passed:
                 check_detail = 'Use a real for i in range(5): loop incrementing packets to 5 and printing it.'
         elif module_id == 5:
             user_code = normalized_source
+            structure_ok = _neonull_has_mission_structure(module_id, user_code)
             fn = ns.get("craft_token")
             if callable(fn):
-                passed = bool(fn(7) == 30 and fn(10) == 39 and output_str == "30")
+                passed = bool(structure_ok and fn(7) == 30 and fn(10) == 39 and output_str == "30")
             if not passed:
                 check_detail = 'Define craft_token(seed) returning seed * 3 + 9 and print craft_token(7).'
         elif module_id == 6:
             user_code = normalized_source
+            structure_ok = _neonull_has_mission_structure(module_id, user_code)
             has_try = bool(re.search(r"\btry\s*:", user_code))
             has_except = bool(re.search(r"\bexcept\b.*:", user_code))
-            passed = bool(has_try and has_except and output_str == "SAFE_EXTRACT")
+            passed = bool(structure_ok and has_try and has_except and output_str == "SAFE_EXTRACT")
             if not passed:
                 check_detail = 'Catch the missing file exception with try / except and print "SAFE_EXTRACT".'
         elif module_id == 7:
             user_code = normalized_source
+            structure_ok = _neonull_has_mission_structure(module_id, user_code)
             cls = ns.get("OverlordOverride")
             core = ns.get("core")
             if isinstance(cls, type) and core is not None and isinstance(core, cls):
                 probe = cls("PROBE-X")
-                passed = bool(getattr(probe, "key", None) == "PROBE-X" and probe.shutdown() == "ROOT_UNLOCKED" and output_str == "ROOT_UNLOCKED")
+                passed = bool(structure_ok and getattr(probe, "key", None) == "PROBE-X" and probe.shutdown() == "ROOT_UNLOCKED" and output_str == "ROOT_UNLOCKED")
             if not passed:
                 check_detail = 'Implement OverlordOverride(__init__ + shutdown returning "ROOT_UNLOCKED") and print core.shutdown().'
 
