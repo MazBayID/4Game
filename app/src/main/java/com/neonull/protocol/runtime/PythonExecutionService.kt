@@ -8,6 +8,7 @@ import android.os.IBinder
 import android.os.Bundle
 import android.os.Message
 import android.os.Messenger
+import android.util.Log
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
 
@@ -22,6 +23,7 @@ class PythonExecutionService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        Log.i(TAG, "onCreate process=${android.app.Application.getProcessName()} pid=${android.os.Process.myPid()} uid=${android.os.Process.myUid()}")
         workerThread = HandlerThread("ByteGhost-Python-Runtime").apply { start() }
         messenger = Messenger(Handler(workerThread.looper) { message ->
             handleExecution(message)
@@ -29,22 +31,27 @@ class PythonExecutionService : Service() {
         })
     }
 
-    override fun onBind(intent: Intent?): IBinder = messenger.binder
+    override fun onBind(intent: Intent?): IBinder {
+        Log.i(TAG, "onBind action=${intent?.action}")
+        return messenger.binder
+    }
 
     private fun handleExecution(message: Message) {
         val replyTo = message.replyTo ?: return
         val code = message.data.getString(KEY_CODE).orEmpty()
         val response = try {
             if (!Python.isStarted()) {
+                Log.i(TAG, "Starting Chaquopy CPython")
                 Python.start(AndroidPlatform(applicationContext))
             }
             Python.getInstance().getModule("byteghost_runtime")
                 .callAttr("execute", code).toString()
         } catch (error: Throwable) {
+            Log.e(TAG, "Python runtime execution failed", error)
             val safeMessage = (error.message ?: "Runtime initialization failed")
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
+                .replace("\\\\", "\\\\\\\\")
+                .replace("\\\"", "\\\\\\"")
+                .replace("\\n", "\\\\n")
             """{"ok":false,"errorType":"${error.javaClass.simpleName}","error":"$safeMessage"}"""
         }
 
@@ -53,17 +60,19 @@ class PythonExecutionService : Service() {
                 data = Bundle().apply { putString(KEY_RESULT, response) }
             }
             replyTo.send(reply)
-        } catch (_: Exception) {
-            // Requesting component may already have been destroyed.
+        } catch (error: Exception) {
+            Log.w(TAG, "Unable to deliver Python result; requester may be gone", error)
         }
     }
 
     override fun onDestroy() {
+        Log.i(TAG, "onDestroy")
         workerThread.quitSafely()
         super.onDestroy()
     }
 
     companion object {
+        private const val TAG = "ByteGhostPythonService"
         const val MSG_EXECUTE = 1
         const val MSG_RESULT = 2
         const val KEY_CODE = "code"
