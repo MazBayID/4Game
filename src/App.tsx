@@ -59,7 +59,10 @@ export function App() {
   const [ramMb, setRamMb] = useState<number>(savedProgress.ramMb);
   const [traceIntegrity, setTraceIntegrity] = useState<number>(savedProgress.traceIntegrity);
   const [moduleAttemptFailed, setModuleAttemptFailed] = useState<boolean>(false);
-  const [codeBuffer, setCodeBuffer] = useState<string>(CURRICULUM_MODULES[0].starterCode);
+  const [drafts, setDrafts] = useState<Record<string, string>>(savedProgress.drafts ?? {});
+  const [codeBuffer, setCodeBuffer] = useState<string>(
+    savedProgress.drafts?.['1'] ?? CURRICULUM_MODULES[0].starterCode
+  );
   const [hintLevel, setHintLevel] = useState<number>(0);
   const [glitchDialogue, setGlitchDialogue] = useState<string>(
     CURRICULUM_MODULES[0].glitchIntroDialogue.EN
@@ -74,8 +77,14 @@ export function App() {
   const [codexOpen, setCodexOpen] = useState<boolean>(false);
 
   useEffect(() => {
-    saveProgress({ completedIds, xp, ramMb, traceIntegrity, language });
-  }, [completedIds, xp, ramMb, traceIntegrity, language]);
+    saveProgress({ completedIds, xp, ramMb, traceIntegrity, language, drafts });
+  }, [completedIds, xp, ramMb, traceIntegrity, language, drafts]);
+
+  useEffect(() => {
+    const key = isSandboxMode ? 'sandbox' : String(activeModuleId);
+    const draft = codeBuffer.slice(0, 32768);
+    setDrafts((current) => current[key] === draft ? current : { ...current, [key]: draft });
+  }, [codeBuffer, activeModuleId, isSandboxMode]);
 
   const strings = UI_STRINGS[language];
   const activeModule =
@@ -118,7 +127,7 @@ export function App() {
     soundEngine.playKeyTick();
     setIsSandboxMode(false);
     setActiveModuleId(mod.id);
-    setCodeBuffer(mod.starterCode);
+    setCodeBuffer(drafts[String(mod.id)] ?? mod.starterCode);
     setHintLevel(0);
     setModuleAttemptFailed(false);
     setEvaluationResult(null);
@@ -132,7 +141,7 @@ export function App() {
   const openSandbox = () => {
     soundEngine.playKeyTick();
     setIsSandboxMode(true);
-    setCodeBuffer(SANDBOX_STARTER);
+    setCodeBuffer(drafts.sandbox ?? SANDBOX_STARTER);
     setEvaluationResult(null);
     setRamSnapshot([]);
     setIsWarningState(false);
