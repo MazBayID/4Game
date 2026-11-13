@@ -96,6 +96,13 @@ class PythonExecutionServiceInstrumentedTest {
     }
 
     @Test
+    fun test09RejectsOversizedStdinBeforePythonStartup() {
+        val result = JSONObject(executeThroughService("print(1)", "X".repeat(64 * 1024 + 1)))
+        assertEquals(false, result.getBoolean("ok"))
+        assertEquals("InputTooLarge", result.getString("errorType"))
+    }
+
+    @Test
     fun test07ProgressionRequiresContiguousPrerequisites() {
         val modules = CurriculumRepository.modules
         assertEquals(1, ProgressionRules.nextUnlockedModuleId(modules, setOf(3)))
