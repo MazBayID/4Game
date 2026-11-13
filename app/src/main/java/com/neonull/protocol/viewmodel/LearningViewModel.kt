@@ -138,7 +138,7 @@ class LearningViewModel(
         )
         val storedActiveModuleId = progressPreferences.getInt("active_module_id", 1)
         val activeModuleId = storedActiveModuleId
-            .takeIf { it in validModuleIds && it <= highestUnlockedId }
+            .takeIf { it in validModuleIds && (it <= highestUnlockedId || it in completedIds) }
             ?: highestUnlockedId
         val hasEnteredHub = progressPreferences.getBoolean("has_entered_hub", false)
 
