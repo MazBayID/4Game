@@ -227,7 +227,7 @@ class LearningViewModel(
             state.copy(
                 currentScreen = NeoScreen.TERMINAL,
                 isSandboxMode = true,
-                codeBuffer = SANDBOX_STARTER_CODE,
+                codeBuffer = loadDraft(state.activeModuleId, sandbox = true) ?: SANDBOX_STARTER_CODE,
                 hintLevel = 0,
                 moduleAttemptFailed = false,
                 isWarningState = false,
