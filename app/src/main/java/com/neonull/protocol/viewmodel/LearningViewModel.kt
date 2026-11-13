@@ -1,6 +1,9 @@
 package com.neonull.protocol.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import android.content.Context
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.neonull.protocol.data.CurriculumRepository
 import com.neonull.protocol.data.ProtocolModule
 import com.neonull.protocol.localization.AppLanguage
@@ -9,7 +12,10 @@ import com.neonull.protocol.localization.LocalizedText
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 enum class NeoScreen {
     ONBOARDING,
@@ -93,11 +99,57 @@ data class LearningUiState(
 }
 
 class LearningViewModel(
-    private val languageManager: LanguageManager = LanguageManager()
-) : ViewModel() {
+    application: Application
+) : AndroidViewModel(application) {
 
-    private val _uiState = MutableStateFlow(LearningUiState())
+    private val languageManager = LanguageManager()
+    private val progressPreferences = application.getSharedPreferences(
+        "neo_null_progress",
+        Context.MODE_PRIVATE
+    )
+
+    private val _uiState = MutableStateFlow(restoreProgress())
     val uiState: StateFlow<LearningUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            _uiState.drop(1).collect { state ->
+                persistProgress(state)
+            }
+        }
+    }
+
+    private fun restoreProgress(): LearningUiState {
+        val language = runCatching {
+            AppLanguage.valueOf(progressPreferences.getString("language", AppLanguage.EN.name) ?: AppLanguage.EN.name)
+        }.getOrDefault(AppLanguage.EN)
+        val validModuleIds = CurriculumRepository.modules.map { it.id }.toSet()
+        val completedIds = progressPreferences.getStringSet("completed_modules", emptySet())
+            .orEmpty()
+            .mapNotNull { it.toIntOrNull() }
+            .filter { it in validModuleIds }
+            .toSet()
+
+        return LearningUiState(
+            language = language,
+            audioEnabled = progressPreferences.getBoolean("audio_enabled", true),
+            completedModuleIds = completedIds,
+            xp = progressPreferences.getInt("xp", 0).coerceAtLeast(0),
+            ramMb = progressPreferences.getInt("ram_mb", 128).coerceAtLeast(128),
+            traceIntegrity = progressPreferences.getInt("trace_integrity", 100).coerceIn(20, 100)
+        )
+    }
+
+    private fun persistProgress(state: LearningUiState) {
+        progressPreferences.edit()
+            .putString("language", state.language.name)
+            .putBoolean("audio_enabled", state.audioEnabled)
+            .putStringSet("completed_modules", state.completedModuleIds.map(Int::toString).toSet())
+            .putInt("xp", state.xp.coerceAtLeast(0))
+            .putInt("ram_mb", state.ramMb.coerceAtLeast(128))
+            .putInt("trace_integrity", state.traceIntegrity.coerceIn(20, 100))
+            .apply()
+    }
 
     fun getStrings(language: AppLanguage = _uiState.value.language) =
         languageManager.getUiStrings(language)
