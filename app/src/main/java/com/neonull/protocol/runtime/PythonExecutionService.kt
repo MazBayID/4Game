@@ -59,14 +59,19 @@ class PythonExecutionService : Service() {
         val replyTo = message.replyTo ?: return
         val code = message.data.getString(KEY_CODE).orEmpty()
         val stdinText = message.data.getString(KEY_STDIN).orEmpty()
-        val response = if (code.length > MAX_SOURCE_CHARS) {
+        val inputError = when {
+            code.length > MAX_SOURCE_CHARS -> "SourceTooLarge"
+            stdinText.length > MAX_STDIN_CHARS -> "InputTooLarge"
+            else -> null
+        }
+        val response = if (inputError != null) {
             JSONObject()
                 .put("ok", false)
                 .put("stdout", "")
                 .put("stderr", "")
                 .put("stdoutTruncated", false)
                 .put("stderrTruncated", false)
-                .put("errorType", "SourceTooLarge")
+                .put("errorType", inputError)
                 .put("traceback", JSONObject.NULL)
                 .toString()
         } else try {
@@ -111,5 +116,6 @@ class PythonExecutionService : Service() {
         const val KEY_STDIN = "stdin"
         const val KEY_RESULT = "result"
         private const val MAX_SOURCE_CHARS = 128 * 1024
+        private const val MAX_STDIN_CHARS = 64 * 1024
     }
 }
