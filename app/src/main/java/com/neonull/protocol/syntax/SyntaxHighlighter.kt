@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
@@ -24,10 +23,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.TextRange
@@ -337,12 +332,10 @@ fun SyntaxHighlightedCodeEditor(
     val verticalScroll = rememberScrollState()
     val horizontalScroll = rememberScrollState()
     val hasErrors = errorLines.isNotEmpty()
-    val focusRequester = remember { FocusRequester() }
 
     var editorValue by remember {
         mutableStateOf(TextFieldValue(text = code, selection = TextRange(code.length)))
     }
-    var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
     var ctrlActive by remember { mutableStateOf(false) }
     var altActive by remember { mutableStateOf(false) }
     var shiftActive by remember { mutableStateOf(false) }
@@ -421,17 +414,6 @@ fun SyntaxHighlightedCodeEditor(
         val end = maxOf(selection.start, selection.end)
         val nextText = editorValue.text.replaceRange(start, end, insert)
         updateText(nextText, start + insert.length)
-    }
-
-    fun deleteBackward() {
-        val selection = editorValue.selection
-        val start = minOf(selection.start, selection.end)
-        val end = maxOf(selection.start, selection.end)
-        if (start != end) {
-            updateText(editorValue.text.removeRange(start, end), start)
-        } else if (start > 0) {
-            updateText(editorValue.text.removeRange(start - 1, start), start - 1)
-        }
     }
 
     Column(
@@ -515,7 +497,6 @@ fun SyntaxHighlightedCodeEditor(
                             editorValue = next
                             onCodeChange(next.text)
                         },
-                        onTextLayout = { textLayoutResult = it },
                         textStyle = CodeTextStyle,
                         cursorBrush = SolidColor(
                             if (hasErrors) NeoColors.CrimsonRed else NeoColors.MatrixGreen
@@ -524,18 +505,6 @@ fun SyntaxHighlightedCodeEditor(
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = editorMinHeight)
-                            .focusRequester(focusRequester)
-                            .pointerInput(textLayoutResult, editorValue.text) {
-                                detectTapGestures { tapPosition ->
-                                    focusRequester.requestFocus()
-                                    val offset = textLayoutResult
-                                        ?.getOffsetForPosition(tapPosition)
-                                        ?.coerceIn(0, editorValue.text.length)
-                                    if (offset != null) {
-                                        editorValue = editorValue.copy(selection = TextRange(offset))
-                                    }
-                                }
-                            }
                     )
                 }
             }
@@ -576,7 +545,6 @@ fun SyntaxHighlightedCodeEditor(
                 val lineEnd = editorValue.text.indexOf('\n', cursor)
                 setCursor(if (lineEnd < 0) editorValue.text.length else lineEnd)
             }
-            EditorKeyButton("BKSP") { deleteBackward() }
             EditorKeyButton("ENTER") { insertText("\n") }
             EditorKeyButton("A") {
                 if (ctrlActive) {
