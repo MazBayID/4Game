@@ -16,6 +16,7 @@ import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
 import org.json.JSONObject
 import java.io.File
+import java.nio.file.Files
 import java.util.concurrent.atomic.AtomicBoolean
 
 /** Separate-package runner. UID isolation is an OS boundary, not a perfect Python sandbox. */
@@ -28,6 +29,7 @@ class PythonRunnerService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        deleteRecursively(File(cacheDir, "byteghost-session"))
         worker = HandlerThread("ByteGhost-Runner").apply { start() }
         workerHandler = Handler(worker.looper)
         messenger = Messenger(Handler(Looper.getMainLooper()) { message ->
@@ -133,8 +135,13 @@ class PythonRunnerService : Service() {
             .toString()
 
     private fun deleteRecursively(file: File) {
+        val path = file.toPath()
+        if (Files.isSymbolicLink(path)) {
+            Files.deleteIfExists(path)
+            return
+        }
         if (file.isDirectory) file.listFiles()?.forEach(::deleteRecursively)
-        file.delete()
+        Files.deleteIfExists(path)
     }
 
     override fun onDestroy() {
