@@ -6,7 +6,7 @@ export interface SavedProgress {
   ramMb: number;
   traceIntegrity: number;
   language: SavedLanguage;
-  drafts: Record<string, string>;
+  drafts?: Record<string, string>;
 }
 
 interface StorageLike {
