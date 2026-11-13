@@ -3,6 +3,7 @@ package com.neonull.protocol.runner
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.ServiceConnection
 import android.os.Bundle
 import android.os.Handler
@@ -13,6 +14,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -32,6 +34,9 @@ class PythonRunnerServiceTest {
             ComponentName(context, PythonRunnerService::class.java), 0
         )
         assertEquals("com.neonull.protocol.permission.RUN_PYTHON", service.permission)
+        val packageInfo = context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_PERMISSIONS)
+        val requested = packageInfo.requestedPermissions?.toList().orEmpty()
+        assertFalse("Runner must not request INTERNET", requested.contains("android.permission.INTERNET"))
     }
 
     @Test
@@ -72,9 +77,9 @@ class PythonRunnerServiceTest {
         assertEquals("RUNNER_RECOVERED\n", recovered.getString("stdout"))
     }
 
-    private fun request(source: String): String {
+    private fun request(source: String, stdin: String = ""): String {
         val connection = bind(InstrumentationRegistry.getInstrumentation().targetContext)
-        return try { connection.send(source, MSG_RESULT) } finally { connection.close() }
+        return try { connection.send(source, stdin, MSG_RESULT) } finally { connection.close() }
     }
 
     private fun bind(context: Context): TestConnection {
@@ -103,13 +108,13 @@ class PythonRunnerServiceTest {
             remote.send(Message.obtain(null, PythonRunnerService.MSG_EXECUTE).apply {
                 data = Bundle().apply {
                     putString(PythonRunnerService.KEY_CODE, source)
-                    putString(PythonRunnerService.KEY_STDIN, "")
+                    putString(PythonRunnerService.KEY_STDIN, stdin)
                 }
                 replyTo = reply
             })
         }
 
-        fun send(source: String, expectedWhat: Int): String {
+        fun send(source: String, stdin: String, expectedWhat: Int): String {
             val latch = CountDownLatch(1)
             val result = AtomicReference<String>()
             val reply = Messenger(Handler(Looper.getMainLooper()) { message ->
