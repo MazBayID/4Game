@@ -109,6 +109,34 @@ for (const moduleId of [1, 2, 3, 4, 5, 6, 7]) {
   assert(workerSource.includes(expectedBranch), `Module ${moduleId} must ignore commented-out requirements`);
 }
 
+const invalidLoopScope = evaluatePythonSubmission(
+  CURRICULUM_MODULES[3],
+  'packets = 0\\nfor i in range(5):\\n    print(i)\\npackets += 1\\nprint(packets)',
+  'EN'
+);
+assert(!invalidLoopScope.isSuccess, 'Mission 4 must reject increments placed outside the loop');
+
+const invalidFunctionScope = evaluatePythonSubmission(
+  CURRICULUM_MODULES[4],
+  'def craft_token(seed):\\n    print(seed)\\nreturn seed * 3 + 9\\nprint(craft_token(7))',
+  'EN'
+);
+assert(!invalidFunctionScope.isSuccess, 'Mission 5 must reject return statements outside the function');
+
+const invalidExceptScope = evaluatePythonSubmission(
+  CURRICULUM_MODULES[5],
+  'try:\\n    open("corrupt.log", "r")\\nexcept FileNotFoundError:\\n    pass\\nprint("SAFE_EXTRACT")',
+  'EN'
+);
+assert(!invalidExceptScope.isSuccess, 'Mission 6 must require SAFE_EXTRACT inside the except block');
+
+const invalidMethodScope = evaluatePythonSubmission(
+  CURRICULUM_MODULES[6],
+  'class OverlordOverride:\\n    def __init__(self, key):\\n        self.key = key\\n    def shutdown(self):\\n        pass\\nreturn "ROOT_UNLOCKED"\\ncore = OverlordOverride("NULL-2142")\\nprint(core.shutdown())',
+  'EN'
+);
+assert(!invalidMethodScope.isSuccess, 'Mission 7 must require ROOT_UNLOCKED return inside shutdown');
+
 console.log('Production Pyodide worker regex checks passed.');
 
  // 7. Verify versioned progress persistence and defensive recovery
