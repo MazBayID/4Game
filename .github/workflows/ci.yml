@@ -7,6 +7,8 @@ concurrency:
 on:
   push:
     branches: [main, python-runtime-poc]
+  pull_request:
+    branches: [main]
 
 jobs:
   android-compile:
@@ -52,7 +54,10 @@ jobs:
           mkdir -p apk-output
           APK_PATH=$(find app/build/outputs/apk/debug -name "*.apk" -print -quit)
           test -n "$APK_PATH"
+          RUNNER_APK_PATH=$(find runner/build/outputs/apk/debug -name "*.apk" -print -quit)
+          test -n "$RUNNER_APK_PATH"
           cp "$APK_PATH" apk-output/ByteGhost-The-Synthex-Files-debug.apk
+          cp "$RUNNER_APK_PATH" apk-output/ByteGhost-Python-Runner-debug.apk
           sha256sum apk-output/*.apk > apk-output/SHA256SUMS.txt
 
       - name: Upload debug APK artifact
