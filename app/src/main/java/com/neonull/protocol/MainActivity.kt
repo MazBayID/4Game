@@ -3,6 +3,7 @@ package com.neonull.protocol
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -62,6 +63,19 @@ fun NeoNullRootApp(
             audioEngine.playBreachSuccess()
         } else {
             audioEngine.playCrimsonAlert()
+        }
+    }
+
+    BackHandler(
+        enabled = state.codexOpen ||
+            state.currentScreen == NeoScreen.TERMINAL ||
+            state.currentScreen == NeoScreen.THEORY
+    ) {
+        audioEngine.playKeyTick()
+        if (state.codexOpen) {
+            viewModel.closeCodex()
+        } else {
+            viewModel.enterHub()
         }
     }
 
