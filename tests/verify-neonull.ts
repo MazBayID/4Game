@@ -47,7 +47,39 @@ for (const mod of CURRICULUM_MODULES) {
 }
 
 
-// 5. Verify the production Pyodide worker uses valid Python regex patterns
+// 5. Verify mission evaluation reports the first missing learning checkpoint.
+const firstCheckpointMessages = [
+  'Create the agent variable',
+  'Assign a numeric value to threat',
+  'Initialize shards',
+  'Initialize packets',
+  'Define the craft_token',
+  'Start exception handling',
+  'Declare the OverlordOverride class',
+];
+for (const mod of CURRICULUM_MODULES) {
+  const result = evaluatePythonSubmission(mod, '', 'EN');
+  assert(!result.isSuccess, `Empty submission must fail mission ${mod.id}`);
+  assert(result.outputText.includes(firstCheckpointMessages[mod.id - 1]), `Mission ${mod.id} should explain its first missing checkpoint`);
+  assert(result.errorLines.length === 1 && result.errorLines[0] === 1, `Mission ${mod.id} should flag the first checkpoint line`);
+}
+
+const commentOnlyClearance = evaluatePythonSubmission(
+  CURRICULUM_MODULES[0],
+  'agent = "Null-Agent"\n# clearance = 1\nprint(agent)',
+  'EN'
+);
+assert(commentOnlyClearance.outputText.includes('Set clearance to 1'), 'Commented-out requirements must not satisfy mission checks');
+assert(commentOnlyClearance.errorLines.includes(2), 'Missing clearance should flag its expected line');
+
+const invalidThreat = evaluatePythonSubmission(
+  CURRICULUM_MODULES[1],
+  'threat = 75\nif threat >= 50:\n    print("DENIED")\nelse:\n    print("ALLOW")',
+  'EN'
+);
+assert(invalidThreat.outputText.includes('Set threat below 50'), 'Out-of-range threat values need targeted feedback');
+
+// 6. Verify the production Pyodide worker uses valid Python regex patterns
 const workerSource = readFileSync('public/workers/pyodide-runner.worker.js', 'utf8');
 assert(workerSource.includes('r"\\belse\\s*:"'), 'Worker else-branch regex must use Python word-boundary syntax');
 assert(workerSource.includes('r"\\bif\\s+threat\\s*>=\\s*50\\s*:"'), 'Worker threat-if regex must be valid');
@@ -57,7 +89,7 @@ assert(workerSource.includes('r"\\bexcept\\b.*:"'), 'Worker except regex must be
 
 console.log('Production Pyodide worker regex checks passed.');
 
- // 6. Verify versioned progress persistence and defensive recovery
+ // 7. Verify versioned progress persistence and defensive recovery
 const memoryStorage = (() => {
   let value: string | null = null;
   return {
