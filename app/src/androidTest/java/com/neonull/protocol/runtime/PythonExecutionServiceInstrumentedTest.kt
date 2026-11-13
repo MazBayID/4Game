@@ -90,9 +90,9 @@ class PythonExecutionServiceInstrumentedTest {
 
     @Test
     fun test08PythonInputUsesProvidedStdin() {
-        val result = JSONObject(executeThroughService("name = input('Alias? ')\\nprint('Hello', name)", "Zero\\n"))
+        val result = JSONObject(executeThroughService("name = input('Alias? ')\nprint('Hello', name)", "Zero\n"))
         assertTrue(result.getBoolean("ok"))
-        assertEquals("Alias? Hello Zero\\n", result.getString("stdout"))
+        assertEquals("Alias? Hello Zero\n", result.getString("stdout"))
     }
 
     @Test
