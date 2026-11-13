@@ -99,7 +99,7 @@ fun TerminalLearningScreen(
             var x = step
             while (x < size.width) {
                 drawLine(
-                    color = NeoColors.DeckGridLine.copy(alpha = 0.28f),
+                    color = NeoColors.DeckGridLine.copy(alpha = 0.20f),
                     start = Offset(x, 0f),
                     end = Offset(x, size.height),
                     strokeWidth = 0.8.dp.toPx()
@@ -131,9 +131,9 @@ fun TerminalLearningScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(5.dp))
                         .background(NeoColors.TerminalSurface)
-                        .border(1.dp, NeoColors.BorderSubtle, RoundedCornerShape(8.dp))
+                        .border(1.dp, NeoColors.BorderSubtle, RoundedCornerShape(5.dp))
                         .padding(horizontal = 10.dp, vertical = 7.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
@@ -230,7 +230,7 @@ fun TerminalLearningScreen(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(4.dp))
                                     .clickable { showRadarInTop = !showRadarInTop }
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    .padding(horizontal = 8.dp, vertical = 6.dp)
                             )
                         }
                         Text(
@@ -284,7 +284,7 @@ fun TerminalLearningScreen(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
                                 .clickable { onOpenCodex() }
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                .padding(horizontal = 8.dp, vertical = 6.dp)
                         )
                         Text(
                             text = strings.resetCodeBtn,
@@ -295,7 +295,7 @@ fun TerminalLearningScreen(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
                                 .clickable { onResetCode() }
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                .padding(horizontal = 8.dp, vertical = 6.dp)
                         )
                     }
                 }
@@ -363,12 +363,12 @@ fun TerminalLearningScreen(
                         }
                     }
 
-                    // Prominent Crimson Red [ RUN EXPLOIT ] action button
+                    // Primary execution action; crimson remains reserved for boss stages and errors.
                     Button(
                         onClick = onRunExploit,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = NeoColors.CrimsonRed,
-                            contentColor = NeoColors.TextPrimary
+                            containerColor = if (!isSandbox && module.isBossStage) NeoColors.CrimsonRed else NeoColors.MatrixGreen,
+                            contentColor = if (!isSandbox && module.isBossStage) NeoColors.TextPrimary else NeoColors.ObsidianVoid
                         ),
                         shape = RoundedCornerShape(6.dp),
                         modifier = Modifier
