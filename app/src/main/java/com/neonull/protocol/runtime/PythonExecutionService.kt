@@ -11,7 +11,11 @@ import android.os.Messenger
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
 
-/** Isolated-process CPython proof of concept; not yet a security guarantee. */
+/**
+ * CPython proof of concept in a dedicated Android app process.
+ * The process shares the host app UID and permissions. It is NOT a security
+ * sandbox for arbitrary untrusted Python submissions.
+ */
 class PythonExecutionService : Service() {
     private lateinit var workerThread: HandlerThread
     private lateinit var messenger: Messenger
@@ -31,13 +35,19 @@ class PythonExecutionService : Service() {
         val replyTo = message.replyTo ?: return
         val code = message.data.getString(KEY_CODE).orEmpty()
         val response = try {
-            if (!Python.isStarted()) Python.start(AndroidPlatform(applicationContext))
-            Python.getInstance().getModule("byteghost_runtime").callAttr("execute", code).toString()
+            if (!Python.isStarted()) {
+                Python.start(AndroidPlatform(applicationContext))
+            }
+            Python.getInstance().getModule("byteghost_runtime")
+                .callAttr("execute", code).toString()
         } catch (error: Throwable) {
             val safeMessage = (error.message ?: "Runtime initialization failed")
-                .replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
             """{"ok":false,"errorType":"${error.javaClass.simpleName}","error":"$safeMessage"}"""
         }
+
         try {
             val reply = Message.obtain(null, MSG_RESULT).apply {
                 data = Bundle().apply { putString(KEY_RESULT, response) }
