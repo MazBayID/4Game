@@ -14,6 +14,11 @@ class ByteGhostRuntimeTests(unittest.TestCase):
         self.assertEqual(result["stdout"], "ByteGhost online\n")
         self.assertIsNone(result["errorType"])
 
+    def test_input_reads_supplied_stdin(self):
+        result = json.loads(execute("name = input('Alias? ')\\nprint('Hello', name)", "Zero\\n"))
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["stdout"], "Alias? Hello Zero\\n")
+
     def test_stderr_capture(self):
         result = self.run_source('import sys\nprint("diagnostic", file=sys.stderr)')
         self.assertTrue(result["ok"])
