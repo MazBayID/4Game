@@ -1,4 +1,6 @@
+import io
 import json
+import sys
 import unittest
 
 from byteghost_runtime import execute, MAX_CAPTURED_OUTPUT, MAX_SOURCE_CHARS, MAX_STDIN_CHARS
@@ -18,6 +20,35 @@ class ByteGhostRuntimeTests(unittest.TestCase):
         result = json.loads(execute("name = input('Alias? ')\nprint('Hello', name)", "Zero\n"))
         self.assertTrue(result["ok"])
         self.assertEqual(result["stdout"], "Alias? Hello Zero\n")
+
+    def test_stdin_is_restored_after_success_and_failure(self):
+        original_stdin = sys.stdin
+        sentinel = io.StringIO("host-input")
+        try:
+            sys.stdin = sentinel
+            success = self.run_source("print(input())")
+            self.assertTrue(success["ok"])
+            self.assertIs(sys.stdin, sentinel)
+
+            failure = self.run_source("raise RuntimeError('expected')")
+            self.assertFalse(failure["ok"])
+            self.assertIs(sys.stdin, sentinel)
+        finally:
+            sys.stdin = original_stdin
+
+    def test_exception_keeps_output_written_before_failure(self):
+        result = self.run_source("print('BEFORE_ERROR')\\nraise ValueError('expected')")
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["stdout"], "BEFORE_ERROR\\n")
+        self.assertEqual(result["errorType"], "ValueError")
+
+    def test_stderr_output_is_bounded(self):
+        result = self.run_source(
+            "import sys\\nprint('E' * %d, file=sys.stderr)" % (MAX_CAPTURED_OUTPUT * 2)
+        )
+        self.assertTrue(result["ok"])
+        self.assertEqual(len(result["stderr"]), MAX_CAPTURED_OUTPUT)
+        self.assertTrue(result["stderrTruncated"])
 
     def test_stderr_capture(self):
         result = self.run_source('import sys\nprint("diagnostic", file=sys.stderr)')
