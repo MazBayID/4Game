@@ -110,7 +110,7 @@ class LearningViewModel(
         Context.MODE_PRIVATE
     )
 
-    private var draftSaveJob: Job? = null
+    private val draftSaveJobs = mutableMapOf<String, Job>()
 
     private val _uiState = MutableStateFlow(restoreProgress())
     val uiState: StateFlow<LearningUiState> = _uiState.asStateFlow()
@@ -176,11 +176,12 @@ class LearningViewModel(
     }
 
     private fun scheduleDraftSave(code: String, moduleId: Int, sandbox: Boolean = false) {
-        draftSaveJob?.cancel()
-        draftSaveJob = viewModelScope.launch {
+        val key = if (sandbox) "draft_sandbox" else "draft_module_$moduleId"
+        draftSaveJobs[key]?.cancel()
+        draftSaveJobs[key] = viewModelScope.launch {
             delay(DRAFT_SAVE_DEBOUNCE_MS)
-            val key = if (sandbox) "draft_sandbox" else "draft_module_$moduleId"
             progressPreferences.edit().putString(key, code.take(MAX_DRAFT_LENGTH)).apply()
+            draftSaveJobs.remove(key)
         }
     }
 
