@@ -35,15 +35,26 @@ class PythonRunnerService : Service() {
                 MSG_PING -> reply(message, MSG_PING_RESULT, "BINDER_OK")
                 MSG_EXECUTE -> {
                     if (executing.compareAndSet(false, true)) {
-                        workerHandler.post {
+                        val request = Message.obtain(message)
+                        val posted = workerHandler.post {
                             try {
-                                execute(message)
+                                execute(request)
                             } finally {
+                                request.recycle()
                                 executing.set(false)
                             }
                         }
+                        if (!posted) {
+                            request.recycle()
+                            executing.set(false)
+                            message.replyTo?.let {
+                                sendJson(it, errorResult("RunnerUnavailable", "Execution worker is not available"))
+                            }
+                        }
                     } else {
-                        sendJson(message.replyTo ?: return@Handler true, errorResult("RunnerBusy", "Only one execution is allowed at a time"))
+                        message.replyTo?.let {
+                            sendJson(it, errorResult("RunnerBusy", "Only one execution is allowed at a time"))
+                        }
                     }
                 }
                 else -> Log.w(TAG, "Ignoring unknown message " + message.what)
