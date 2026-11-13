@@ -1,13 +1,7 @@
 name: Build Android APK
 
 on:
-  push:
-    branches:
-      - main
-      - python-runtime-poc
-  pull_request:
-    branches:
-      - main
+  # APK builds are manual; CI builds and publishes the debug artifact once per change.
   workflow_dispatch:
     inputs:
       build_type:
