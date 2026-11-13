@@ -37,7 +37,7 @@ class PythonExecutionServiceInstrumentedTest {
         val json = JSONObject(result)
 
         assertTrue("Python execution should succeed: $result", json.getBoolean("ok"))
-        assertEquals("BYTEGHOST_RUNTIME_OK\\n", json.getString("stdout"))
+        assertEquals("BYTEGHOST_RUNTIME_OK\n", json.getString("stdout"))
         assertEquals("", json.getString("stderr"))
     }
 
@@ -54,12 +54,11 @@ class PythonExecutionServiceInstrumentedTest {
 
         val followUp = JSONObject(executeThroughService("print('SERVICE_STILL_ALIVE')"))
         assertTrue("Service should accept a request after a Python exception", followUp.getBoolean("ok"))
-        assertEquals("SERVICE_STILL_ALIVE\\n", followUp.getString("stdout"))
+        assertEquals("SERVICE_STILL_ALIVE\n", followUp.getString("stdout"))
     }
 
     private fun executeThroughService(source: String): String {
-        val instrumentation = InstrumentationRegistry.getInstrumentation()
-        val context = instrumentation.targetContext
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
         val component = ComponentName(context, PythonExecutionService::class.java)
         val intent = Intent().setComponent(component)
         val serviceInfo = runCatching {
