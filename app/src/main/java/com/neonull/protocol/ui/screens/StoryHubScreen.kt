@@ -33,6 +33,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.neonull.protocol.R
@@ -130,17 +131,20 @@ fun StoryHubScreen(
                             StatColumn(
                                 label = strings.ramStatLabel,
                                 value = "${state.ramMb} MB",
-                                accent = NeoColors.CyberCyan
+                                accent = NeoColors.CyberCyan,
+                                modifier = Modifier.weight(1f)
                             )
                             StatColumn(
                                 label = strings.xpStatLabel,
                                 value = "${state.xp} XP",
-                                accent = NeoColors.MatrixGreen
+                                accent = NeoColors.MatrixGreen,
+                                modifier = Modifier.weight(1f)
                             )
                             StatColumn(
                                 label = strings.firewallHealthLabel,
                                 value = "${state.firewallHealth}%",
-                                accent = if (state.firewallHealth <= 40) NeoColors.CrimsonRed else NeoColors.TextPrimary
+                                accent = if (state.firewallHealth <= 40) NeoColors.CrimsonRed else NeoColors.TextPrimary,
+                                modifier = Modifier.weight(1f)
                             )
                         }
                         Spacer(modifier = Modifier.height(12.dp))
@@ -389,21 +393,26 @@ fun StoryHubScreen(
 private fun StatColumn(
     label: String,
     value: String,
-    accent: Color
+    accent: Color,
+    modifier: Modifier = Modifier
 ) {
-    Column {
+    Column(modifier = modifier) {
         Text(
             text = label,
             fontFamily = FontFamily.Monospace,
             fontSize = 11.sp,
-            color = NeoColors.TextMuted
+            color = NeoColors.TextMuted,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
         Text(
             text = value,
             fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.Bold,
             fontSize = 17.sp,
-            color = accent
+            color = accent,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
