@@ -132,6 +132,13 @@ const invalidLoopScope = evaluatePythonSubmission(
 );
 assert(!invalidLoopScope.isSuccess, 'Mission 4 must reject increments placed outside the loop');
 
+const nestedFakeLoopIncrement = evaluatePythonSubmission(
+  CURRICULUM_MODULES[3],
+  'packets = 0\\nfor i in range(5):\\n    def fake():\\n        packets += 1\\nprint(packets)',
+  'EN'
+);
+assert(!nestedFakeLoopIncrement.isSuccess, 'Mission 4 must not accept an increment hidden in a nested function');
+
 const invalidFunctionScope = evaluatePythonSubmission(
   CURRICULUM_MODULES[4],
   'def craft_token(seed):\n    print(seed)\nreturn seed * 3 + 9\nprint(craft_token(7))',
