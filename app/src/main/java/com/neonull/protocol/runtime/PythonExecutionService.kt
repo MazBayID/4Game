@@ -8,6 +8,7 @@ import android.os.IBinder
 import android.os.Bundle
 import android.os.Message
 import android.os.Messenger
+import android.os.SystemClock
 import android.util.Log
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
@@ -43,6 +44,7 @@ class PythonExecutionService : Service() {
 
     /** Binder-only health check. This path must never initialize Chaquopy. */
     private fun handlePing(message: Message) {
+        Log.i(TAG, "Received Binder ping pid=${android.os.Process.myPid()} thread=${Thread.currentThread().name}")
         val replyTo = message.replyTo ?: return
         try {
             val reply = Message.obtain(null, MSG_PING_RESULT).apply {
@@ -56,15 +58,25 @@ class PythonExecutionService : Service() {
     }
 
     private fun handleExecution(message: Message) {
-        val replyTo = message.replyTo ?: return
+        val requestStartedAt = SystemClock.elapsedRealtime()
+        val replyTo = message.replyTo ?: run {
+            Log.w(TAG, "Execution request has no replyTo")
+            return
+        }
         val code = message.data.getString(KEY_CODE).orEmpty()
         val stdinText = message.data.getString(KEY_STDIN).orEmpty()
+        Log.i(
+            TAG,
+            "Received execution request sourceChars=${code.length} stdinChars=${stdinText.length} " +
+                "pid=${android.os.Process.myPid()} thread=${Thread.currentThread().name}"
+        )
         val inputError = when {
             code.length > MAX_SOURCE_CHARS -> "SourceTooLarge"
             stdinText.length > MAX_STDIN_CHARS -> "InputTooLarge"
             else -> null
         }
         val response = if (inputError != null) {
+            Log.w(TAG, "Rejected execution request reason=$inputError")
             JSONObject()
                 .put("ok", false)
                 .put("stdout", "")
@@ -76,13 +88,43 @@ class PythonExecutionService : Service() {
                 .toString()
         } else try {
             if (!Python.isStarted()) {
-                Log.i(TAG, "Starting Chaquopy CPython")
-                Python.start(AndroidPlatform(applicationContext))
+                val startupStartedAt = SystemClock.elapsedRealtime()
+                Log.i(TAG, "Chaquopy startup begin pid=${android.os.Process.myPid()}")
+                val platform = AndroidPlatform(applicationContext).apply {
+                    // Surface native startup diagnostics (e.g. loader/import messages) in Logcat.
+                    redirectStdioToLogcat()
+                }
+                Python.start(platform)
+                Log.i(
+                    TAG,
+                    "Chaquopy startup complete elapsedMs=${SystemClock.elapsedRealtime() - startupStartedAt}"
+                )
+            } else {
+                Log.i(TAG, "Chaquopy already started")
             }
-            Python.getInstance().getModule("byteghost_runtime")
-                .callAttr("execute", code, stdinText).toString()
+
+            val moduleStartedAt = SystemClock.elapsedRealtime()
+            val module = Python.getInstance().getModule("byteghost_runtime")
+            Log.i(
+                TAG,
+                "Python module loaded elapsedMs=${SystemClock.elapsedRealtime() - moduleStartedAt}"
+            )
+
+            val executionStartedAt = SystemClock.elapsedRealtime()
+            val result = module.callAttr("execute", code, stdinText).toString()
+            Log.i(
+                TAG,
+                "Python execution complete elapsedMs=${SystemClock.elapsedRealtime() - executionStartedAt} " +
+                    "totalElapsedMs=${SystemClock.elapsedRealtime() - requestStartedAt}"
+            )
+            result
         } catch (error: Throwable) {
-            Log.e(TAG, "Python runtime execution failed", error)
+            Log.e(
+                TAG,
+                "Python runtime stage failed afterMs=${SystemClock.elapsedRealtime() - requestStartedAt} " +
+                    "pid=${android.os.Process.myPid()}",
+                error
+            )
             JSONObject()
                 .put("ok", false)
                 .put("errorType", error.javaClass.simpleName)
@@ -95,6 +137,10 @@ class PythonExecutionService : Service() {
                 data = Bundle().apply { putString(KEY_RESULT, response) }
             }
             replyTo.send(reply)
+            Log.i(
+                TAG,
+                "Execution reply sent totalElapsedMs=${SystemClock.elapsedRealtime() - requestStartedAt}"
+            )
         } catch (error: Exception) {
             Log.w(TAG, "Unable to deliver Python result; requester may be gone", error)
         }
