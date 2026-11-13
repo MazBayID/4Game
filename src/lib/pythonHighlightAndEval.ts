@@ -206,12 +206,14 @@ function hasIndentedStatementAfter(
     const header = stripTrailingComment(lines[headerIndex]);
     if (!headerPattern.test(header.trim())) continue;
     const headerIndent = header.match(/^[ \t]*/)?.[0].length ?? 0;
+    let suiteIndent: number | null = null;
     for (let bodyIndex = headerIndex + 1; bodyIndex < lines.length; bodyIndex++) {
       const body = stripTrailingComment(lines[bodyIndex]);
       if (!body.trim()) continue;
       const bodyIndent = body.match(/^[ \t]*/)?.[0].length ?? 0;
       if (bodyIndent <= headerIndent) break;
-      if (statementPattern.test(body.trim())) return true;
+      if (suiteIndent === null) suiteIndent = bodyIndent;
+      if (bodyIndent === suiteIndent && statementPattern.test(body.trim())) return true;
     }
   }
   return false;
