@@ -32,6 +32,15 @@ import java.util.concurrent.atomic.AtomicReference
 class PythonExecutionServiceInstrumentedTest {
 
     @Test
+    fun binderPingReturnsWithoutStartingPython() {
+        assertEquals("BINDER_OK", sendMessageThroughService(
+            PythonExecutionService.MSG_PING,
+            null,
+            PythonExecutionService.MSG_PING_RESULT
+        ))
+    }
+
+    @Test
     fun executesPythonAndReturnsStdoutOverBinder() {
         val result = executeThroughService("print('BYTEGHOST_RUNTIME_OK')")
         val json = JSONObject(result)
@@ -57,7 +66,30 @@ class PythonExecutionServiceInstrumentedTest {
         assertEquals("SERVICE_STILL_ALIVE\n", followUp.getString("stdout"))
     }
 
-    private fun executeThroughService(source: String): String {
+    private fun executeThroughService(source: String): String =
+        sendMessageThroughService(
+            PythonExecutionService.MSG_EXECUTE,
+            source,
+            PythonExecutionService.MSG_RESULT
+        )
+
+    @Test
+    fun capsLargeOutputAndKeepsServiceResponsive() {
+        val largeOutput = JSONObject(executeThroughService("print('X' * 70000)"))
+        assertTrue("Large output execution should complete", largeOutput.getBoolean("ok"))
+        assertEquals(64 * 1024, largeOutput.getString("stdout").length())
+        assertTrue(largeOutput.getBoolean("stdoutTruncated"))
+
+        val followUp = JSONObject(executeThroughService("print('AFTER_STRESS_OK')"))
+        assertTrue(followUp.getBoolean("ok"))
+        assertEquals("AFTER_STRESS_OK\\n", followUp.getString("stdout"))
+    }
+
+    private fun sendMessageThroughService(
+        messageWhat: Int,
+        source: String?,
+        expectedReplyWhat: Int
+    ): String {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val component = ComponentName(context, PythonExecutionService::class.java)
         val intent = Intent().setComponent(component)
@@ -76,7 +108,7 @@ class PythonExecutionServiceInstrumentedTest {
         val result = AtomicReference<String>()
 
         val replyMessenger = Messenger(Handler(Looper.getMainLooper()) { message ->
-            if (message.what == PythonExecutionService.MSG_RESULT) {
+            if (message.what == expectedReplyWhat) {
                 result.set(
                     message.data.getString(PythonExecutionService.KEY_RESULT).orEmpty()
                 )
@@ -118,9 +150,11 @@ class PythonExecutionServiceInstrumentedTest {
                 "Python service connection timed out; $diagnostics",
                 connected.await(15, TimeUnit.SECONDS) && remoteMessenger != null
             )
-            val request = Message.obtain(null, PythonExecutionService.MSG_EXECUTE).apply {
-                data = Bundle().apply {
-                    putString(PythonExecutionService.KEY_CODE, source)
+            val request = Message.obtain(null, messageWhat).apply {
+                if (source != null) {
+                    data = Bundle().apply {
+                        putString(PythonExecutionService.KEY_CODE, source)
+                    }
                 }
                 replyTo = replyMessenger
             }
