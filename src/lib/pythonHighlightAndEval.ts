@@ -132,7 +132,7 @@ function detectPythonSyntaxIssue(code: string): { line: number; reason: string }
   let parenDepth = 0;
   let bracketDepth = 0;
   let braceDepth = 0;
-  let expectIndent = false;
+  let expectedIndentLevel: number | null = null;
 
   for (let idx = 0; idx < lines.length; idx++) {
     const rawLine = lines[idx];
@@ -173,23 +173,24 @@ function detectPythonSyntaxIssue(code: string): { line: number; reason: string }
     if (parenDepth < 0 || bracketDepth < 0 || braceDepth < 0) {
       return { line: lineNum, reason: 'Unmatched closing delimiter' };
     }
-    if (expectIndent && !rawLine.startsWith('    ') && !rawLine.startsWith('\t')) {
-      return { line: lineNum, reason: 'Expected an indented block (4 spaces)' };
+    const indentLevel = rawLine.match(/^[ \\t]*/)?.[0].length ?? 0;
+    if (expectedIndentLevel !== null && indentLevel <= expectedIndentLevel) {
+      return { line: lineNum, reason: 'Expected an indented block' };
     }
-    expectIndent = false;
+    expectedIndentLevel = null;
 
     if (blockHeader.test(trimmedCode)) {
       if (!trimmedCode.endsWith(':')) {
         return { line: lineNum, reason: "Missing ':' at end of block header" };
       }
-      expectIndent = true;
+      expectedIndentLevel = rawLine.match(/^[ \\t]*/)?.[0].length ?? 0;
     }
   }
 
   if (parenDepth !== 0 || bracketDepth !== 0 || braceDepth !== 0) {
     return { line: lines.length, reason: 'Unclosed parentheses or brackets' };
   }
-  if (expectIndent) {
+  if (expectedIndentLevel !== null) {
     return { line: lines.length, reason: 'Block header requires at least one indented line' };
   }
   return null;
