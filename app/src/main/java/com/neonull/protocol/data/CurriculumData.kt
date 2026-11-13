@@ -23,6 +23,7 @@ data class ProtocolModule(
     val solutionHint2: LocalizedText,
     val glitchIntroDialogue: LocalizedText,
     val glitchSuccessDialogue: LocalizedText,
+    val overlordTaunt: LocalizedText? = null,
     val snippetChips: List<String>
 )
 
@@ -309,24 +310,24 @@ print(packets)""",
                 ph = "Mga Function, Scope at Modules"
             ),
             missionName = LocalizedText(
-                en = "Custom Exploit",
-                id = "Eksploitasi Kustom",
-                ph = "Pasadyang Exploit"
+                en = "The Corrupt Modules",
+                id = "Modul Terkorupsi",
+                ph = "Mga Sirang Module"
             ),
             conceptTag = LocalizedText(
-                en = "def · Parameters · return · Scope",
-                id = "def · Parameter · return · Scope",
-                ph = "def · Parameters · return · Scope"
+                en = "def · Scope · Imports",
+                id = "def · Scope · Import",
+                ph = "def · Scope · Imports"
             ),
             storyBriefing = LocalizedText(
-                en = "SYNTHEX rotates cryptographic salts every 12 seconds. Package a reusable payload function `craft_token(seed)` so any resistance node can compute the bypass key on demand.",
-                id = "SYNTHEX memutar salt kriptografi tiap 12 detik. Bungkus logika menjadi fungsi `craft_token(seed)` agar setiap node perlawanan bisa menghitung kunci kapan saja.",
-                ph = "Pinapalitan ng SYNTHEX ang encryption salt kada 12 segundo. Gumawa ng reusable na function na `craft_token(seed)` para magamit ng buong grupo."
+                en = "SYNTHEX corrupted shared resistance modules and rotates cryptographic salts every 12 seconds. Package a clean, reusable function `craft_token(seed)` in local scope so any node can import and compute the bypass key.",
+                id = "SYNTHEX merusak modul perlawanan dan memutar salt kriptografi tiap 12 detik. Bungkus logika bersih menjadi fungsi `craft_token(seed)` dengan scope lokal agar setiap node bisa mengimpor dan menghitung kunci kapan saja.",
+                ph = "Sinira ng SYNTHEX ang mga module at pinapalitan ang encryption salt kada 12 segundo. Gumawa ng malinis na function na `craft_token(seed)` na may lokal na scope para ma-import ng buong grupo."
             ),
             pythonConceptExplanation = LocalizedText(
-                en = "Define reusable logic with `def name(param):` and hand values back to the caller using `return`.",
-                id = "Definisikan fungsi dengan `def nama(param):` lalu kembalikan hasil komputasi menggunakan `return`.",
-                ph = "Gumawa ng function gamit ang `def pangalan(param):` at ibalik ang sagot gamit ang `return`."
+                en = "Define reusable logic with `def name(param):`, respect local variable scope inside functions, and share tools across files with `import`.",
+                id = "Definisikan fungsi dengan `def nama(param):`, jaga variabel dalam scope lokal fungsi, dan bagikan modul antar file dengan `import`.",
+                ph = "Gumawa ng function gamit ang `def pangalan(param):`, panatilihin ang local scope, at gumamit ng `import` para maibahagi ang mga module."
             ),
             codeExample = """def hash_shift(val):
     key = val * 2 + 7
@@ -378,9 +379,9 @@ print(craft_token(7))""",
                 ph = "Error Handling at File I/O"
             ),
             missionName = LocalizedText(
-                en = "Firewall Protocol & Log Extraction",
-                id = "Protokol Firewall & Ekstraksi Log",
-                ph = "Firewall Protocol at Pagkuha ng Log"
+                en = "The Firewall Paradox",
+                id = "Paradoks Firewall",
+                ph = "Ang Firewall Paradox"
             ),
             conceptTag = LocalizedText(
                 en = "try · except · with open()",
@@ -432,6 +433,11 @@ except FileNotFoundError:
                 id = "Arsip terekstrak tanpa satu pun traceback. Tinggal satu dinding antara kita dan AI OVERLORD.",
                 ph = "Malinis ang pagkuha ng log! Isang firewall na lang ang pagitan natin at ng AI OVERLORD."
             ),
+            overlordTaunt = LocalizedText(
+                en = "INTRUSION DETECTED IN BLACKBOX ARCHIVE. ONE UNHANDLED TRACEBACK AND YOUR DECK BURNS, NULL-AGENT.",
+                id = "INTRUSI TERDETEKSI DI ARSIP BLACKBOX. SATU TRACEBACK TAK TERTANGANI DAN DEKMU AKAN HANGUS, NULL-AGENT.",
+                ph = "MAY NAKAPASOK SA BLACKBOX ARCHIVE. ISANG TRACEBACK LANG AT MASUSUNOG ANG TERMINAL MO, NULL-AGENT."
+            ),
             snippetChips = listOf("except FileNotFoundError:", "    print(\"SAFE_EXTRACT\")", "except Exception:")
         ),
 
@@ -448,9 +454,9 @@ except FileNotFoundError:
                 ph = "OOP at Huling Laban"
             ),
             missionName = LocalizedText(
-                en = "Root Takeover vs AI OVERLORD",
-                id = "Pengambilalihan Root vs AI OVERLORD",
-                ph = "Root Takeover laban sa AI OVERLORD"
+                en = "Root Takeover / Final Heist",
+                id = "Pengambilalihan Root / Pencurian Terakhir",
+                ph = "Root Takeover / Huling Pagsalakay"
             ),
             conceptTag = LocalizedText(
                 en = "class · __init__ · self · Methods",
@@ -506,6 +512,11 @@ print(core.shutdown())""",
                 en = "OVERLORD core flatlined! SYNTHEX's grid is back in human hands, Null-Agent. Class dismissed... legend.",
                 id = "Inti OVERLORD mati total! Jaringan SYNTHEX kembali ke tangan manusia, Null-Agent. Misi tuntas, legenda.",
                 ph = "Bagsak ang AI OVERLORD! Balik na sa sangkatauhan ang network, Null-Agent. Isa ka nang alamat."
+            ),
+            overlordTaunt = LocalizedText(
+                en = "YOU CANNOT ENCAPSULATE MY KERNEL, NULL-AGENT. SYNTHEX IS IMMORTAL.",
+                id = "KAU TIDAK AKAN BISA MEMBUNGKUS KERNELKU, NULL-AGENT. SYNTHEX ABADI.",
+                ph = "HINDI MO KAYANG SAKUPIN ANG KERNEL KO, NULL-AGENT. WALANG HANGGAN ANG SYNTHEX."
             ),
             snippetChips = listOf("return \"ROOT_UNLOCKED\"", "self.key = key", "print(core.shutdown())")
         )

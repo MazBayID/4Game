@@ -84,15 +84,22 @@ fun OnboardingScreen(
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Image(
+                        painter = painterResource(id = R.drawable.neonull_crest_emblem),
+                        contentDescription = "NEO-NULL Crest",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.size(56.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Image(
                         painter = painterResource(id = R.drawable.glitch_mentor_avatar),
                         contentDescription = "GLITCH",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
-                            .size(56.dp)
+                            .size(52.dp)
                             .clip(RoundedCornerShape(10.dp))
                             .border(1.dp, NeoColors.CyberCyan, RoundedCornerShape(10.dp))
                     )
-                    Spacer(modifier = Modifier.width(14.dp))
+                    Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
                             text = strings.appTitle,

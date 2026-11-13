@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { HighlightToken, tokenizePythonLine } from '../lib/pythonHighlightAndEval';
 
 const TOKEN_COLOR: Record<HighlightToken['kind'], string> = {
@@ -66,6 +67,7 @@ export function SyntaxCodeEditor({
   errorLines = [],
   isBossStage = false,
 }: SyntaxCodeEditorProps) {
+  const overlayRef = useRef<HTMLDivElement>(null);
   const lines = code.split('\n');
   const errSet = new Set(errorLines);
   const hasErrors = errorLines.length > 0;
@@ -74,6 +76,15 @@ export function SyntaxCodeEditor({
     : isBossStage
       ? 'border-[#DC143C]/70'
       : 'border-[#00E5FF]/50';
+
+  // 24px per line (leading-6) + 24px vertical padding (py-3)
+  const editorHeightPx = Math.max(9, lines.length) * 24 + 24;
+
+  const syncScroll = (scrollLeft: number) => {
+    if (overlayRef.current) {
+      overlayRef.current.scrollLeft = scrollLeft;
+    }
+  };
 
   return (
     <div
@@ -96,10 +107,14 @@ export function SyntaxCodeEditor({
       </div>
 
       {/* Synchronized Highlight Overlay + Transparent Input Layer */}
-      <div className="relative min-h-[210px] flex-1 overflow-x-auto">
+      <div
+        className="relative flex-1 overflow-hidden"
+        style={{ height: `${editorHeightPx}px` }}
+      >
         <div
+          ref={overlayRef}
           aria-hidden="true"
-          className="pointer-events-none min-h-full whitespace-pre px-3.5 py-3"
+          className="pointer-events-none h-full w-full overflow-hidden whitespace-pre px-3.5 py-3"
         >
           {lines.map((line, idx) => {
             const lineNo = idx + 1;
@@ -126,7 +141,9 @@ export function SyntaxCodeEditor({
 
         <textarea
           value={code}
+          wrap="off"
           onChange={(e) => onChange(e.target.value)}
+          onScroll={(e) => syncScroll(e.currentTarget.scrollLeft)}
           onKeyDown={(e) => {
             if (e.key === 'Tab') {
               e.preventDefault();
@@ -144,7 +161,7 @@ export function SyntaxCodeEditor({
           autoCapitalize="off"
           autoComplete="off"
           aria-label="Python Code Editor"
-          className="code-input absolute inset-0 h-full w-full resize-none bg-transparent px-3.5 py-3 font-mono text-[13px] leading-6 text-transparent caret-[#00FF66] focus:outline-none"
+          className="code-input absolute inset-0 h-full w-full resize-none overflow-x-auto overflow-y-hidden whitespace-pre bg-transparent px-3.5 py-3 font-mono text-[13px] leading-6 text-transparent caret-[#00FF66] focus:outline-none"
         />
       </div>
     </div>

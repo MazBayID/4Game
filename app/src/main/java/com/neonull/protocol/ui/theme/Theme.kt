@@ -45,10 +45,10 @@ val NeoTypography = Typography(
         color = NeoColors.TextPrimary
     ),
     titleMedium = TextStyle(
-        fontFamily = FontFamily.SansSerif,
+        fontFamily = FontFamily.Monospace,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 16.sp,
-        lineHeight = 22.sp,
+        fontSize = 15.sp,
+        lineHeight = 21.sp,
         color = NeoColors.TextPrimary
     ),
     bodyLarge = TextStyle(
@@ -61,14 +61,14 @@ val NeoTypography = Typography(
     bodyMedium = TextStyle(
         fontFamily = FontFamily.SansSerif,
         fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
+        fontSize = 13.5.sp,
+        lineHeight = 19.sp,
         color = NeoColors.TextSecondary
     ),
     labelMedium = TextStyle(
         fontFamily = FontFamily.Monospace,
-        fontWeight = FontWeight.Medium,
-        fontSize = 12.sp,
+        fontWeight = FontWeight.Bold,
+        fontSize = 11.5.sp,
         lineHeight = 16.sp,
         letterSpacing = 0.6.sp,
         color = NeoColors.CyberCyan
@@ -81,6 +81,14 @@ val CodeTextStyle = TextStyle(
     fontSize = 13.5.sp,
     lineHeight = 21.sp,
     color = NeoColors.TextPrimary
+)
+
+val ConsoleTextStyle = TextStyle(
+    fontFamily = FontFamily.Monospace,
+    fontWeight = FontWeight.Normal,
+    fontSize = 12.5.sp,
+    lineHeight = 19.sp,
+    color = NeoColors.MatrixGreen
 )
 
 @Composable

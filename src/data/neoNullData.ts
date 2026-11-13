@@ -28,6 +28,7 @@ export interface UiStrings {
   sectorYearLabel: string;
   ramStatLabel: string;
   xpStatLabel: string;
+  traceStatLabel: string;
   modulesProgressLabel: string;
   rankLabel: string;
   lockedLabel: string;
@@ -43,13 +44,22 @@ export interface UiStrings {
   codeExampleTitle: string;
   proceedToTerminalBtn: string;
   glitchMentorTitle: string;
+  overlordTauntTitle: string;
   missionObjectiveTitle: string;
   editorHeaderTitle: string;
   consoleOutputTitle: string;
+  ramInspectorTitle: string;
+  ramEmptyText: string;
   runExploitBtn: string;
+  runningBtn: string;
   requestHintBtn: string;
   resetCodeBtn: string;
   nextModuleBtn: string;
+  sandboxModeBtn: string;
+  sandboxTitle: string;
+  sandboxSubtitle: string;
+  codexBtn: string;
+  codexTitle: string;
   victoryTitle: string;
   victorySubtitle: string;
   warningBannerText: string;
@@ -61,6 +71,8 @@ export interface UiStrings {
   androidSourceTitle: string;
   copyCodeBtn: string;
   copiedBtn: string;
+  networkMapTitle: string;
+  zeroTraceBonusLabel: string;
 }
 
 export const UI_STRINGS: Record<AppLanguage, UiStrings> = {
@@ -74,6 +86,7 @@ export const UI_STRINGS: Record<AppLanguage, UiStrings> = {
     sectorYearLabel: 'SYNTHEX GRID · 2142',
     ramStatLabel: 'RAM Freed',
     xpStatLabel: 'Operative XP',
+    traceStatLabel: 'Firewall Health',
     modulesProgressLabel: 'Exploits Cleared',
     rankLabel: 'Clearance',
     lockedLabel: 'ENCRYPTED',
@@ -89,13 +102,22 @@ export const UI_STRINGS: Record<AppLanguage, UiStrings> = {
     codeExampleTitle: 'Annotated Exploit Pattern',
     proceedToTerminalBtn: 'Deploy to Terminal',
     glitchMentorTitle: 'GLITCH · AI Mentor',
+    overlordTauntTitle: 'AI OVERLORD · Crimson Intercept',
     missionObjectiveTitle: 'Mission Objective',
-    editorHeaderTitle: 'Python Payload Editor',
+    editorHeaderTitle: 'Terminal Deck · Python (CPython 3.14)',
     consoleOutputTitle: 'Execution Console',
-    runExploitBtn: 'Run Exploit',
+    ramInspectorTitle: 'Live RAM Variable Inspector',
+    ramEmptyText: 'Execute Python code to inspect live variables, lists, dicts, and class objects in memory.',
+    runExploitBtn: '[ RUN EXPLOIT ]',
+    runningBtn: 'Executing...',
     requestHintBtn: 'Ask GLITCH Hint',
     resetCodeBtn: 'Reset Code',
     nextModuleBtn: 'Next Mission',
+    sandboxModeBtn: 'Free-Play Sandbox',
+    sandboxTitle: 'CPython 3.14 Free-Play Sandbox',
+    sandboxSubtitle: 'Experiment freely with any Python code, inspect live memory objects, and test algorithms offline.',
+    codexBtn: 'Cipher Codex',
+    codexTitle: 'Unlocked Python Cipher Codex',
     victoryTitle: 'AI OVERLORD NEUTRALIZED',
     victorySubtitle: 'SYNTHEX core root access restored to humanity. Null-Agent protocol complete.',
     warningBannerText: 'SYNTHEX COUNTER-TRACE DETECTED — CHECK SYNTAX',
@@ -103,10 +125,12 @@ export const UI_STRINGS: Record<AppLanguage, UiStrings> = {
     syntaxErrorPrefix: 'SYNTAX_FAULT',
     testFailedPrefix: 'CHECK_FAILED',
     missionPassedStatus: 'BREACH CONFIRMED',
-    androidSourceBtn: 'Android Kotlin Source',
+    androidSourceBtn: 'Android Source',
     androidSourceTitle: 'Jetpack Compose & Kotlin Project Files',
     copyCodeBtn: 'Copy File',
     copiedBtn: 'Copied',
+    networkMapTitle: 'SYNTHEX Neural Grid — Click an unlocked node to infiltrate',
+    zeroTraceBonusLabel: '+50 XP Clean Breach Bonus',
   },
   ID: {
     appTitle: 'NEO-NULL',
@@ -118,6 +142,7 @@ export const UI_STRINGS: Record<AppLanguage, UiStrings> = {
     sectorYearLabel: 'JARINGAN SYNTHEX · 2142',
     ramStatLabel: 'RAM Bebas',
     xpStatLabel: 'XP Operatif',
+    traceStatLabel: 'Integritas Firewall',
     modulesProgressLabel: 'Misi Tuntas',
     rankLabel: 'Otoritas',
     lockedLabel: 'TERKUNCI',
@@ -133,13 +158,22 @@ export const UI_STRINGS: Record<AppLanguage, UiStrings> = {
     codeExampleTitle: 'Pola Kode Eksploitasi',
     proceedToTerminalBtn: 'Lanjut ke Terminal',
     glitchMentorTitle: 'GLITCH · Mentor AI',
+    overlordTauntTitle: 'AI OVERLORD · Intersepsi Merah',
     missionObjectiveTitle: 'Target Misi',
-    editorHeaderTitle: 'Editor Kode Python',
+    editorHeaderTitle: 'Dek Terminal · Python (CPython 3.14)',
     consoleOutputTitle: 'Konsol Eksekusi',
-    runExploitBtn: 'Jalankan Kode',
+    ramInspectorTitle: 'Inspektor Variabel RAM Langsung',
+    ramEmptyText: 'Jalankan kode Python untuk memantau variabel, list, dict, dan objek kelas di memori.',
+    runExploitBtn: '[ JALANKAN EXPLOIT ]',
+    runningBtn: 'Menjalankan...',
     requestHintBtn: 'Minta Petunjuk GLITCH',
     resetCodeBtn: 'Reset Kode',
     nextModuleBtn: 'Misi Berikutnya',
+    sandboxModeBtn: 'Sandbox Bebas',
+    sandboxTitle: 'Sandbox Bebas CPython 3.14',
+    sandboxSubtitle: 'Bereksperimen bebas dengan kode Python apa pun, pantau objek memori, dan uji algoritma.',
+    codexBtn: 'Kodeks Python',
+    codexTitle: 'Kodeks Referensi Python Terbuka',
     victoryTitle: 'AI OVERLORD DILUMPUHKAN',
     victorySubtitle: 'Akses root inti SYNTHEX berhasil direbut kembali. Protokol Null-Agent selesai.',
     warningBannerText: 'PELACAK BALIK SYNTHEX AKTIF — PERIKSA SINTAKS',
@@ -147,10 +181,12 @@ export const UI_STRINGS: Record<AppLanguage, UiStrings> = {
     syntaxErrorPrefix: 'GALAT_SINTAKS',
     testFailedPrefix: 'VERIFIKASI_GAGAL',
     missionPassedStatus: 'PENETRASI BERHASIL',
-    androidSourceBtn: 'Kode Sumber Android',
+    androidSourceBtn: 'Source Android',
     androidSourceTitle: 'File Proyek Jetpack Compose & Kotlin',
     copyCodeBtn: 'Salin File',
     copiedBtn: 'Tersalin',
+    networkMapTitle: 'Peta Jaringan SYNTHEX — Klik node terbuka untuk infiltrasi',
+    zeroTraceBonusLabel: '+50 XP Bonus Tanpa Jejak',
   },
   PH: {
     appTitle: 'NEO-NULL',
@@ -162,6 +198,7 @@ export const UI_STRINGS: Record<AppLanguage, UiStrings> = {
     sectorYearLabel: 'SYNTHEX GRID · 2142',
     ramStatLabel: 'Nababawing RAM',
     xpStatLabel: 'XP ng Operatiba',
+    traceStatLabel: 'Firewall Health',
     modulesProgressLabel: 'Natapos na Misyon',
     rankLabel: 'Antas',
     lockedLabel: 'NAKA-LOCK',
@@ -177,13 +214,22 @@ export const UI_STRINGS: Record<AppLanguage, UiStrings> = {
     codeExampleTitle: 'Halimbawang Code Pattern',
     proceedToTerminalBtn: 'Tumuloy sa Terminal',
     glitchMentorTitle: 'GLITCH · AI Mentor',
+    overlordTauntTitle: 'AI OVERLORD · Crimson Intercept',
     missionObjectiveTitle: 'Layunin ng Misyon',
-    editorHeaderTitle: 'Python Payload Editor',
+    editorHeaderTitle: 'Terminal Deck · Python (CPython 3.14)',
     consoleOutputTitle: 'Execution Console',
-    runExploitBtn: 'Patakbuhin ang Code',
+    ramInspectorTitle: 'Live RAM Variable Inspector',
+    ramEmptyText: 'Patakbuhin ang Python code upang makita ang live variables, lists, dicts, at objects.',
+    runExploitBtn: '[ RUN EXPLOIT ]',
+    runningBtn: 'Pinatatakbo...',
     requestHintBtn: 'Humingi ng Hint kay GLITCH',
     resetCodeBtn: 'I-reset ang Code',
     nextModuleBtn: 'Susunod na Misyon',
+    sandboxModeBtn: 'Free-Play Sandbox',
+    sandboxTitle: 'CPython 3.14 Free-Play Sandbox',
+    sandboxSubtitle: 'Mag-eksperimento nang malaya gamit ang totoong Python at suriin ang memory objects.',
+    codexBtn: 'Cipher Codex',
+    codexTitle: 'Nabuksang Python Cipher Codex',
     victoryTitle: 'NAPATUMBA ANG AI OVERLORD',
     victorySubtitle: 'Nabawi na ang root access mula sa SYNTHEX. Tagumpay ang Null-Agent protocol.',
     warningBannerText: 'NA-DETECT ANG SYNTHEX COUNTER-TRACE — SURIIN ANG SYNTAX',
@@ -191,10 +237,12 @@ export const UI_STRINGS: Record<AppLanguage, UiStrings> = {
     syntaxErrorPrefix: 'MALI_SA_SYNTAX',
     testFailedPrefix: 'BIGO_ANG_PAGSUSURI',
     missionPassedStatus: 'MATAGUMPAY ANG PAGPASOK',
-    androidSourceBtn: 'Android Kotlin Source',
+    androidSourceBtn: 'Android Source',
     androidSourceTitle: 'Mga File ng Jetpack Compose & Kotlin',
     copyCodeBtn: 'Kopyahin',
     copiedBtn: 'Nakopya',
+    networkMapTitle: 'SYNTHEX Neural Grid — I-click ang bukas na node',
+    zeroTraceBonusLabel: '+50 XP Clean Breach Bonus',
   },
 };
 
@@ -216,6 +264,7 @@ export interface ProtocolModule {
   solutionHint2: LocalizedText;
   glitchIntroDialogue: LocalizedText;
   glitchSuccessDialogue: LocalizedText;
+  overlordTaunt?: LocalizedText;
   snippetChips: string[];
 }
 
@@ -492,24 +541,24 @@ print(packets)`,
       PH: 'Mga Function, Scope at Modules',
     },
     missionName: {
-      EN: 'Custom Exploit',
-      ID: 'Eksploitasi Kustom',
-      PH: 'Pasadyang Exploit',
+      EN: 'The Corrupt Modules',
+      ID: 'Modul Terkorupsi',
+      PH: 'Mga Sirang Module',
     },
     conceptTag: {
-      EN: 'def · Parameters · return · Scope',
-      ID: 'def · Parameter · return · Scope',
-      PH: 'def · Parameters · return · Scope',
+      EN: 'def · Scope · Imports',
+      ID: 'def · Scope · Import',
+      PH: 'def · Scope · Imports',
     },
     storyBriefing: {
-      EN: 'SYNTHEX rotates cryptographic salts every 12 seconds. Package a reusable payload function `craft_token(seed)` so any resistance node can compute the bypass key on demand.',
-      ID: 'SYNTHEX memutar salt kriptografi tiap 12 detik. Bungkus logika menjadi fungsi `craft_token(seed)` agar setiap node perlawanan bisa menghitung kunci kapan saja.',
-      PH: 'Pinapalitan ng SYNTHEX ang encryption salt kada 12 segundo. Gumawa ng reusable na function na `craft_token(seed)` para magamit ng buong grupo.',
+      EN: 'SYNTHEX corrupted shared resistance modules and rotates cryptographic salts every 12 seconds. Package a clean, reusable function `craft_token(seed)` in local scope so any node can import and compute the bypass key.',
+      ID: 'SYNTHEX merusak modul perlawanan dan memutar salt kriptografi tiap 12 detik. Bungkus logika bersih menjadi fungsi `craft_token(seed)` dengan scope lokal agar setiap node bisa mengimpor dan menghitung kunci kapan saja.',
+      PH: 'Sinira ng SYNTHEX ang mga module at pinapalitan ang encryption salt kada 12 segundo. Gumawa ng malinis na function na `craft_token(seed)` na may lokal na scope para ma-import ng buong grupo.',
     },
     pythonConceptExplanation: {
-      EN: 'Define reusable logic with `def name(param):` and hand values back to the caller using `return`.',
-      ID: 'Definisikan fungsi dengan `def nama(param):` lalu kembalikan hasil komputasi menggunakan `return`.',
-      PH: 'Gumawa ng function gamit ang `def pangalan(param):` at ibalik ang sagot gamit ang `return`.',
+      EN: 'Define reusable logic with `def name(param):`, respect local variable scope inside functions, and share tools across files with `import`.',
+      ID: 'Definisikan fungsi dengan `def nama(param):`, jaga variabel dalam scope lokal fungsi, dan bagikan modul antar file dengan `import`.',
+      PH: 'Gumawa ng function gamit ang `def pangalan(param):`, panatilihin ang local scope, at gumamit ng `import` para maibahagi ang mga module.',
     },
     codeExample: `def hash_shift(val):
     key = val * 2 + 7
@@ -559,9 +608,9 @@ print(craft_token(7))`,
       PH: 'Error Handling at File I/O',
     },
     missionName: {
-      EN: 'Firewall Protocol & Log Extraction',
-      ID: 'Protokol Firewall & Ekstraksi Log',
-      PH: 'Firewall Protocol at Pagkuha ng Log',
+      EN: 'The Firewall Paradox',
+      ID: 'Paradoks Firewall',
+      PH: 'Ang Firewall Paradox',
     },
     conceptTag: {
       EN: 'try · except · with open()',
@@ -613,6 +662,11 @@ except FileNotFoundError:
       ID: 'Arsip terekstrak tanpa satu pun traceback. Tinggal satu dinding antara kita dan AI OVERLORD.',
       PH: 'Malinis ang pagkuha ng log! Isang firewall na lang ang pagitan natin at ng AI OVERLORD.',
     },
+    overlordTaunt: {
+      EN: 'INTRUSION DETECTED IN BLACKBOX ARCHIVE. ONE UNHANDLED TRACEBACK AND YOUR DECK BURNS, NULL-AGENT.',
+      ID: 'INTRUSI TERDETEKSI DI ARSIP BLACKBOX. SATU TRACEBACK TAK TERTANGANI DAN DEKMU AKAN HANGUS, NULL-AGENT.',
+      PH: 'MAY NAKAPASOK SA BLACKBOX ARCHIVE. ISANG TRACEBACK LANG AT MASUSUNOG ANG TERMINAL MO, NULL-AGENT.',
+    },
     snippetChips: ['except FileNotFoundError:', '    print("SAFE_EXTRACT")'],
   },
   {
@@ -627,9 +681,9 @@ except FileNotFoundError:
       PH: 'OOP at Huling Laban',
     },
     missionName: {
-      EN: 'Root Takeover vs AI OVERLORD',
-      ID: 'Pengambilalihan Root vs AI OVERLORD',
-      PH: 'Root Takeover laban sa AI OVERLORD',
+      EN: 'Root Takeover / Final Heist',
+      ID: 'Pengambilalihan Root / Pencurian Terakhir',
+      PH: 'Root Takeover / Huling Pagsalakay',
     },
     conceptTag: {
       EN: 'class · __init__ · self · Methods',
@@ -685,6 +739,11 @@ print(core.shutdown())`,
       EN: 'OVERLORD core flatlined! SYNTHEX’s grid is back in human hands, Null-Agent. Class dismissed... legend.',
       ID: 'Inti OVERLORD mati total! Jaringan SYNTHEX kembali ke tangan manusia, Null-Agent. Misi tuntas, legenda.',
       PH: 'Bagsak ang AI OVERLORD! Balik na sa sangkatauhan ang network, Null-Agent. Isa ka nang alamat.',
+    },
+    overlordTaunt: {
+      EN: 'YOU CANNOT ENCAPSULATE MY KERNEL, NULL-AGENT. SYNTHEX IS IMMORTAL.',
+      ID: 'KAU TIDAK AKAN BISA MEMBUNGKUS KERNELKU, NULL-AGENT. SYNTHEX ABADI.',
+      PH: 'HINDI MO KAYANG SAKUPIN ANG KERNEL KO, NULL-AGENT. WALANG HANGGAN ANG SYNTHEX.',
     },
     snippetChips: ['        return "ROOT_UNLOCKED"', 'print(core.shutdown())'],
   },

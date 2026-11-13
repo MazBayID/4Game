@@ -18,12 +18,19 @@ enum class NeoScreen {
     TERMINAL
 }
 
+data class RamVariableSlot(
+    val name: String,
+    val type: String,
+    val preview: String
+)
+
 data class EvaluationResult(
     val isSuccess: Boolean,
     val isSyntaxError: Boolean,
     val outputText: String,
     val errorLines: Set<Int> = emptySet(),
-    val glitchFeedback: String
+    val glitchFeedback: String,
+    val ramSlots: List<RamVariableSlot> = emptyList()
 )
 
 data class LearningUiState(
@@ -31,9 +38,14 @@ data class LearningUiState(
     val language: AppLanguage = AppLanguage.EN,
     val modules: List<ProtocolModule> = CurriculumRepository.modules,
     val activeModuleId: Int = 1,
+    val isSandboxMode: Boolean = false,
+    val codexOpen: Boolean = false,
+    val audioEnabled: Boolean = true,
     val completedModuleIds: Set<Int> = emptySet(),
     val xp: Int = 0,
     val ramMb: Int = 128,
+    val traceIntegrity: Int = 100,
+    val moduleAttemptFailed: Boolean = false,
     val codeBuffer: String = CurriculumRepository.modules.first().starterCode,
     val hintLevel: Int = 0,
     val glitchDialogue: String = CurriculumRepository.modules.first().glitchIntroDialogue.en,
@@ -42,6 +54,9 @@ data class LearningUiState(
 ) {
     val activeModule: ProtocolModule
         get() = modules.firstOrNull { it.id == activeModuleId } ?: modules.first()
+
+    val firewallHealth: Int
+        get() = traceIntegrity
 
     val isCampaignComplete: Boolean
         get() = completedModuleIds.size >= modules.size
@@ -92,6 +107,7 @@ class LearningViewModel(
         _uiState.update { state ->
             val mod = state.activeModule
             val refreshedDialogue = when {
+                state.isSandboxMode -> languageManager.getUiStrings(language).sandboxSubtitle
                 state.evaluationResult?.isSuccess == true -> mod.glitchSuccessDialogue.resolve(language)
                 state.hintLevel == 1 -> mod.solutionHint1.resolve(language)
                 state.hintLevel >= 2 -> mod.solutionHint2.resolve(language)
@@ -104,12 +120,36 @@ class LearningViewModel(
         }
     }
 
-    fun enterHub() {
-        _uiState.update { it.copy(currentScreen = NeoScreen.HUB) }
+    fun toggleAudio() {
+        _uiState.update { it.copy(audioEnabled = !it.audioEnabled) }
     }
 
-    fun backToOnboarding() {
-        _uiState.update { it.copy(currentScreen = NeoScreen.ONBOARDING) }
+    fun openCodex() {
+        _uiState.update { it.copy(codexOpen = true) }
+    }
+
+    fun closeCodex() {
+        _uiState.update { it.copy(codexOpen = false) }
+    }
+
+    fun enterHub() {
+        _uiState.update { it.copy(currentScreen = NeoScreen.HUB, isSandboxMode = false) }
+    }
+
+    fun openSandbox() {
+        _uiState.update { state ->
+            val strings = languageManager.getUiStrings(state.language)
+            state.copy(
+                currentScreen = NeoScreen.TERMINAL,
+                isSandboxMode = true,
+                codeBuffer = SANDBOX_STARTER_CODE,
+                hintLevel = 0,
+                moduleAttemptFailed = false,
+                isWarningState = false,
+                evaluationResult = null,
+                glitchDialogue = strings.sandboxSubtitle
+            )
+        }
     }
 
     fun openModuleTheory(moduleId: Int) {
@@ -121,7 +161,7 @@ class LearningViewModel(
     }
 
     fun proceedFromTheoryToTerminal() {
-        _uiState.update { it.copy(currentScreen = NeoScreen.TERMINAL) }
+        _uiState.update { it.copy(currentScreen = NeoScreen.TERMINAL, isSandboxMode = false) }
     }
 
     private fun selectModule(moduleId: Int, targetScreen: NeoScreen) {
@@ -132,9 +172,11 @@ class LearningViewModel(
             val module = state.modules.firstOrNull { it.id == moduleId } ?: return@update state
             state.copy(
                 currentScreen = targetScreen,
+                isSandboxMode = false,
                 activeModuleId = module.id,
                 codeBuffer = module.starterCode,
                 hintLevel = 0,
+                moduleAttemptFailed = false,
                 glitchDialogue = module.glitchIntroDialogue.resolve(state.language),
                 isWarningState = module.isBossStage,
                 evaluationResult = null
@@ -156,10 +198,21 @@ class LearningViewModel(
 
     fun resetCode() {
         _uiState.update { state ->
+            if (state.isSandboxMode) {
+                val strings = languageManager.getUiStrings(state.language)
+                return@update state.copy(
+                    codeBuffer = SANDBOX_STARTER_CODE,
+                    hintLevel = 0,
+                    isWarningState = false,
+                    evaluationResult = null,
+                    glitchDialogue = strings.sandboxSubtitle
+                )
+            }
             val mod = state.activeModule
             state.copy(
                 codeBuffer = mod.starterCode,
                 hintLevel = 0,
+                traceIntegrity = 100,
                 isWarningState = mod.isBossStage,
                 evaluationResult = null,
                 glitchDialogue = mod.glitchIntroDialogue.resolve(state.language)
@@ -192,6 +245,7 @@ class LearningViewModel(
                 currentScreen = NeoScreen.THEORY,
                 codeBuffer = nextMod.starterCode,
                 hintLevel = 0,
+                moduleAttemptFailed = false,
                 isWarningState = nextMod.isBossStage,
                 evaluationResult = null,
                 glitchDialogue = nextMod.glitchIntroDialogue.resolve(state.language)
@@ -201,6 +255,15 @@ class LearningViewModel(
 
     fun runExploit() {
         _uiState.update { state ->
+            if (state.isSandboxMode) {
+                val sandboxRes = evaluateSandboxSubmission(state.codeBuffer, state.language)
+                return@update state.copy(
+                    evaluationResult = sandboxRes,
+                    isWarningState = !sandboxRes.isSuccess,
+                    glitchDialogue = sandboxRes.glitchFeedback
+                )
+            }
+
             val module = state.activeModule
             val result = evaluatePythonSubmission(
                 module = module,
@@ -213,8 +276,9 @@ class LearningViewModel(
             } else {
                 state.completedModuleIds
             }
+            val cleanBonus = if (result.isSuccess && !alreadyCleared && !state.moduleAttemptFailed) 50 else 0
             val newXp = if (result.isSuccess && !alreadyCleared) {
-                state.xp + module.xpReward
+                state.xp + module.xpReward + cleanBonus
             } else {
                 state.xp
             }
@@ -223,11 +287,18 @@ class LearningViewModel(
             } else {
                 state.ramMb
             }
+            val nextTrace = if (result.isSuccess) {
+                (state.traceIntegrity + 10).coerceAtMost(100)
+            } else {
+                (state.traceIntegrity - 20).coerceAtLeast(20)
+            }
 
             state.copy(
                 completedModuleIds = newCompleted,
                 xp = newXp,
                 ramMb = newRam,
+                traceIntegrity = nextTrace,
+                moduleAttemptFailed = state.moduleAttemptFailed || !result.isSuccess,
                 evaluationResult = result,
                 isWarningState = !result.isSuccess || module.isBossStage,
                 glitchDialogue = result.glitchFeedback
@@ -235,11 +306,125 @@ class LearningViewModel(
         }
     }
 
-    /**
-     * Offline Python structural + semantic evaluator tailored to each of the 7 modules.
-     * Detects syntax errors (missing colons, unclosed strings, bracket mismatch, indentation)
-     * and highlights faulty lines in Crimson Red.
-     */
+    private fun evaluateSandboxSubmission(
+        code: String,
+        language: AppLanguage
+    ): EvaluationResult {
+        val strings = languageManager.getUiStrings(language)
+        val syntaxIssue = detectPythonSyntaxIssue(code)
+        if (syntaxIssue != null) {
+            val (lineNum, reason) = syntaxIssue
+            val glitchMsg = LocalizedText(
+                en = "SYNTAX ALERT on line $lineNum: $reason. Check indentation, quotes, or colons.",
+                id = "PERINGATAN SINTAKS di baris $lineNum: $reason. Periksa indentasi, tanda kutip, atau titik dua.",
+                ph = "BABALA SA SYNTAX sa linya $lineNum: $reason. Suriin ang indentation, quotes, o colon."
+            ).resolve(language)
+            return EvaluationResult(
+                isSuccess = false,
+                isSyntaxError = true,
+                outputText = "${strings.syntaxErrorPrefix} [Line $lineNum]: $reason",
+                errorLines = setOf(lineNum),
+                glitchFeedback = glitchMsg
+            )
+        }
+
+        val env = linkedMapOf<String, String>()
+        val types = linkedMapOf<String, String>()
+        val prints = mutableListOf<String>()
+        val assignRegex = Regex("""^([A-Za-z_]\w*)\s*=\s*(.+)$""")
+        val printRegex = Regex("""^print\s*\((.+)\)$""")
+        val defRegex = Regex("""^def\s+([A-Za-z_]\w*)\s*\(([^)]*)\)\s*:$""")
+        val classRegex = Regex("""^class\s+([A-Za-z_]\w*)\b.*:$""")
+
+        code.lines().forEach { raw ->
+            val cleaned = stripTrailingComment(raw).trim()
+            if (cleaned.isEmpty()) return@forEach
+
+            defRegex.matchEntire(cleaned)?.let { m ->
+                val name = m.groupValues[1]
+                val params = m.groupValues[2].trim()
+                types[name] = "function"
+                env[name] = "<fn $name($params)>"
+                return@forEach
+            }
+
+            classRegex.matchEntire(cleaned)?.let { m ->
+                val name = m.groupValues[1]
+                types[name] = "class"
+                env[name] = "<class '$name'>"
+                return@forEach
+            }
+
+            assignRegex.matchEntire(cleaned)?.let { m ->
+                val name = m.groupValues[1]
+                val expr = m.groupValues[2].trim()
+                val inferred = inferValuePreview(expr, env)
+                types[name] = inferred.first
+                env[name] = inferred.second
+                return@forEach
+            }
+
+            printRegex.matchEntire(cleaned)?.let { m ->
+                val inner = m.groupValues[1].trim()
+                val rendered = resolvePrintExpression(inner, env)
+                prints.add(rendered)
+            }
+        }
+
+        val ramSlots = env.entries.take(12).map { (k, v) ->
+            RamVariableSlot(name = k, type = types[k] ?: "obj", preview = v)
+        }
+        val stdout = if (prints.isNotEmpty()) {
+            prints.joinToString("\n")
+        } else {
+            "[Sandbox] Syntax verified (${ramSlots.size} symbols allocated)."
+        }
+
+        val okFeedback = LocalizedText(
+            en = "Free-Play Sandbox clean. Inspect allocated variables in your RAM Inspector below.",
+            id = "Sandbox Bebas bersih. Periksa variabel aktif di panel RAM Inspector di bawah.",
+            ph = "Malinis ang Free-Play Sandbox. Tingnan ang live variables sa RAM Inspector sa ibaba."
+        ).resolve(language)
+
+        return EvaluationResult(
+            isSuccess = true,
+            isSyntaxError = false,
+            outputText = stdout,
+            glitchFeedback = okFeedback,
+            ramSlots = ramSlots
+        )
+    }
+
+    private fun inferValuePreview(expr: String, env: Map<String, String>): Pair<String, String> {
+        return when {
+            (expr.startsWith("\"") && expr.endsWith("\"")) || (expr.startsWith("'") && expr.endsWith("'")) ->
+                "str" to expr
+            expr.startsWith("[") && expr.endsWith("]") -> "list" to expr
+            expr.startsWith("{") && expr.endsWith("}") && expr.contains(":") -> "dict" to expr
+            expr.startsWith("{") && expr.endsWith("}") -> "set" to expr
+            expr == "True" || expr == "False" -> "bool" to expr
+            expr.toIntOrNull() != null -> "int" to expr
+            expr.toDoubleOrNull() != null -> "float" to expr
+            env.containsKey(expr) -> "ref" to (env[expr] ?: expr)
+            else -> "expr" to expr
+        }
+    }
+
+    private fun resolvePrintExpression(expr: String, env: Map<String, String>): String {
+        if ((expr.startsWith("\"") && expr.endsWith("\"")) || (expr.startsWith("'") && expr.endsWith("'"))) {
+            return expr.substring(1, expr.length - 1)
+        }
+        if (env.containsKey(expr)) {
+            val raw = env[expr] ?: expr
+            return if ((raw.startsWith("\"") && raw.endsWith("\"")) || (raw.startsWith("'") && raw.endsWith("'"))) {
+                raw.substring(1, raw.length - 1)
+            } else {
+                raw
+            }
+        }
+        return expr
+    }
+
     private fun evaluatePythonSubmission(
         module: ProtocolModule,
         code: String,
@@ -280,6 +465,21 @@ class LearningViewModel(
         }
     }
 
+    companion object {
+        val SANDBOX_STARTER_CODE = """
+            # NEO-NULL Python Free-Play Sandbox
+            agent = "Null-Agent"
+            shards = ["K1", "K2", "K3"]
+            vault = {"sector": 9, "active": True}
+
+            def boost(mhz):
+                return mhz * 2
+
+            print(agent)
+            print(shards)
+        """.trimIndent()
+    }
+
     private fun detectPythonSyntaxIssue(code: String): Pair<Int, String>? {
         val lines = code.lines()
         val blockHeaders = Regex("""^\s*(if|elif|else|for|while|def|class|try|except|finally|with)\b.*""")
@@ -294,11 +494,9 @@ class LearningViewModel(
             val trimmed = rawLine.trim()
             if (trimmed.isEmpty() || trimmed.startsWith("#")) return@forEachIndexed
 
-            // Strip comment outside quotes to inspect code portion
             val codeOnly = stripTrailingComment(rawLine)
             val trimmedCode = codeOnly.trim()
 
-            // Check unclosed quotes on single line
             var inSingle = false
             var inDouble = false
             var escaped = false
@@ -324,22 +522,17 @@ class LearningViewModel(
                     }
                 }
             }
-            if (inSingle || inDouble) {
-                return lineNum to "Unterminated string literal"
-            }
+            if (inSingle || inDouble) return lineNum to "Unterminated string literal"
             if (parenDepth < 0 || bracketDepth < 0 || braceDepth < 0) {
                 return lineNum to "Unmatched closing delimiter"
             }
-
             if (expectIndent && !rawLine.startsWith("    ") && !rawLine.startsWith("\t")) {
                 return lineNum to "Expected an indented block (4 spaces)"
             }
             expectIndent = false
 
             if (blockHeaders.matches(trimmedCode)) {
-                if (!trimmedCode.endsWith(":")) {
-                    return lineNum to "Missing ':' at end of block header"
-                }
+                if (!trimmedCode.endsWith(":")) return lineNum to "Missing ':' at end of block header"
                 expectIndent = true
             }
         }
@@ -347,9 +540,7 @@ class LearningViewModel(
         if (parenDepth != 0 || bracketDepth != 0 || braceDepth != 0) {
             return lines.size to "Unclosed parentheses or brackets"
         }
-        if (expectIndent) {
-            return lines.size to "Block header requires at least one indented line"
-        }
+        if (expectIndent) return lines.size to "Block header requires at least one indented line"
         return null
     }
 
@@ -389,18 +580,17 @@ class LearningViewModel(
                 isSuccess = true,
                 isSyntaxError = false,
                 outputText = "Null-Agent\n[EXIT 0] Identity & clearance verified.",
-                glitchFeedback = module.glitchSuccessDialogue.resolve(lang)
+                glitchFeedback = module.glitchSuccessDialogue.resolve(lang),
+                ramSlots = listOf(
+                    RamVariableSlot("agent", "str", "'Null-Agent'"),
+                    RamVariableSlot("clearance", "int", "1")
+                )
             )
         } else {
-            val missing = buildList {
-                if (!hasAgent) add("agent = \"Null-Agent\"")
-                if (!hasClearance) add("clearance = 1")
-                if (!hasPrintAgent) add("print(agent)")
-            }.joinToString(", ")
             EvaluationResult(
                 isSuccess = false,
                 isSyntaxError = false,
-                outputText = "$failPrefix: Missing or mismatched -> $missing",
+                outputText = "$failPrefix: Expected agent = \"Null-Agent\", clearance = 1, and print(agent).",
                 errorLines = setOf(2),
                 glitchFeedback = module.solutionHint1.resolve(lang)
             )
@@ -413,21 +603,21 @@ class LearningViewModel(
         module: ProtocolModule,
         failPrefix: String
     ): EvaluationResult {
-        val hasThreat = Regex("""threat\s*=\s*\d+""").containsMatchIn(code)
-        val hasIf = Regex("""if\s+threat\s*>=\s*50\s*:""").containsMatchIn(code)
-        val hasDenied = Regex("""print\s*\(\s*["']DENIED["']\s*\)""").containsMatchIn(code)
-        val hasElse = Regex("""\belse\s*:""").containsMatchIn(code)
-        val hasAllow = Regex("""print\s*\(\s*["']ALLOW["']\s*\)""").containsMatchIn(code)
-
         val threatMatch = Regex("""threat\s*=\s*(\d+)""").find(code)
         val threatVal = threatMatch?.groupValues?.get(1)?.toIntOrNull() ?: -1
+        val ok = threatVal in 0..49 &&
+            Regex("""if\s+threat\s*>=\s*50\s*:""").containsMatchIn(code) &&
+            Regex("""print\s*\(\s*["']DENIED["']\s*\)""").containsMatchIn(code) &&
+            Regex("""\belse\s*:""").containsMatchIn(code) &&
+            Regex("""print\s*\(\s*["']ALLOW["']\s*\)""").containsMatchIn(code)
 
-        return if (hasThreat && hasIf && hasDenied && hasElse && hasAllow && threatVal in 0..49) {
+        return if (ok) {
             EvaluationResult(
                 isSuccess = true,
                 isSyntaxError = false,
                 outputText = "ALLOW\n[EXIT 0] Gatekeeper branch routed cleanly.",
-                glitchFeedback = module.glitchSuccessDialogue.resolve(lang)
+                glitchFeedback = module.glitchSuccessDialogue.resolve(lang),
+                ramSlots = listOf(RamVariableSlot("threat", "int", threatVal.toString()))
             )
         } else {
             EvaluationResult(
@@ -446,17 +636,21 @@ class LearningViewModel(
         module: ProtocolModule,
         failPrefix: String
     ): EvaluationResult {
-        val hasList = Regex("""shards\s*=\s*\[\s*["']K1["']\s*,\s*["']K2["']\s*\]""").containsMatchIn(code)
-        val hasAppend = Regex("""shards\.append\s*\(\s*["']K3["']\s*\)""").containsMatchIn(code)
-        val hasVault = Regex("""vault\s*=\s*\{\s*["']code["']\s*:\s*77\s*\}""").containsMatchIn(code)
-        val hasPrintLen = Regex("""print\s*\(\s*len\s*\(\s*shards\s*\)\s*\)""").containsMatchIn(code)
+        val ok = Regex("""shards\s*=\s*\[\s*["']K1["']\s*,\s*["']K2["']\s*\]""").containsMatchIn(code) &&
+            Regex("""shards\.append\s*\(\s*["']K3["']\s*\)""").containsMatchIn(code) &&
+            Regex("""vault\s*=\s*\{\s*["']code["']\s*:\s*77\s*\}""").containsMatchIn(code) &&
+            Regex("""print\s*\(\s*len\s*\(\s*shards\s*\)\s*\)""").containsMatchIn(code)
 
-        return if (hasList && hasAppend && hasVault && hasPrintLen) {
+        return if (ok) {
             EvaluationResult(
                 isSuccess = true,
                 isSyntaxError = false,
                 outputText = "3\n[EXIT 0] Shards list & Vault-4 dictionary verified.",
-                glitchFeedback = module.glitchSuccessDialogue.resolve(lang)
+                glitchFeedback = module.glitchSuccessDialogue.resolve(lang),
+                ramSlots = listOf(
+                    RamVariableSlot("shards", "list", "['K1', 'K2', 'K3']"),
+                    RamVariableSlot("vault", "dict", "{'code': 77}")
+                )
             )
         } else {
             EvaluationResult(
@@ -475,17 +669,18 @@ class LearningViewModel(
         module: ProtocolModule,
         failPrefix: String
     ): EvaluationResult {
-        val hasZero = Regex("""packets\s*=\s*0\b""").containsMatchIn(code)
-        val hasForLoop = Regex("""for\s+\w+\s+in\s+range\s*\(\s*5\s*\)\s*:""").containsMatchIn(code)
-        val hasIncrement = Regex("""packets\s*(\+=|=\s*packets\s*\+)\s*1\b""").containsMatchIn(code)
-        val hasPrint = Regex("""print\s*\(\s*packets\s*\)""").containsMatchIn(code)
+        val ok = Regex("""packets\s*=\s*0\b""").containsMatchIn(code) &&
+            Regex("""for\s+\w+\s+in\s+range\s*\(\s*5\s*\)\s*:""").containsMatchIn(code) &&
+            Regex("""packets\s*(\+=|=\s*packets\s*\+)\s*1\b""").containsMatchIn(code) &&
+            Regex("""print\s*\(\s*packets\s*\)""").containsMatchIn(code)
 
-        return if (hasZero && hasForLoop && hasIncrement && hasPrint) {
+        return if (ok) {
             EvaluationResult(
                 isSuccess = true,
                 isSyntaxError = false,
                 outputText = "5\n[EXIT 0] 5/5 relay ports flooded via for-loop.",
-                glitchFeedback = module.glitchSuccessDialogue.resolve(lang)
+                glitchFeedback = module.glitchSuccessDialogue.resolve(lang),
+                ramSlots = listOf(RamVariableSlot("packets", "int", "5"))
             )
         } else {
             EvaluationResult(
@@ -504,16 +699,17 @@ class LearningViewModel(
         module: ProtocolModule,
         failPrefix: String
     ): EvaluationResult {
-        val hasDef = Regex("""def\s+craft_token\s*\(\s*seed\s*\)\s*:""").containsMatchIn(code)
-        val hasReturn = Regex("""return\s+seed\s*\*\s*3\s*\+\s*9""").containsMatchIn(code)
-        val hasCall = Regex("""print\s*\(\s*craft_token\s*\(\s*7\s*\)\s*\)""").containsMatchIn(code)
+        val ok = Regex("""def\s+craft_token\s*\(\s*seed\s*\)\s*:""").containsMatchIn(code) &&
+            Regex("""return\s+seed\s*\*\s*3\s*\+\s*9""").containsMatchIn(code) &&
+            Regex("""print\s*\(\s*craft_token\s*\(\s*7\s*\)\s*\)""").containsMatchIn(code)
 
-        return if (hasDef && hasReturn && hasCall) {
+        return if (ok) {
             EvaluationResult(
                 isSuccess = true,
                 isSyntaxError = false,
                 outputText = "30\n[EXIT 0] craft_token(7) returned 30.",
-                glitchFeedback = module.glitchSuccessDialogue.resolve(lang)
+                glitchFeedback = module.glitchSuccessDialogue.resolve(lang),
+                ramSlots = listOf(RamVariableSlot("craft_token", "function", "<fn craft_token(seed)>"))
             )
         } else {
             EvaluationResult(
@@ -532,17 +728,18 @@ class LearningViewModel(
         module: ProtocolModule,
         failPrefix: String
     ): EvaluationResult {
-        val hasTry = Regex("""\btry\s*:""").containsMatchIn(code)
-        val hasOpen = Regex("""open\s*\(\s*["']corrupt\.log["']""").containsMatchIn(code)
-        val hasExcept = Regex("""\bexcept\b.*:""").containsMatchIn(code)
-        val hasSafeExtract = Regex("""print\s*\(\s*["']SAFE_EXTRACT["']\s*\)""").containsMatchIn(code)
+        val ok = Regex("""\btry\s*:""").containsMatchIn(code) &&
+            Regex("""open\s*\(\s*["']corrupt\.log["']""").containsMatchIn(code) &&
+            Regex("""\bexcept\b.*:""").containsMatchIn(code) &&
+            Regex("""print\s*\(\s*["']SAFE_EXTRACT["']\s*\)""").containsMatchIn(code)
 
-        return if (hasTry && hasOpen && hasExcept && hasSafeExtract) {
+        return if (ok) {
             EvaluationResult(
                 isSuccess = true,
                 isSyntaxError = false,
                 outputText = "SAFE_EXTRACT\n[EXIT 0] Trap exception caught cleanly without crash.",
-                glitchFeedback = module.glitchSuccessDialogue.resolve(lang)
+                glitchFeedback = module.glitchSuccessDialogue.resolve(lang),
+                ramSlots = listOf(RamVariableSlot("exception_guard", "handler", "FileNotFoundError -> SAFE_EXTRACT"))
             )
         } else {
             EvaluationResult(
@@ -561,20 +758,24 @@ class LearningViewModel(
         module: ProtocolModule,
         failPrefix: String
     ): EvaluationResult {
-        val hasClass = Regex("""class\s+OverlordOverride\b\s*:""").containsMatchIn(code)
-        val hasInit = Regex("""def\s+__init__\s*\(\s*self\s*,\s*key\s*\)\s*:""").containsMatchIn(code)
-        val hasSelfKey = Regex("""self\.key\s*=\s*key""").containsMatchIn(code)
-        val hasShutdown = Regex("""def\s+shutdown\s*\(\s*self\s*\)\s*:""").containsMatchIn(code)
-        val hasReturnRoot = Regex("""return\s+["']ROOT_UNLOCKED["']""").containsMatchIn(code)
-        val hasInstance = Regex("""core\s*=\s*OverlordOverride\s*\(""").containsMatchIn(code)
-        val hasPrintCall = Regex("""print\s*\(\s*core\.shutdown\s*\(\s*\)\s*\)""").containsMatchIn(code)
+        val ok = Regex("""class\s+OverlordOverride\b\s*:""").containsMatchIn(code) &&
+            Regex("""def\s+__init__\s*\(\s*self\s*,\s*key\s*\)\s*:""").containsMatchIn(code) &&
+            Regex("""self\.key\s*=\s*key""").containsMatchIn(code) &&
+            Regex("""def\s+shutdown\s*\(\s*self\s*\)\s*:""").containsMatchIn(code) &&
+            Regex("""return\s+["']ROOT_UNLOCKED["']""").containsMatchIn(code) &&
+            Regex("""core\s*=\s*OverlordOverride\s*\(""").containsMatchIn(code) &&
+            Regex("""print\s*\(\s*core\.shutdown\s*\(\s*\)\s*\)""").containsMatchIn(code)
 
-        return if (hasClass && hasInit && hasSelfKey && hasShutdown && hasReturnRoot && hasInstance && hasPrintCall) {
+        return if (ok) {
             EvaluationResult(
                 isSuccess = true,
                 isSyntaxError = false,
                 outputText = "ROOT_UNLOCKED\n[EXIT 0] AI OVERLORD KERNEL OVERWRITTEN.",
-                glitchFeedback = module.glitchSuccessDialogue.resolve(lang)
+                glitchFeedback = module.glitchSuccessDialogue.resolve(lang),
+                ramSlots = listOf(
+                    RamVariableSlot("OverlordOverride", "class", "shutdown() -> 'ROOT_UNLOCKED'"),
+                    RamVariableSlot("core", "instance:OverlordOverride", "key='NULL-2142'")
+                )
             )
         } else {
             EvaluationResult(

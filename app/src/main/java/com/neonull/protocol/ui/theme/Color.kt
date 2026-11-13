@@ -4,7 +4,7 @@ import androidx.compose.ui.graphics.Color
 
 /**
  * NEO-NULL: PYTHON LEARNING PROTOCOL
- * Year 2142 Dystopian Cyberpunk Palette with Crimson Red Tactical Accents.
+ * Year 2142 EXAPUNKS / Hacknet Cyberpunk Palette with Crimson Red Tactical Accents.
  */
 object NeoColors {
     // Deep Obsidian Backgrounds
@@ -12,6 +12,8 @@ object NeoColors {
     val DeepNavyBlack = Color(0xFF0A0A12)
     val TerminalSurface = Color(0xFF10121E)
     val ElevatedPanel = Color(0xFF161928)
+    val GutterSurface = Color(0xFF080912)
+    val DeckGridLine = Color(0xFF181D30)
     val BorderSubtle = Color(0xFF23283D)
 
     // Primary Neon Glows
@@ -20,15 +22,16 @@ object NeoColors {
     val CyberCyan = Color(0xFF00E5FF)
     val CyberCyanDim = Color(0x2E00E5FF)
 
-    // Special Alert / OVERLORD Boss Accent
+    // Special Alert, [ RUN EXPLOIT ] Action & OVERLORD Boss Accent
     val CrimsonRed = Color(0xFFDC143C)
+    val CrimsonRedPressed = Color(0xFFB90F32)
     val CrimsonRedGlow = Color(0x40DC143C)
     val CrimsonDarkTint = Color(0xFF240912)
 
     // Syntax Highlighting Tokens
-    val SyntaxKeyword = Color(0xFF00E5FF)      // def, if, else, return, for, class
-    val SyntaxControl = Color(0xFF00FF66)      // builtins & structure verbs
-    val SyntaxString = Color(0xFFFFD600)       // "..." and '...'
+    val SyntaxKeyword = Color(0xFF00E5FF)      // def, if, else, return, for, class, import
+    val SyntaxControl = Color(0xFF00FF66)      // builtins, self, True/False, decorators
+    val SyntaxString = Color(0xFFFFD600)       // "...", '...', f-strings
     val SyntaxComment = Color(0xFF6B7280)      // # comments
     val SyntaxNumber = Color(0xFF7DD3FC)       // numeric literals
     val SyntaxAlert = Color(0xFFDC143C)        // errors & OVERLORD identifiers

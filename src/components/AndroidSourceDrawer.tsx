@@ -1,11 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Check, Copy, FileCode2, X } from 'lucide-react';
+import { Check, Copy, Download, FileCode2, Image as ImageIcon, X } from 'lucide-react';
 import { UiStrings } from '../data/neoNullData';
 
 interface AndroidSourceFile {
   path: string;
   name: string;
   content: string;
+}
+
+interface AndroidPngAsset {
+  name: string;
+  path: string;
+  url: string;
+  sizeKb: number;
 }
 
 interface AndroidSourceDrawerProps {
@@ -16,26 +23,33 @@ interface AndroidSourceDrawerProps {
 
 export function AndroidSourceDrawer({ isOpen, strings, onClose }: AndroidSourceDrawerProps) {
   const [files, setFiles] = useState<AndroidSourceFile[]>([]);
+  const [pngAssets, setPngAssets] = useState<AndroidPngAsset[]>([]);
+  const [activeTab, setActiveTab] = useState<'code' | 'assets'>('code');
   const [selectedPath, setSelectedPath] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!isOpen || files.length > 0) return;
+    if (!isOpen || (files.length > 0 && pngAssets.length > 0)) return;
     setLoading(true);
     fetch('/api/android-sources')
       .then((r) => r.json())
       .then((data) => {
         const list: AndroidSourceFile[] = Array.isArray(data.files) ? data.files : [];
+        const assets: AndroidPngAsset[] = Array.isArray(data.pngAssets) ? data.pngAssets : [];
         setFiles(list);
+        setPngAssets(assets);
         if (list.length > 0) {
           const mainAct = list.find((f) => f.name === 'MainActivity.kt') ?? list[0];
           setSelectedPath(mainAct.path);
         }
       })
-      .catch(() => setFiles([]))
+      .catch(() => {
+        setFiles([]);
+        setPngAssets([]);
+      })
       .finally(() => setLoading(false));
-  }, [isOpen, files.length]);
+  }, [isOpen, files.length, pngAssets.length]);
 
   if (!isOpen) return null;
 
@@ -60,15 +74,41 @@ export function AndroidSourceDrawer({ isOpen, strings, onClose }: AndroidSourceD
       aria-label={strings.androidSourceTitle}
     >
       <div className="flex h-[85vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-[#23283D] bg-[#0A0A12] shadow-2xl">
-        <div className="flex items-center justify-between border-b border-[#23283D] bg-[#10121E] px-5 py-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#23283D] bg-[#10121E] px-5 py-3.5">
           <div className="flex items-center gap-3">
             <FileCode2 className="h-5 w-5 text-[#00E5FF]" />
             <h2 className="font-mono text-sm font-bold text-[#E6EDF3]">
               {strings.androidSourceTitle}
             </h2>
           </div>
-          <div className="flex items-center gap-3">
-            {activeFile && (
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center rounded-md border border-[#23283D] bg-[#0A0A12] p-0.5">
+              <button
+                type="button"
+                onClick={() => setActiveTab('code')}
+                className={`min-h-[36px] rounded px-3 font-mono text-xs font-semibold transition-colors whitespace-nowrap ${
+                  activeTab === 'code'
+                    ? 'bg-[#00E5FF]/15 text-[#00E5FF]'
+                    : 'text-[#94A3B8] hover:text-[#E6EDF3]'
+                }`}
+              >
+                Kotlin ({files.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('assets')}
+                className={`inline-flex min-h-[36px] items-center gap-1.5 rounded px-3 font-mono text-xs font-semibold transition-colors whitespace-nowrap ${
+                  activeTab === 'assets'
+                    ? 'bg-[#00FF66]/15 text-[#00FF66]'
+                    : 'text-[#94A3B8] hover:text-[#E6EDF3]'
+                }`}
+              >
+                <ImageIcon className="h-3.5 w-3.5" />
+                <span>PNG Assets ({pngAssets.length})</span>
+              </button>
+            </div>
+
+            {activeTab === 'code' && activeFile && (
               <button
                 type="button"
                 onClick={handleCopy}
@@ -89,44 +129,86 @@ export function AndroidSourceDrawer({ isOpen, strings, onClose }: AndroidSourceD
           </div>
         </div>
 
-        <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[280px_1fr]">
-          <aside className="overflow-y-auto border-b border-[#23283D] bg-[#0D0F1A] p-3 md:border-r md:border-b-0">
-            {loading ? (
-              <p className="p-3 font-mono text-xs text-[#94A3B8]">Loading Kotlin source tree...</p>
+        {activeTab === 'code' ? (
+          <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[280px_1fr]">
+            <aside className="overflow-y-auto border-b border-[#23283D] bg-[#0D0F1A] p-3 md:border-r md:border-b-0">
+              {loading ? (
+                <p className="p-3 font-mono text-xs text-[#94A3B8]">Loading Kotlin source tree...</p>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  {files.map((file) => {
+                    const selected = file.path === activeFile?.path;
+                    return (
+                      <button
+                        key={file.path}
+                        type="button"
+                        onClick={() => setSelectedPath(file.path)}
+                        className={`w-full rounded-md px-3 py-2 text-left font-mono text-xs transition-colors ${
+                          selected
+                            ? 'border border-[#00E5FF]/60 bg-[#00E5FF]/10 text-[#00E5FF]'
+                            : 'border border-transparent text-[#94A3B8] hover:bg-[#161928] hover:text-[#E6EDF3]'
+                        }`}
+                      >
+                        <div className="truncate font-semibold">{file.name}</div>
+                        <div className="truncate text-[10px] text-[#64748B]">{file.path}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </aside>
+
+            <div className="min-h-0 overflow-auto bg-[#05050A] p-5">
+              {activeFile ? (
+                <pre className="font-mono text-xs leading-6 text-[#E6EDF3]">
+                  <code>{activeFile.content}</code>
+                </pre>
+              ) : (
+                <p className="font-mono text-xs text-[#94A3B8]">No Kotlin files found.</p>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="min-h-0 flex-1 overflow-y-auto bg-[#05050A] p-5">
+            {pngAssets.length === 0 ? (
+              <p className="font-mono text-xs text-[#94A3B8]">No PNG assets found.</p>
             ) : (
-              <div className="flex flex-col gap-1">
-                {files.map((file) => {
-                  const selected = file.path === activeFile?.path;
-                  return (
-                    <button
-                      key={file.path}
-                      type="button"
-                      onClick={() => setSelectedPath(file.path)}
-                      className={`w-full rounded-md px-3 py-2 text-left font-mono text-xs transition-colors ${
-                        selected
-                          ? 'border border-[#00E5FF]/60 bg-[#00E5FF]/10 text-[#00E5FF]'
-                          : 'border border-transparent text-[#94A3B8] hover:bg-[#161928] hover:text-[#E6EDF3]'
-                      }`}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {pngAssets.map((asset) => (
+                  <div
+                    key={asset.name}
+                    className="flex flex-col justify-between rounded-xl border border-[#23283D] bg-[#10121E] p-3.5"
+                  >
+                    <div>
+                      <div className="flex aspect-square items-center justify-center overflow-hidden rounded-lg border border-[#1E2235] bg-[#05050A] p-2">
+                        <img
+                          src={asset.url}
+                          alt={asset.name}
+                          referrerPolicy="no-referrer"
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      </div>
+                      <div className="mt-3 truncate font-mono text-xs font-bold text-[#E6EDF3]">
+                        {asset.name}
+                      </div>
+                      <div className="mt-0.5 truncate font-mono text-[11px] text-[#64748B]">
+                        {asset.sizeKb} KB · res/drawable
+                      </div>
+                    </div>
+                    <a
+                      href={asset.url}
+                      download={asset.name}
+                      className="mt-3 inline-flex min-h-[40px] w-full items-center justify-center gap-2 rounded-md border border-[#00FF66]/50 bg-[#00FF66]/10 px-3 py-1.5 font-mono text-xs font-semibold text-[#00FF66] transition-colors hover:bg-[#00FF66]/20"
                     >
-                      <div className="truncate font-semibold">{file.name}</div>
-                      <div className="truncate text-[10px] text-[#64748B]">{file.path}</div>
-                    </button>
-                  );
-                })}
+                      <Download className="h-3.5 w-3.5" />
+                      <span>Download PNG</span>
+                    </a>
+                  </div>
+                ))}
               </div>
             )}
-          </aside>
-
-          <div className="min-h-0 overflow-auto bg-[#05050A] p-5">
-            {activeFile ? (
-              <pre className="font-mono text-xs leading-6 text-[#E6EDF3]">
-                <code>{activeFile.content}</code>
-              </pre>
-            ) : (
-              <p className="font-mono text-xs text-[#94A3B8]">No Kotlin files found.</p>
-            )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

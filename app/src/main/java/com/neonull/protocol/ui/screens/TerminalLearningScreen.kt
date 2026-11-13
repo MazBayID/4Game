@@ -1,5 +1,6 @@
 package com.neonull.protocol.ui.screens
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,7 +13,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -22,11 +25,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.neonull.protocol.localization.AppLanguage
@@ -35,16 +45,26 @@ import com.neonull.protocol.syntax.SyntaxHighlightedCodeEditor
 import com.neonull.protocol.ui.components.CyberFramePanel
 import com.neonull.protocol.ui.components.GlitchMentorPanel
 import com.neonull.protocol.ui.components.LanguageSwitchRow
-import com.neonull.protocol.ui.theme.CodeTextStyle
+import com.neonull.protocol.ui.components.RamInspectorPanel
+import com.neonull.protocol.ui.components.TacticalNetworkRadar
+import com.neonull.protocol.ui.theme.ConsoleTextStyle
 import com.neonull.protocol.ui.theme.NeoColors
 import com.neonull.protocol.viewmodel.LearningUiState
 
+/**
+ * EXAPUNKS / Hacknet-inspired 3-Panel Split-Screen Terminal Deck:
+ * 1. Top Panel: Status HUD (RAM, XP, Firewall Health) + GLITCH AI Mentor Briefing & Objective
+ * 2. Center Panel: Flexible-height Code Editor with line-number gutter & live Python highlighting
+ * 3. Bottom Panel: Prominent Crimson Red [ RUN EXPLOIT ] control + Docked Output / RAM Console
+ */
 @Composable
 fun TerminalLearningScreen(
     state: LearningUiState,
     strings: UiStrings,
     onSelectLanguage: (AppLanguage) -> Unit,
     onBackToHub: () -> Unit,
+    onOpenCodex: () -> Unit,
+    onSelectRadarNode: (Int) -> Unit,
     onCodeChange: (String) -> Unit,
     onInsertSnippet: (String) -> Unit,
     onRunExploit: () -> Unit,
@@ -53,229 +73,434 @@ fun TerminalLearningScreen(
     onNextModule: () -> Unit
 ) {
     val module = state.activeModule
+    val isSandbox = state.isSandboxMode
     val eval = state.evaluationResult
     val errorLines = eval?.errorLines ?: emptySet()
-    val hasNextModule = module.id < state.modules.size
+    val hasNextModule = !isSandbox && module.id < state.modules.size
+    val snippets = if (isSandbox) {
+        listOf("print()", "for i in range(5):", "def hack():", "return ")
+    } else {
+        module.snippetChips
+    }
 
-    Column(
+    // Bottom console tab: 0 = Execution Console, 1 = Live RAM Inspector
+    var bottomTabIndex by remember { mutableIntStateOf(0) }
+    // Optional radar drawer toggle inside Top Panel
+    var showRadarInTop by remember { mutableStateOf(false) }
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(NeoColors.DeepNavyBlack)
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Top HUD: Back, Stats, Language Switcher
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedButton(onClick = onBackToHub, shape = RoundedCornerShape(6.dp)) {
-                Text(
-                    text = "< ${strings.backToHubBtn}",
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 12.sp,
-                    color = NeoColors.TextPrimary
+        // Subtle EXAPUNKS background matrix grid
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val step = 28.dp.toPx()
+            var x = step
+            while (x < size.width) {
+                drawLine(
+                    color = NeoColors.DeckGridLine.copy(alpha = 0.28f),
+                    start = Offset(x, 0f),
+                    end = Offset(x, size.height),
+                    strokeWidth = 0.8.dp.toPx()
                 )
+                x += step
             }
-            Text(
-                text = "RAM ${state.ramMb}MB · ${state.xp}XP",
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Bold,
-                fontSize = 12.sp,
-                color = NeoColors.MatrixGreen
-            )
-            LanguageSwitchRow(
-                selected = state.language,
-                onSelect = onSelectLanguage
-            )
-        }
-
-        // GLITCH AI Mentor Panel
-        GlitchMentorPanel(
-            title = strings.glitchMentorTitle,
-            dialogue = state.glitchDialogue,
-            isWarning = state.isWarningState,
-            isBossStage = module.isBossStage,
-            warningBannerText = strings.warningBannerText
-        )
-
-        // Mission Objective Card
-        CyberFramePanel(
-            borderColor = if (module.isBossStage) NeoColors.CrimsonRed else NeoColors.BorderSubtle,
-            fillColor = NeoColors.TerminalSurface
-        ) {
-            Column {
-                Text(
-                    text = "${module.actCode} · ${strings.missionObjectiveTitle}: ${module.missionName.resolve(state.language)}",
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    color = if (module.isBossStage) NeoColors.CrimsonRed else NeoColors.CyberCyan
+            var y = step
+            while (y < size.height) {
+                drawLine(
+                    color = NeoColors.DeckGridLine.copy(alpha = 0.28f),
+                    start = Offset(0f, y),
+                    end = Offset(size.width, y),
+                    strokeWidth = 0.8.dp.toPx()
                 )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = module.objective.resolve(state.language),
-                    style = MaterialTheme.typography.bodyLarge
-                )
+                y += step
             }
         }
 
-        // Interactive Code Editor with Real-Time Syntax Highlighting
-        Column {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = strings.editorHeaderTitle,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    color = NeoColors.CyberCyan
-                )
-                Text(
-                    text = strings.resetCodeBtn,
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 11.sp,
-                    color = NeoColors.TextSecondary,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .clickable { onResetCode() }
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(6.dp))
-            SyntaxHighlightedCodeEditor(
-                code = state.codeBuffer,
-                onCodeChange = onCodeChange,
-                errorLines = errorLines,
-                accentBorderColor = if (module.isBossStage) NeoColors.CrimsonRed else NeoColors.CyberCyan
-            )
-        }
-
-        // Mobile-friendly Python snippet helpers
-        Row(
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                .fillMaxSize()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            module.snippetChips.forEach { snippet ->
-                Box(
+            // =========================================================================
+            // PANEL 1 (TOP): STATUS HUD & GLITCH AI MENTOR BRIEFING
+            // =========================================================================
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(NeoColors.ElevatedPanel)
-                        .border(1.dp, NeoColors.BorderSubtle, RoundedCornerShape(6.dp))
-                        .clickable { onInsertSnippet(snippet) }
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(NeoColors.TerminalSurface)
+                        .border(1.dp, NeoColors.BorderSubtle, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 10.dp, vertical = 7.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "+ $snippet",
+                        text = "< ${strings.backToHubBtn}",
                         fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold,
                         fontSize = 11.sp,
-                        color = NeoColors.CyberCyan
+                        color = NeoColors.CyberCyan,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .clickable { onBackToHub() }
+                            .padding(horizontal = 6.dp, vertical = 4.dp)
+                    )
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "${strings.ramStatLabel}:${state.ramMb}M",
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = NeoColors.CyberCyan
+                        )
+                        Text(
+                            text = "${strings.xpStatLabel}:${state.xp}",
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = NeoColors.MatrixGreen
+                        )
+                        Text(
+                            text = "${strings.firewallHealthLabel}:${state.firewallHealth}%",
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = if (state.firewallHealth <= 40) NeoColors.CrimsonRed else NeoColors.TextPrimary
+                        )
+                    }
+
+                    LanguageSwitchRow(
+                        selected = state.language,
+                        onSelect = onSelectLanguage
+                    )
+                }
+
+                GlitchMentorPanel(
+                    title = strings.glitchMentorTitle,
+                    dialogue = state.glitchDialogue,
+                    isWarning = state.isWarningState,
+                    isBossStage = !isSandbox && module.isBossStage,
+                    warningBannerText = strings.warningBannerText
+                )
+
+                // Compact Mission Objective bar + optional Tactical Grid toggle
+                CyberFramePanel(
+                    borderColor = when {
+                        isSandbox -> NeoColors.CyberCyan
+                        module.isBossStage -> NeoColors.CrimsonRed
+                        else -> NeoColors.BorderSubtle
+                    },
+                    fillColor = NeoColors.TerminalSurface,
+                    contentPadding = 10.dp
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (isSandbox) {
+                                    strings.sandboxTitle
+                                } else {
+                                    "${module.actCode} · ${module.missionName.resolve(state.language)}"
+                                },
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                color = if (!isSandbox && module.isBossStage) NeoColors.CrimsonRed else NeoColors.MatrixGreen,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = if (showRadarInTop) "[ - GRID ]" else "[ + GRID ]",
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.5.sp,
+                                color = NeoColors.CyberCyan,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .clickable { showRadarInTop = !showRadarInTop }
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                        Text(
+                            text = if (isSandbox) strings.sandboxSubtitle else module.objective.resolve(state.language),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontSize = 12.5.sp,
+                            color = NeoColors.TextPrimary
+                        )
+                    }
+                }
+
+                if (showRadarInTop) {
+                    TacticalNetworkRadar(
+                        completedIds = state.completedModuleIds,
+                        activeModuleId = if (isSandbox) 0 else module.id,
+                        highestUnlockedId = state.highestUnlockedModuleId(),
+                        isAlert = state.isWarningState,
+                        onNodeClick = onSelectRadarNode
                     )
                 }
             }
-        }
 
-        // Primary Action Buttons
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            OutlinedButton(
-                onClick = onRequestHint,
-                shape = RoundedCornerShape(6.dp),
+            // =========================================================================
+            // PANEL 2 (CENTER): INTERACTIVE CODE EDITOR / TERMINAL DECK
+            // =========================================================================
+            Column(
                 modifier = Modifier
                     .weight(1f)
-                    .height(48.dp)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Text(
-                    text = strings.requestHintBtn,
-                    fontFamily = FontFamily.Monospace,
-                    fontSize = 12.sp,
-                    color = NeoColors.CyberCyan
-                )
-            }
-            Button(
-                onClick = onRunExploit,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (module.isBossStage) NeoColors.CrimsonRed else NeoColors.MatrixGreen,
-                    contentColor = if (module.isBossStage) NeoColors.TextPrimary else NeoColors.ObsidianVoid
-                ),
-                shape = RoundedCornerShape(6.dp),
-                modifier = Modifier
-                    .weight(1f)
-                    .height(48.dp)
-            ) {
-                Text(
-                    text = strings.runExploitBtn,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp
-                )
-            }
-        }
-
-        // Execution Console Output
-        val consoleBorder = when {
-            eval == null -> NeoColors.BorderSubtle
-            eval.isSuccess -> NeoColors.MatrixGreen
-            else -> NeoColors.CrimsonRed
-        }
-        CyberFramePanel(
-            borderColor = consoleBorder,
-            fillColor = NeoColors.ObsidianVoid
-        ) {
-            Column {
-                Text(
-                    text = if (eval?.isSuccess == true) {
-                        "${strings.consoleOutputTitle} · ${strings.missionPassedStatus}"
-                    } else {
-                        strings.consoleOutputTitle
-                    },
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    color = consoleBorder
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = eval?.outputText ?: strings.noOutputPlaceholder,
-                    style = CodeTextStyle.copy(
-                        color = when {
-                            eval == null -> NeoColors.TextMuted
-                            eval.isSuccess -> NeoColors.MatrixGreen
-                            else -> NeoColors.CrimsonRed
-                        }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = strings.editorHeaderTitle,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.5.sp,
+                        color = NeoColors.CyberCyan
                     )
-                )
-            }
-        }
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(
+                            text = strings.codexBtn,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = NeoColors.MatrixGreen,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable { onOpenCodex() }
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                        Text(
+                            text = strings.resetCodeBtn,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = NeoColors.TextSecondary,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable { onResetCode() }
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
 
-        if (eval?.isSuccess == true) {
-            Button(
-                onClick = if (hasNextModule) onNextModule else onBackToHub,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = NeoColors.CyberCyan,
-                    contentColor = NeoColors.ObsidianVoid
-                ),
-                shape = RoundedCornerShape(8.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-            ) {
-                Text(
-                    text = if (hasNextModule) strings.nextModuleBtn else strings.backToHubBtn,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp
+                SyntaxHighlightedCodeEditor(
+                    code = state.codeBuffer,
+                    onCodeChange = onCodeChange,
+                    errorLines = errorLines,
+                    accentBorderColor = if (!isSandbox && module.isBossStage) NeoColors.CrimsonRed else NeoColors.CyberCyan,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
                 )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    snippets.forEach { snippet ->
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(NeoColors.ElevatedPanel)
+                                .border(1.dp, NeoColors.BorderSubtle, RoundedCornerShape(6.dp))
+                                .clickable { onInsertSnippet(snippet) }
+                                .padding(horizontal = 9.dp, vertical = 5.dp)
+                        ) {
+                            Text(
+                                text = "+ $snippet",
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 11.sp,
+                                color = NeoColors.CyberCyan
+                            )
+                        }
+                    }
+                }
+            }
+
+            // =========================================================================
+            // PANEL 3 (BOTTOM): CRIMSON [ RUN EXPLOIT ] & CONSOLE / RAM OUTPUT DECK
+            // =========================================================================
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (!isSandbox) {
+                        OutlinedButton(
+                            onClick = onRequestHint,
+                            shape = RoundedCornerShape(6.dp),
+                            modifier = Modifier
+                                .weight(0.42f)
+                                .height(46.dp)
+                        ) {
+                            Text(
+                                text = strings.requestHintBtn,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.5.sp,
+                                color = NeoColors.CyberCyan,
+                                maxLines = 1
+                            )
+                        }
+                    }
+
+                    // Prominent Crimson Red [ RUN EXPLOIT ] action button
+                    Button(
+                        onClick = onRunExploit,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = NeoColors.CrimsonRed,
+                            contentColor = NeoColors.TextPrimary
+                        ),
+                        shape = RoundedCornerShape(6.dp),
+                        modifier = Modifier
+                            .weight(if (isSandbox) 1f else 0.58f)
+                            .height(46.dp)
+                    ) {
+                        Text(
+                            text = strings.runExploitBtn,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 13.sp,
+                            letterSpacing = 0.8.sp,
+                            maxLines = 1
+                        )
+                    }
+                }
+
+                val consoleBorder = when {
+                    eval == null -> NeoColors.BorderSubtle
+                    eval.isSuccess -> NeoColors.MatrixGreen
+                    else -> NeoColors.CrimsonRed
+                }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 104.dp, max = 148.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(NeoColors.ObsidianVoid)
+                        .border(1.2.dp, consoleBorder, RoundedCornerShape(8.dp))
+                        .padding(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            DeckTabPill(
+                                label = if (eval?.isSuccess == true && !isSandbox) {
+                                    "${strings.consoleTabLabel} · OK"
+                                } else {
+                                    strings.consoleTabLabel
+                                },
+                                selected = bottomTabIndex == 0,
+                                accent = consoleBorder,
+                                onClick = { bottomTabIndex = 0 }
+                            )
+                            DeckTabPill(
+                                label = "${strings.ramTabLabel} (${eval?.ramSlots?.size ?: 0})",
+                                selected = bottomTabIndex == 1,
+                                accent = NeoColors.CyberCyan,
+                                onClick = { bottomTabIndex = 1 }
+                            )
+                        }
+
+                        if (!isSandbox && eval?.isSuccess == true) {
+                            Text(
+                                text = if (hasNextModule) "${strings.nextModuleBtn} >" else strings.backToHubBtn,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                color = NeoColors.ObsidianVoid,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(NeoColors.MatrixGreen)
+                                    .clickable {
+                                        if (hasNextModule) onNextModule() else onBackToHub()
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        if (bottomTabIndex == 0) {
+                            Text(
+                                text = eval?.outputText ?: strings.noOutputPlaceholder,
+                                style = ConsoleTextStyle.copy(
+                                    color = when {
+                                        eval == null -> NeoColors.TextMuted
+                                        eval.isSuccess -> NeoColors.MatrixGreen
+                                        else -> NeoColors.CrimsonRed
+                                    }
+                                )
+                            )
+                        } else {
+                            RamInspectorPanel(
+                                title = strings.ramInspectorTitle,
+                                emptyText = strings.ramEmptyText,
+                                slots = eval?.ramSlots ?: emptyList()
+                            )
+                        }
+                    }
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun DeckTabPill(
+    label: String,
+    selected: Boolean,
+    accent: androidx.compose.ui.graphics.Color,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(if (selected) accent.copy(alpha = 0.16f) else NeoColors.TerminalSurface)
+            .border(
+                width = 1.dp,
+                color = if (selected) accent else NeoColors.BorderSubtle,
+                shape = RoundedCornerShape(4.dp)
+            )
+            .clickable { onClick() }
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+    ) {
+        Text(
+            text = label,
+            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.Bold,
+            fontSize = 10.5.sp,
+            color = if (selected) accent else NeoColors.TextSecondary
+        )
     }
 }
