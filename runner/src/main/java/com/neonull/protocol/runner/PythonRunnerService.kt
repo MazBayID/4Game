@@ -85,7 +85,7 @@ class PythonRunnerService : Service() {
                 throw IllegalStateException("Unable to create temporary workspace")
             }
             if (!Python.isStarted()) {
-                Python.start(AndroidPlatform(applicationContext).apply { redirectStdioToLogcat() })
+                Python.start(AndroidPlatform(applicationContext))
             }
             val module = Python.getInstance().getModule("byteghost_runner")
             val expired = Runnable {
