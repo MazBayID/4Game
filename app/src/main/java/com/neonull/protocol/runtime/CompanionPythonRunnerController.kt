@@ -72,7 +72,14 @@ class CompanionPythonRunnerController(
             sendPending()
         } else if (!bound) {
             val intent = Intent().setComponent(ComponentName(RUNNER_PACKAGE, RUNNER_SERVICE))
-            bound = context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+            try {
+                bound = context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+            } catch (error: SecurityException) {
+                bound = false
+                pendingSource = null
+                onResult(errorJson("RunnerPermissionDenied", error.message))
+                return
+            }
             if (!bound) {
                 pendingSource = null
                 onResult(errorJson("RunnerNotInstalled", "Install the ByteGhost Python Runner APK"))
