@@ -550,7 +550,7 @@ class LearningViewModel(
                 Regex("""return\s+seed\s*\*\s*3\s*\+\s*9\b""")
             )
             6 -> hasIndentedStatementAfter(
-                code, Regex("""try\s*:"""), Regex("""open\s*\(\s*["']corrupt\.log["']""")
+                code, Regex("""try\s*:"""), Regex("""(?:with\s+)?open\s*\(\s*["']corrupt\.log["']""")
             ) && hasIndentedStatementAfter(
                 code, Regex("""except\b.*:"""), Regex("""print\s*\(\s*["']SAFE_EXTRACT["']\s*\)""")
             )
