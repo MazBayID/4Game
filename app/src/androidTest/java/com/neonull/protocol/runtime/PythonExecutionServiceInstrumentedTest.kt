@@ -14,6 +14,8 @@ import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.neonull.protocol.assets.GameAssetCatalog
+import com.neonull.protocol.data.CurriculumRepository
+import com.neonull.protocol.data.ProgressionRules
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -87,6 +89,16 @@ class PythonExecutionServiceInstrumentedTest {
         assertNotNull(catalog.find("bg_server_room"))
         assertEquals(256, catalog.find("glitch_idle")?.frameWidth)
         assertEquals(16, catalog.find("glitch_idle")?.frameCount)
+    }
+
+    @Test
+    fun test07ProgressionRequiresContiguousPrerequisites() {
+        val modules = CurriculumRepository.modules
+        assertEquals(1, ProgressionRules.nextUnlockedModuleId(modules, setOf(3)))
+        assertEquals(3, ProgressionRules.nextUnlockedModuleId(modules, setOf(1, 2)))
+        assertEquals(2, ProgressionRules.nextUnlockedModuleId(modules, setOf(1, 3)))
+        assertTrue(ProgressionRules.isAccessible(3, modules, setOf(1, 2, 3)))
+        assertEquals(false, ProgressionRules.isAccessible(4, modules, setOf(1, 3)))
     }
 
     private fun executeThroughService(source: String): String =
