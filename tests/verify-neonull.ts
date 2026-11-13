@@ -115,6 +115,13 @@ for (const moduleId of [1, 2, 3, 4, 5, 6, 7]) {
   assert(workerSource.includes(expectedBranch), `Module ${moduleId} must ignore commented-out requirements`);
 }
 
+const invalidConditionalScope = evaluatePythonSubmission(
+  CURRICULUM_MODULES[1],
+  'threat = 25\nif threat >= 50:\n    pass\nelse:\n    pass\nprint("DENIED")\nprint("ALLOW")',
+  'EN'
+);
+assert(!invalidConditionalScope.isSuccess, 'Mission 2 must require DENIED and ALLOW inside their matching branches');
+
 const invalidLoopScope = evaluatePythonSubmission(
   CURRICULUM_MODULES[3],
   'packets = 0\nfor i in range(5):\n    print(i)\npackets += 1\nprint(packets)',
