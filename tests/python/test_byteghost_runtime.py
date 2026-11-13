@@ -1,7 +1,7 @@
 import json
 import unittest
 
-from byteghost_runtime import execute, MAX_CAPTURED_OUTPUT, MAX_SOURCE_CHARS
+from byteghost_runtime import execute, MAX_CAPTURED_OUTPUT, MAX_SOURCE_CHARS, MAX_STDIN_CHARS
 
 
 class ByteGhostRuntimeTests(unittest.TestCase):
@@ -23,6 +23,11 @@ class ByteGhostRuntimeTests(unittest.TestCase):
         result = self.run_source('import sys\nprint("diagnostic", file=sys.stderr)')
         self.assertTrue(result["ok"])
         self.assertEqual(result["stderr"], "diagnostic\n")
+
+    def test_oversized_stdin_is_rejected(self):
+        result = json.loads(execute("print(1)", "X" * (MAX_STDIN_CHARS + 1)))
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["errorType"], "InputTooLarge")
 
     def test_syntax_error_is_reported(self):
         result = self.run_source("if True print('broken')")
