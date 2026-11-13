@@ -20,13 +20,10 @@ import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
-import org.junit.BeforeClass
-import org.junit.ClassRule
 import org.junit.FixMethodOrder
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.MethodSorters
-import androidx.test.rule.ServiceTestRule
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
@@ -228,21 +225,6 @@ class PythonExecutionServiceInstrumentedTest {
     companion object {
         private const val TAG = "ByteGhostRuntimeTest"
 
-        /**
-         * Keep the runtime service started and bound for the whole suite.
-         * ServiceTestRule waits for onServiceConnected instead of assuming that
-         * startService() returning means the secondary process is ready.
-         */
-        @ClassRule
-        @JvmField
-        val serviceRule: ServiceTestRule =
-            ServiceTestRule.withTimeout(240, TimeUnit.SECONDS)
 
-        @BeforeClass
-        @JvmStatic
-        fun startRuntimeServiceForSuite() {
-            val context = InstrumentationRegistry.getInstrumentation().targetContext
-            serviceRule.startService(Intent(context, PythonExecutionService::class.java))
-        }
     }
 }
