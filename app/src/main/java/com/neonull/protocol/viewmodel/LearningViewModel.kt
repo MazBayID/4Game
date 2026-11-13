@@ -124,18 +124,28 @@ class LearningViewModel(
             AppLanguage.valueOf(progressPreferences.getString("language", AppLanguage.EN.name) ?: AppLanguage.EN.name)
         }.getOrDefault(AppLanguage.EN)
         val validModuleIds = CurriculumRepository.modules.map { it.id }.toSet()
-        val completedIds = progressPreferences.getStringSet("completed_modules", mutableSetOf<String>())
+        val completedIds = progressPreferences.getStringSet("completed_modules", emptySet())
             .orEmpty()
             .mapNotNull { it.toIntOrNull() }
             .filter { it in validModuleIds }
             .toSet()
+        val highestUnlockedId = (completedIds.maxOrNull() ?: 0)
+            .plus(1)
+            .coerceAtMost(CurriculumRepository.modules.size)
+        val storedActiveModuleId = progressPreferences.getInt("active_module_id", 1)
+        val activeModuleId = storedActiveModuleId
+            .takeIf { it in validModuleIds && it <= highestUnlockedId }
+            ?: highestUnlockedId
+        val hasEnteredHub = progressPreferences.getBoolean("has_entered_hub", false)
 
         return LearningUiState(
+            currentScreen = if (hasEnteredHub) NeoScreen.HUB else NeoScreen.ONBOARDING,
             language = language,
+            activeModuleId = activeModuleId,
             audioEnabled = progressPreferences.getBoolean("audio_enabled", true),
             completedModuleIds = completedIds,
             xp = progressPreferences.getInt("xp", 0).coerceAtLeast(0),
-            ramMb = progressPreferences.getInt("ram_mb", 128).coerceAtLeast(128),
+            ramMb = progressPreferences.getInt("ram_mb", 128).coerceIn(128, 4096),
             traceIntegrity = progressPreferences.getInt("trace_integrity", 100).coerceIn(20, 100)
         )
     }
@@ -144,9 +154,11 @@ class LearningViewModel(
         progressPreferences.edit()
             .putString("language", state.language.name)
             .putBoolean("audio_enabled", state.audioEnabled)
+            .putBoolean("has_entered_hub", state.currentScreen != NeoScreen.ONBOARDING)
+            .putInt("active_module_id", state.activeModuleId)
             .putStringSet("completed_modules", state.completedModuleIds.map { it.toString() }.toSet())
             .putInt("xp", state.xp.coerceAtLeast(0))
-            .putInt("ram_mb", state.ramMb.coerceAtLeast(128))
+            .putInt("ram_mb", state.ramMb.coerceIn(128, 4096))
             .putInt("trace_integrity", state.traceIntegrity.coerceIn(20, 100))
             .apply()
     }
