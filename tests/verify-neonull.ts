@@ -74,11 +74,15 @@ const saved = {
   ramMb: 256,
   traceIntegrity: 80,
   language: 'ID' as const,
+  drafts: { '1': 'agent = "Zero"', '7': 'print("boss")', sandbox: 'print("free")', '8': 'invalid', '2': 'x'.repeat(32769) },
 };
 assert(saveProgress(saved, memoryStorage), 'Expected progress save to succeed');
 const restored = loadProgress(memoryStorage);
 assert(restored.completedIds.join(',') === '1,2', 'Progress loader must filter invalid and duplicate mission IDs');
 assert(restored.xp === 350 && restored.ramMb === 256 && restored.language === 'ID', 'Progress values should survive save/load');
+assert(restored.drafts?.['1'] === 'agent = "Zero"' && restored.drafts?.['7'] === 'print("boss")', 'Valid mission drafts should survive save/load');
+assert(restored.drafts?.sandbox === 'print("free")', 'Sandbox draft should survive save/load');
+assert(!('8' in (restored.drafts ?? {})) && !('2' in (restored.drafts ?? {})), 'Invalid or oversized drafts must be filtered');
 memoryStorage.setRaw('{invalid-json');
 assert(loadProgress(memoryStorage).xp === 0, 'Corrupt save data must safely reset to defaults');
 memoryStorage.setRaw(JSON.stringify({ version: 99, completedIds: [1], xp: 999 }));
