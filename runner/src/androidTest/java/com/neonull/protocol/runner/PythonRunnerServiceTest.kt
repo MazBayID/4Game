@@ -108,7 +108,7 @@ class PythonRunnerServiceTest {
             remote.send(Message.obtain(null, PythonRunnerService.MSG_EXECUTE).apply {
                 data = Bundle().apply {
                     putString(PythonRunnerService.KEY_CODE, source)
-                    putString(PythonRunnerService.KEY_STDIN, stdin)
+                    putString(PythonRunnerService.KEY_STDIN, "")
                 }
                 replyTo = reply
             })
