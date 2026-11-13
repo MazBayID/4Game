@@ -539,6 +539,11 @@ class LearningViewModel(
 
     private fun hasMissionBlockStructure(moduleId: Int, code: String): Boolean {
         return when (moduleId) {
+            2 -> hasIndentedStatementAfter(
+                code, Regex("""if\s+threat\s*>=\s*50\s*:"""), Regex("""print\s*\(\s*["']DENIED["']\s*\)""")
+            ) && hasIndentedStatementAfter(
+                code, Regex("""else\s*:"""), Regex("""print\s*\(\s*["']ALLOW["']\s*\)""")
+            )
             4 -> hasIndentedStatementAfter(
                 code,
                 Regex("""for\s+\w+\s+in\s+range\s*\(\s*5\s*\)\s*:"""),
@@ -818,7 +823,9 @@ class LearningViewModel(
             Regex("""\belse\s*:""").containsMatchIn(code) &&
             Regex("""print\s*\(\s*["']ALLOW["']\s*\)""").containsMatchIn(code)
 
-        return if (ok) {
+        val accepted = ok && hasMissionBlockStructure(2, code)
+
+        return if (accepted) {
             EvaluationResult(
                 isSuccess = true,
                 isSyntaxError = false,
