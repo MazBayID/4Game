@@ -104,6 +104,12 @@ assert(workerSource.includes('r"\\bexcept\\b.*:"'), 'Worker except regex must be
 assert(workerSource.includes('import sys, io, json, traceback, re, tokenize'), 'Worker must tokenize Python comments safely');
 assert(workerSource.includes('def _neonull_strip_comments(source):'), 'Worker must strip comments without altering string literals');
 assert(workerSource.includes('normalized_source = _neonull_strip_comments(user_code)'), 'Runtime mission checks must use comment-free source');
+assert(workerSource.includes('import sys, io, json, traceback, re, tokenize, ast'), 'Worker must import AST for structural mission checks');
+assert(workerSource.includes('def _neonull_has_mission_structure(module_id, source):'), 'Worker must validate mission block structure with Python AST');
+for (const moduleId of [2, 4, 5, 6, 7]) {
+  assert(workerSource.includes(`structure_ok = _neonull_has_mission_structure(module_id, user_code)`), `Mission ${moduleId} must use AST structure validation`);
+}
+
 for (const moduleId of [1, 2, 3, 4, 5, 6, 7]) {
   const expectedBranch = `elif module_id == ${moduleId}:` + String.fromCharCode(10) + '            user_code = normalized_source';
   assert(workerSource.includes(expectedBranch), `Module ${moduleId} must ignore commented-out requirements`);
