@@ -2,7 +2,7 @@ name: Source Validation
 
 on:
   push:
-    branches: [main]
+    branches: [main, mod-development]
   pull_request:
     branches: [main]
 
@@ -33,4 +33,4 @@ jobs:
         run: npm run build
 
       - name: Run Cyber Protocol & Pyodide sandbox tests
-        run: npx tsx tests/verify-slice.ts
+        run: npm run verify
