@@ -2,6 +2,10 @@ package com.neonull.protocol.runtime
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import android.app.Application
+import android.os.SystemClock
+import androidx.lifecycle.ViewModelStore
+import com.neonull.protocol.viewmodel.LearningViewModel
 import com.neonull.protocol.assets.GameAssetCatalog
 import com.neonull.protocol.data.CurriculumRepository
 import com.neonull.protocol.data.LessonPhase
@@ -25,6 +29,37 @@ class PythonExecutionServiceInstrumentedTest {
         assertNotNull(catalog.find("bg_server_room"))
         assertEquals(256, catalog.find("glitch_idle")?.frameWidth)
         assertEquals(16, catalog.find("glitch_idle")?.frameCount)
+    }
+
+
+    @Test
+    fun gameplaySubmissionUsesIsolatedRunnerAndAwardsMissionProgress() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        context.getSharedPreferences("neo_null_progress", 0).edit().clear().commit()
+        val viewModel = LearningViewModel(context.applicationContext as Application)
+        val store = ViewModelStore().apply { put("learning", viewModel) }
+        try {
+            viewModel.openModuleTerminal(1)
+            viewModel.updateCode("""agent = "Null-Agent"
+clearance = 1
+print(agent)
+""")
+            viewModel.runExploit()
+
+            val deadline = SystemClock.elapsedRealtime() + 120_000L
+            while (viewModel.uiState.value.isExecuting && SystemClock.elapsedRealtime() < deadline) {
+                SystemClock.sleep(50)
+            }
+
+            val state = viewModel.uiState.value
+            assertTrue("CPython execution did not finish", !state.isExecuting)
+            assertTrue("Mission 1 was not completed: \${state.evaluationResult}", 1 in state.completedModuleIds)
+            assertEquals(state.modules.first { it.id == 1 }.xpReward + 50, state.xp)
+            assertEquals(128 + state.modules.first { it.id == 1 }.ramRewardMb, state.ramMb)
+            assertTrue(state.evaluationResult?.outputText?.contains("Null-Agent") == true)
+        } finally {
+            store.clear()
+        }
     }
 
     @Test
