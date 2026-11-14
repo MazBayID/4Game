@@ -72,6 +72,16 @@ class PythonRunnerService : Service() {
 
     override fun onBind(intent: Intent?): IBinder = messenger.binder
 
+    override fun onUnbind(intent: Intent?): Boolean {
+        // A fresh process per request prevents Python globals, imported-module mutations,
+        // and background threads from leaking into the next player's submission.
+        watchdog.postDelayed({
+            Log.i(TAG, "No clients remain; recycling the Python interpreter process")
+            Process.killProcess(Process.myPid())
+        }, PROCESS_RECYCLE_DELAY_MS)
+        return false
+    }
+
     private fun execute(message: Message) {
         val replyTo = message.replyTo ?: return
         val source = message.data.getString(KEY_CODE).orEmpty()
@@ -83,6 +93,11 @@ class PythonRunnerService : Service() {
 
         val workspace = File(cacheDir, "byteghost-session")
         val startedAt = SystemClock.elapsedRealtime()
+        val expired = Runnable {
+            Log.e(TAG, "Execution watchdog expired; killing runner process")
+            Process.killProcess(Process.myPid())
+        }
+        watchdog.postDelayed(expired, EXECUTION_TIMEOUT_MS)
         try {
             deleteRecursively(workspace)
             if (!workspace.mkdirs() && !workspace.isDirectory) {
@@ -92,25 +107,16 @@ class PythonRunnerService : Service() {
                 Python.start(AndroidPlatform(applicationContext))
             }
             val mode = message.data.getString(KEY_MODE) ?: MODE_EXECUTE
-            val expired = Runnable {
-                Log.e(TAG, "Execution watchdog expired; killing runner process")
-                Process.killProcess(Process.myPid())
-            }
-            watchdog.postDelayed(expired, EXECUTION_TIMEOUT_MS)
-            val result = try {
-                val python = Python.getInstance()
-                when (mode) {
-                    MODE_EXECUTE -> python.getModule("byteghost_runner")
-                        .callAttr("execute", source, stdin, workspace.absolutePath).toString()
-                    MODE_GRADE -> {
-                        val missionId = message.data.getInt(KEY_MISSION_ID, -1)
-                        python.getModule("byteghost_grader")
-                            .callAttr("grade", missionId, source, stdin, workspace.absolutePath).toString()
-                    }
-                    else -> errorResult("UnknownOperation", "Unsupported runner operation: $mode")
+            val python = Python.getInstance()
+            val result = when (mode) {
+                MODE_EXECUTE -> python.getModule("byteghost_runner")
+                    .callAttr("execute", source, stdin, workspace.absolutePath).toString()
+                MODE_GRADE -> {
+                    val missionId = message.data.getInt(KEY_MISSION_ID, -1)
+                    python.getModule("byteghost_grader")
+                        .callAttr("grade", missionId, source, stdin, workspace.absolutePath).toString()
                 }
-            } finally {
-                watchdog.removeCallbacks(expired)
+                else -> errorResult("UnknownOperation", "Unsupported runner operation: $mode")
             }
             deleteRecursively(workspace)
             Log.i(TAG, "Execution completed elapsedMs=" + (SystemClock.elapsedRealtime() - startedAt))
@@ -119,6 +125,8 @@ class PythonRunnerService : Service() {
             deleteRecursively(workspace)
             Log.e(TAG, "Runner execution failed", error)
             sendJson(replyTo, errorResult("RunnerError", error.message))
+        } finally {
+            watchdog.removeCallbacks(expired)
         }
     }
 
@@ -179,5 +187,6 @@ class PythonRunnerService : Service() {
         private const val MAX_SOURCE_CHARS = 128 * 1024
         private const val MAX_STDIN_CHARS = 64 * 1024
         private const val EXECUTION_TIMEOUT_MS = 5_000L
+        private const val PROCESS_RECYCLE_DELAY_MS = 300L
     }
 }
