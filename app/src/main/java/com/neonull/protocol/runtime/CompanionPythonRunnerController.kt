@@ -13,8 +13,7 @@ import android.os.RemoteException
 import org.json.JSONObject
 
 /**
- * Client for the separately installed companion runner APK.
- * The runner must be installed with the same signing certificate as the game.
+ * Client for the Python execution service packaged inside ByteGhost.
  */
 class CompanionPythonRunnerController(
     private val context: Context,
@@ -83,7 +82,7 @@ class CompanionPythonRunnerController(
         if (remote != null) {
             sendPending()
         } else if (!bound) {
-            val intent = Intent().setComponent(ComponentName(RUNNER_PACKAGE, RUNNER_SERVICE))
+            val intent = Intent(context, com.neonull.protocol.runner.PythonRunnerService::class.java)
             try {
                 bound = context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
             } catch (error: SecurityException) {
@@ -94,7 +93,7 @@ class CompanionPythonRunnerController(
             }
             if (!bound) {
                 pendingSource = null
-                onResult(errorJson("RunnerNotInstalled", "Install the ByteGhost Python Runner APK"))
+                onResult(errorJson("RunnerUnavailable", "The embedded Python execution service could not be started"))
             }
         }
     }
@@ -142,8 +141,6 @@ class CompanionPythonRunnerController(
             .toString()
 
     companion object {
-        private const val RUNNER_PACKAGE = "com.neonull.protocol.runner"
-        private const val RUNNER_SERVICE = "com.neonull.protocol.runner.PythonRunnerService"
         private const val MSG_EXECUTE = 1
         private const val MSG_RESULT = 2
         private const val KEY_CODE = "code"
