@@ -33,6 +33,31 @@ class CompanionPythonRunnerControllerTest {
             controller.close()
         }
     }
+
+    @Test
+    fun gameGradesMissionThroughTheCompanionRunner() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val completed = CountDownLatch(1)
+        val response = AtomicReference<String>()
+        val controller = CompanionPythonRunnerController(context) {
+            response.set(it)
+            completed.countDown()
+        }
+        try {
+            controller.grade(1, """agent = "Null-Agent"
+clearance = 1
+print(agent)
+""")
+            assertTrue("Mission grading did not return", completed.await(120, TimeUnit.SECONDS))
+            val result = JSONObject(response.get() ?: error("Runner returned no grade"))
+            assertTrue(result.toString(), result.getBoolean("ok"))
+            assertTrue(result.toString(), result.getBoolean("passed"))
+            assertEquals("Null-Agent\n", result.getString("stdout"))
+        } finally {
+            controller.close()
+        }
+    }
+
     @Test
     fun runnerCannotReadHostPrivateFiles() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
