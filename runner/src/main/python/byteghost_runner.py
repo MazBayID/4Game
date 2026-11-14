@@ -51,11 +51,11 @@ def _failure(error_type, message=None):
 def _safe_preview(value, depth=0):
     if value is None:
         return "None"
-    if isinstance(value, bool):
+    if type(value) is bool:
         return "True" if value else "False"
-    if isinstance(value, (int, float)):
+    if type(value) in (int, float):
         return str(value)[:80]
-    if isinstance(value, str):
+    if type(value) is str:
         return repr(value[:60])[:80]
     if depth >= 2:
         return "..."
@@ -88,21 +88,21 @@ def _ram_slots(namespace):
             continue
         if callable(value):
             value_type = "function"
-        elif isinstance(value, bool):
+        elif type(value) is bool:
             value_type = "bool"
-        elif isinstance(value, int):
+        elif type(value) is int:
             value_type = "int"
-        elif isinstance(value, float):
+        elif type(value) is float:
             value_type = "float"
-        elif isinstance(value, str):
+        elif type(value) is str:
             value_type = "str"
-        elif isinstance(value, list):
+        elif type(value) is list:
             value_type = "list"
-        elif isinstance(value, tuple):
+        elif type(value) is tuple:
             value_type = "tuple"
-        elif isinstance(value, dict):
+        elif type(value) is dict:
             value_type = "dict"
-        elif isinstance(value, set):
+        elif type(value) is set:
             value_type = "set"
         elif value is None:
             value_type = "NoneType"
