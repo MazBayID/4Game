@@ -46,6 +46,72 @@ def _failure(error_type, message=None):
     })
 
 
+
+def _safe_preview(value, depth=0):
+    if value is None:
+        return "None"
+    if isinstance(value, bool):
+        return "True" if value else "False"
+    if isinstance(value, (int, float)):
+        return str(value)[:80]
+    if isinstance(value, str):
+        return repr(value[:60])[:80]
+    if depth >= 2:
+        return "..."
+    if isinstance(value, list):
+        items = [_safe_preview(item, depth + 1) for item in value[:4]]
+        suffix = ", ..." if len(value) > 4 else ""
+        return "[" + ", ".join(items) + suffix + "]"
+    if isinstance(value, tuple):
+        items = [_safe_preview(item, depth + 1) for item in value[:4]]
+        suffix = ", ..." if len(value) > 4 else ""
+        return "(" + ", ".join(items) + suffix + ")"
+    if isinstance(value, dict):
+        items = [
+            _safe_preview(key, depth + 1) + ": " + _safe_preview(item, depth + 1)
+            for key, item in list(value.items())[:4]
+        ]
+        suffix = ", ..." if len(value) > 4 else ""
+        return "{" + ", ".join(items) + suffix + "}"
+    if isinstance(value, set):
+        items = [_safe_preview(item, depth + 1) for item in list(value)[:4]]
+        suffix = ", ..." if len(value) > 4 else ""
+        return "{" + ", ".join(items) + suffix + "}"
+    return "<" + type(value).__name__ + ">"
+
+
+def _ram_slots(namespace):
+    slots = []
+    for name, value in namespace.items():
+        if not isinstance(name, str) or name.startswith("__"):
+            continue
+        if callable(value):
+            value_type = "function" if getattr(value, "__name__", "") != "<lambda>" else "function"
+        elif isinstance(value, bool):
+            value_type = "bool"
+        elif isinstance(value, int):
+            value_type = "int"
+        elif isinstance(value, float):
+            value_type = "float"
+        elif isinstance(value, str):
+            value_type = "str"
+        elif isinstance(value, list):
+            value_type = "list"
+        elif isinstance(value, tuple):
+            value_type = "tuple"
+        elif isinstance(value, dict):
+            value_type = "dict"
+        elif isinstance(value, set):
+            value_type = "set"
+        elif value is None:
+            value_type = "NoneType"
+        else:
+            value_type = type(value).__name__
+        slots.append({"name": name[:40], "type": value_type[:32], "preview": _safe_preview(value)[:80]})
+        if len(slots) >= 12:
+            break
+    return slots
+
 def execute(source, stdin_text="", workspace="."):
     if not isinstance(source, str):
         source = str(source)
@@ -71,6 +137,7 @@ def execute(source, stdin_text="", workspace="."):
             "ok": True, "stdout": stdout.getvalue(), "stderr": stderr.getvalue(),
             "stdoutTruncated": stdout.truncated, "stderrTruncated": stderr.truncated,
             "errorType": None, "traceback": None,
+            "ramSlots": _ram_slots(namespace),
         }
     except BaseException as error:
         result = {
@@ -78,6 +145,7 @@ def execute(source, stdin_text="", workspace="."):
             "stdoutTruncated": stdout.truncated, "stderrTruncated": stderr.truncated,
             "errorType": type(error).__name__,
             "traceback": traceback.format_exc()[-MAX_OUTPUT_CHARS:],
+            "ramSlots": _ram_slots(namespace),
         }
     finally:
         sys.stdin = original_stdin
