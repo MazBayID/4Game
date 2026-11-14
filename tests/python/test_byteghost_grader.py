@@ -83,7 +83,7 @@ class ByteGhostGraderTests(unittest.TestCase):
         self.assertFalse(result["passed"])
 
     def test_extra_output_does_not_pass_module_four(self):
-        source = VALID_SUBMISSIONS[4] + 'print("5")\\n'
+        source = VALID_SUBMISSIONS[4] + '\nprint("5")\n'
         result = json.loads(grade(4, source))
         self.assertFalse(result["passed"])
 

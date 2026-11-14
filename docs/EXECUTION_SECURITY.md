@@ -1,72 +1,58 @@
 # ByteGhost Python Execution Security
 
-Status: isolated CPython runner is integrated with gameplay; CI validation is in progress. Physical-device and broader adversarial validation remain required.
+Status: CPython is embedded in the single ByteGhost APK and is hosted by an in-package service process. Physical-device and broader adversarial validation remain required. This is not a secure sandbox for arbitrary hostile Python.
 
 ## Architecture
 
-- Game package: `com.neonull.protocol`.
-- Companion runner package: `com.neonull.protocol.runner`.
-- Each APK is a separate Android package and receives a distinct Linux UID.
-- The game declares the signature-level permission `com.neonull.protocol.permission.RUN_PYTHON`.
-- The runner service is exported only behind that signature permission.
-- Both APKs must be signed with the same certificate. Debug variants use the shared Android debug signing identity in CI; release distribution must use the same release signing key for both APKs.
-- CPython 3.13 (Chaquopy) is packaged only in the companion runner. The game APK does not embed a second Python runtime.
-- The runner requests no INTERNET permission or dangerous Android permissions.
-- `CompanionPythonRunnerController` sends source, optional stdin, and an operation (execute or grade) over Binder.
-- Free-play submissions execute directly in CPython. Mission submissions are graded by the AST-based `byteghost_grader` inside the runner.
-- The game receives bounded output, error details, and safe variable previews. It remains responsible for XP, RAM rewards, campaign progression, and saving player progress.
-- The old same-UID Python PoC service and its host-side execution sources have been removed. There is no same-UID execution fallback.
+- Application package: `com.neonull.protocol`.
+- CPython 3.13 (Chaquopy) is packaged in the app module and delivered in the same APK as the game.
+- `PythonRunnerService` is declared non-exported and runs in the secondary process `:execution`.
+- The service process shares the ByteGhost application's Android UID. It is not a separate Android package and does not have a distinct UID.
+- The game communicates with the service using an in-app Messenger/Binder contract.
+- Free-play submissions execute through `byteghost_runner.py`. Mission submissions pass through `byteghost_grader.py`, which performs AST checks and then executes the submission through CPython.
+- The game process handles UI, rewards, progression, and player-facing state.
 
 ## Runtime limits implemented
 
 - Source: 128 Ki characters maximum.
 - stdin: 64 Ki characters maximum.
 - stdout and stderr: 64 Ki characters each, capped while writing.
-- Execution watchdog: 5 seconds after CPython has initialized. On timeout, the runner process is killed; Android can restart the bound service.
-- Each submission gets a fresh Python globals namespace.
+- Execution watchdog: 5 seconds after CPython has initialized. On timeout, the Runner process is killed; Android may restart the bound service.
+- Each submission receives a fresh Python globals namespace.
 - A temporary cache workspace is created for a submission and deleted after it finishes.
-- RAM Inspector previews are limited to 12 variables, with bounded, non-recursive summaries of basic Python values and containers.
+- RAM Inspector previews are limited to 12 variables, with bounded summaries of basic Python values and containers.
 
-## Important limitations (do not overclaim)
+These limits reduce some accidental or abusive workloads. They do not provide a hard memory quota or a complete sandbox.
 
-This is a practical defense-in-depth boundary, not a perfect Python sandbox.
+## Important security limitations
 
-- There is no hard per-process memory quota. A hostile allocation can still cause runner OOM or broader device memory pressure.
-- The Python Java bridge remains available inside the runner process. Its reach is limited by runner UID and granted Android permissions, but it has not been comprehensively audited.
-- Python threads may outlive a submission; the runner currently isolates globals and workspace, not every possible background activity.
-- Python modules and interpreter-level state may persist between submissions even though each submission receives a fresh globals namespace.
-- The runner's own private files and readable system files are not all inaccessible to submitted code.
-- Filesystem traversal, reflection/Java bridge abuse, thread abuse, IPC abuse, and memory exhaustion still need adversarial tests on supported Android versions.
-- Do not claim perfect isolation or expose unrestricted execution to production players until these tests pass.
+- The Runner process shares the app UID. Submitted Python must be assumed capable of accessing data and resources available to the ByteGhost app process, including app-private files.
+- The Python Java bridge is available in the Runner process and has not been comprehensively audited.
+- Python modules and interpreter-level state can persist between submissions even though each submission receives a fresh globals namespace.
+- Python threads or other background activity may outlive a submission.
+- There is no hard per-process memory quota. Large allocations can cause Runner OOM or broader device memory pressure.
+- Filesystem traversal, reflection/Java bridge abuse, thread abuse, memory exhaustion, and IPC misuse still require adversarial tests on supported Android versions.
+- The Runner process is not an Android isolated process. Do not describe `:execution` as a security boundary.
+
+Do not expose unrestricted execution of arbitrary hostile player code as safe. Treat the current runtime as a controlled learning prototype until the security model and adversarial validation are substantially improved.
 
 ## Installation and updates
 
-Install both APKs from the same build artifact and source revision:
-
-1. `ByteGhost-The-Synthex-Files-debug.apk`
-2. `ByteGhost-Python-Runner-debug.apk`
-
-Both must be signed with the same certificate. Update both together. If the runner is missing or has an incompatible signature, the host controller returns an installation/permission error rather than silently falling back to a same-UID runtime.
+There is one application to install and update: the ByteGhost APK with package ID `com.neonull.protocol`. Uninstalling ByteGhost removes its embedded Runner service and CPython runtime as part of the same package. Data deliberately stored outside the app's private storage may have a separate lifecycle.
 
 ## Current validation coverage
 
-- Android compile and APK packaging.
-- Seven mission grading cases, including incorrect solutions and syntax errors.
-- Binder execution and mission grading from the game package.
-- Host-private file access rejection.
-- Separate package UID and signature permission checks.
-- Output/input/source limits, concurrency rejection, watchdog termination and runner restart.
-- Campaign progression, asset manifest, six learning phases, and end-to-end mission reward handling.
+The repository contains Python helper/grader tests and Android instrumentation tests for Runner execution, mission grading, watchdog recovery, and service packaging/process declaration. The regular GitHub Actions workflow builds and verifies the single APK; it does not run the full Python and Android runtime suites on every push.
 
-CI passing is not a substitute for testing both APKs on a physical Android device.
+A successful APK build is not proof of runtime or sandbox safety. Full tests and physical-device validation remain release gates.
 
 ## Required release checks
 
-1. Confirm host and runner UIDs differ on a physical Android device.
-2. Confirm an unrelated app cannot bind the runner service.
-3. Confirm the host app signed with the matching certificate can bind and execute Python.
-4. Confirm source/stdin/output caps and the watchdog.
-5. Confirm timeout kills only the runner process and a later request can restart it.
-6. Test large allocations, filesystem traversal, Java bridge/reflection, thread creation, and IPC abuse.
-7. Test clean install, both-APK update, uninstall, and mismatched-signature behavior.
-8. Keep mission grading and hidden checks inside the runner; do not send expected answers to the player submission.
+1. Verify clean install, update, and uninstall behavior for the single APK on a physical Android device.
+2. Verify that the non-exported service binds from the host application and is not externally bindable.
+3. Verify source/stdin/output limits and watchdog behavior.
+4. Verify that a timeout kills the Runner process and that a later request can recover.
+5. Test large allocations, filesystem access, Java bridge/reflection, thread creation, and IPC abuse.
+6. Test whether interpreter/module state can influence later submissions or the grader.
+7. Decide whether arbitrary user-authored code is in scope. If it is, design and validate an actual isolation boundary before production release.
+8. Keep player progression and reward decisions in the game process; never treat a local client-side grader as tamper-proof.

@@ -4,8 +4,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import java.io.File
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.concurrent.CountDownLatch
@@ -38,7 +38,7 @@ class CompanionPythonRunnerControllerTest {
     }
 
     @Test
-    fun gameGradesMissionThroughTheCompanionRunner() {
+    fun gameGradesMissionThroughTheEmbeddedRunner() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val completed = CountDownLatch(1)
         val response = AtomicReference<String>()
@@ -47,10 +47,10 @@ class CompanionPythonRunnerControllerTest {
             completed.countDown()
         }
         try {
-            controller.grade(1, """agent = "Null-Agent"
+            controller.grade(1, \"\"\"agent = "Null-Agent"
 clearance = 1
 print(agent)
-""")
+\"\"\")
             assertTrue("Mission grading did not return", completed.await(120, TimeUnit.SECONDS))
             val result = JSONObject(response.get() ?: error("Runner returned no grade"))
             assertTrue(result.toString(), result.getBoolean("ok"))

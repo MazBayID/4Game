@@ -1,63 +1,49 @@
 # ByteGhost Curriculum Architecture
 
-## Current content contract
+## Current content slice
 
-Every existing story mission exposes six ordered learning phases through
-`LessonSequenceRepository.stepsFor(module)`:
+The current campaign contains seven authored story modules. Each `ProtocolModule` contains localized story briefing, Python concept explanation, code example, objective, starter code, hints, GLITCH dialogue, optional Overlord taunt, and XP/RAM rewards.
 
-1. **Learn** — the module's localized concept explanation.
-2. **Observe** — the module's code example, with a prediction-before-run instruction.
-3. **Practice** — a guided task with starter code and observable success criteria.
-4. **Challenge** — a less guided task which transfers the concept to a new input or constraint.
-5. **Operation** — a story-context task that applies the concept to the SYNTHEX mission.
-6. **Mastery** — a more independent task with explicit competence criteria.
+These seven modules are the initial content slice, not a complete Python curriculum.
 
-The current seven modules each have authored Practice, Challenge, Operation, and
-Mastery prompts. The content is localized in English and Indonesian. Filipino
-text currently falls back to the English strings for these new lesson steps;
-translation is still required before claiming full three-language parity.
+## Six learning phases: content exists, flow is not connected
 
-## Evaluation boundary
+`LessonSequenceRepository.stepsFor(module)` defines six ordered learning phases:
 
-A lesson step's acceptance criteria describe what competence means; they are
-not yet a complete executable grader. The original Kotlin mission evaluators
-still use source-pattern checks and must not be treated as authoritative Python
-semantics.
+1. **Learn** — localized concept explanation.
+2. **Observe** — code example and a prediction-before-run instruction.
+3. **Practice** — guided exercise.
+4. **Challenge** — less-guided transfer exercise.
+5. **Operation** — story-context application.
+6. **Mastery** — independent competence exercise.
 
-A new Python-side AST-assisted grader has been added for the seven original
-missions. It parses Python syntax, inspects structural requirements, executes
-the submission through CPython, and checks runtime output. Its checks include
-branch structure, loop behavior, function results on additional inputs, file
-exception handling, and class method behavior. This is a testable foundation,
-not a finished assessment system: AST checks can still be gamed, some task
-contracts remain tightly coupled to the original seven missions, and the grader
-currently runs in the same process as the execution helper.
+The six-phase content is currently data-only. `LearningUiState.activeLessonSteps` can expose the list, but the existing Theory and Terminal screens still follow the older module-level flow. There is no persisted completion state for each phase, and the phase acceptance criteria are instructional text rather than executable evaluation contracts.
 
-Do not infer success by searching source text with regular expressions. Do not
-ship hidden expected answers in the client APK and call them secret: local APK
-contents can be inspected.
+English and Indonesian content are authored for these steps. Filipino parity for the newer phase content has not been completed; the current localized-text fallback behavior must not be mistaken for a reviewed translation.
 
-Before real graded submissions are enabled:
-- execute submissions only in a separately packaged runner with a distinct
-  Android UID and a narrowly scoped Binder contract;
-- keep authoritative progression and any private grading data outside the
-  untrusted runner;
-- send bounded, individual test cases to the runner rather than exposing a
-  complete hidden test suite;
-- add execution deadlines, output caps, process recovery, and adversarial
-  tests for filesystem, Java bridge/reflection, threads, memory pressure,
-  and IPC misuse;
-- verify runner installation, update, signing, and failure recovery on real
-  Android devices.
+## Current evaluation boundary
 
-The current same-UID Chaquopy service remains a proof of concept. It is not
-safe for arbitrary player code and is not connected to the editor.
+The embedded Python grader supports the original seven module IDs. It combines AST structure checks with CPython execution and output/state checks. Several checks are intentionally tied to exact variable names, AST shapes, or specific outputs. This makes it a useful first assessment implementation, but not a general semantic evaluator for arbitrary equivalent solutions.
+
+The lesson-step exercises are not yet mapped to independent executable grader contracts. Do not imply that every Practice, Challenge, Operation, or Mastery task can already be submitted and graded.
+
+The grader is packaged locally in the APK. Its checks are inspectable by a determined player; client-side checks must not be described as secret or authoritative against a hostile user.
+
+## Runtime architecture
+
+CPython 3.13 is embedded in the ByteGhost APK through Chaquopy. The Messenger-based service runs in the secondary process `:execution`, but it shares the host application's Android UID. Process separation helps protect UI responsiveness and enables process recovery; it does not create a filesystem, permission, or security boundary.
+
+See [Execution Security](EXECUTION_SECURITY.md) for the concrete limitations.
 
 ## Curriculum expansion policy
 
-The existing seven missions are the first content slice, not the full Python
-curriculum. Future campaigns should be added only with complete, reviewed
-lesson content and explicit prerequisite relationships. Do not inflate
-campaign counts with empty lessons. Proposed later tiers include foundational
-syntax and types, core control flow, data structures, functions, software
-engineering, advanced Python, and systems integration.
+Add later curriculum only when each mission has:
+- a clear learning objective and prerequisite;
+- authored Learn and Observe content;
+- guided and independent exercises;
+- explicit acceptance criteria;
+- a matching executable evaluation contract;
+- story context and success/failure feedback;
+- localization reviewed for every supported language.
+
+Do not inflate campaign counts with empty lessons. Future curriculum tiers may cover foundational syntax and types, control flow, data structures, functions, software engineering, advanced Python, and systems integration.
