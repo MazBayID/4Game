@@ -113,6 +113,33 @@ print(core.shutdown())
         assertTrue(wrongMissionOne.toString(), wrongMissionOne.getBoolean("ok"))
         assertFalse("Incorrect mission solution must not pass", wrongMissionOne.getBoolean("passed"))
 
+        val overwrittenAgent = JSONObject(requestGrade(
+            1,
+            valid.getValue(1) + "\\nagent = \\\"spoof\\\""
+        ))
+        assertFalse("Final variable state must be graded, not only earlier assignments", overwrittenAgent.getBoolean("passed"))
+
+        val overwrittenBranch = JSONObject(requestGrade(
+            2,
+            valid.getValue(2).replace(
+                "    print(\\\"ALLOW\\\")",
+                "    print(\\\"ALLOW\\\")\\n    print(\\\"BLOCKED\\\")"
+            )
+        ))
+        assertFalse("The actual final branch output must be validated", overwrittenBranch.getBoolean("passed"))
+
+        val clearedShards = JSONObject(requestGrade(
+            3,
+            valid.getValue(3) + "\\nshards.clear()"
+        ))
+        assertFalse("Final collection contents must be validated", clearedShards.getBoolean("passed"))
+
+        val overwrittenPackets = JSONObject(requestGrade(
+            4,
+            valid.getValue(4) + "\\npackets = 99"
+        ))
+        assertFalse("Final loop variable must be validated", overwrittenPackets.getBoolean("passed"))
+
         val syntax = JSONObject(requestGrade(1, "if True print('broken')"))
         assertFalse(syntax.getBoolean("ok"))
         assertFalse(syntax.getBoolean("passed"))
