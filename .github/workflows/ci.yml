@@ -51,4 +51,4 @@ jobs:
           gradle-version: "8.11.1"
 
       - name: Build application modules
-        run: gradle :app:assembleDebug :runner:assembleDebug
+        run: gradle :app:assembleDebug
