@@ -195,6 +195,7 @@ fun TerminalLearningScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        if (assetCatalog != null) GameAssetSprite(catalog = assetCatalog, assetKey = "ic_exit", modifier = Modifier.size(15.dp))
                         Text(
                             text = "< ${strings.backToHubBtn}",
                             fontFamily = FontFamily.Monospace,
@@ -450,7 +451,7 @@ fun TerminalLearningScreen(
                             if (assetCatalog != null) {
                                 GameAssetSprite(
                                     catalog = assetCatalog,
-                                    assetKey = "ic_solution",
+                                    assetKey = "ic_hint",
                                     modifier = Modifier.size(17.dp)
                                 )
                                 Spacer(modifier = Modifier.width(5.dp))

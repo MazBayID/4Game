@@ -89,7 +89,7 @@ fun StoryHubScreen(
                         if (assetCatalog != null) {
                             GameAssetSprite(
                                 catalog = assetCatalog,
-                                assetKey = "glitch_idle",
+                                assetKey = if (state.isWarningState) "glitch_warning" else "glitch_idle",
                                 modifier = Modifier.fillMaxSize(),
                                 fallback = {
                                     Image(
