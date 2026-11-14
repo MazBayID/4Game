@@ -87,14 +87,24 @@ class PythonRunnerService : Service() {
             if (!Python.isStarted()) {
                 Python.start(AndroidPlatform(applicationContext))
             }
-            val module = Python.getInstance().getModule("byteghost_runner")
+            val mode = message.data.getString(KEY_MODE) ?: MODE_EXECUTE
             val expired = Runnable {
                 Log.e(TAG, "Execution watchdog expired; killing runner process")
                 Process.killProcess(Process.myPid())
             }
             watchdog.postDelayed(expired, EXECUTION_TIMEOUT_MS)
             val result = try {
-                module.callAttr("execute", source, stdin, workspace.absolutePath).toString()
+                val python = Python.getInstance()
+                when (mode) {
+                    MODE_EXECUTE -> python.getModule("byteghost_runner")
+                        .callAttr("execute", source, stdin, workspace.absolutePath).toString()
+                    MODE_GRADE -> {
+                        val missionId = message.data.getInt(KEY_MISSION_ID, -1)
+                        python.getModule("byteghost_grader")
+                            .callAttr("grade", missionId, source, stdin, workspace.absolutePath).toString()
+                    }
+                    else -> errorResult("UnknownOperation", "Unsupported runner operation: $mode")
+                }
             } finally {
                 watchdog.removeCallbacks(expired)
             }
@@ -157,7 +167,11 @@ class PythonRunnerService : Service() {
         const val MSG_PING_RESULT = 4
         const val KEY_CODE = "code"
         const val KEY_STDIN = "stdin"
+        const val KEY_MODE = "mode"
+        const val KEY_MISSION_ID = "missionId"
         const val KEY_RESULT = "result"
+        const val MODE_EXECUTE = "execute"
+        const val MODE_GRADE = "grade"
         private const val MAX_SOURCE_CHARS = 128 * 1024
         private const val MAX_STDIN_CHARS = 64 * 1024
         private const val EXECUTION_TIMEOUT_MS = 5_000L
