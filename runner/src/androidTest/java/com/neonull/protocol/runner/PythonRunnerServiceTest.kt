@@ -140,6 +140,14 @@ class Device:
         self.name = name
     def boot(self):
         return f"{self.name}:{double(5)}"
+class HostileMeta(type):
+    def __getattribute__(cls, name):
+        if name == "__name__":
+            raise RuntimeError("blocked")
+        return super().__getattribute__(name)
+class Hostile(metaclass=HostileMeta):
+    pass
+hostile = Hostile()
 try:
     raise ValueError("handled")
 except ValueError as error:
@@ -158,6 +166,11 @@ print(round(math.pi, 2))
         val result = JSONObject(request(source))
         assertTrue(result.toString(), result.getBoolean("ok"))
         assertEquals("[0, 1, 4, 9]\n9\nCPython:10\nhandled\nworkspace-ok\n3.14\n", result.getString("stdout"))
+        val slots = result.getJSONArray("ramSlots")
+        assertTrue((0 until slots.length()).any {
+            slots.getJSONObject(it).optString("name") == "hostile" &&
+                slots.getJSONObject(it).optString("type") == "Hostile"
+        })
         val fresh = JSONObject(request("print('numbers' in globals())"))
         assertTrue(fresh.toString(), fresh.getBoolean("ok"))
         assertEquals("False\n", fresh.getString("stdout"))
