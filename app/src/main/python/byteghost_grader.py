@@ -1,8 +1,8 @@
-"""AST-assisted semantic checks for ByteGhost's original seven missions.
+"""AST-assisted checks for ByteGhost's original seven missions.
 
 This is an educational grader, not a security boundary. It executes submitted
-Python through the isolated companion runner and must only be used in the isolated runner
-once that runner is implemented and adversarially tested.
+Python through the embedded CPython Runner service. The service uses a separate
+process but shares the app UID; never treat that process as a security sandbox.
 """
 import ast
 import json

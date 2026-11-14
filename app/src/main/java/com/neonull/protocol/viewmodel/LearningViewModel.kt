@@ -81,6 +81,9 @@ data class LearningUiState(
     fun highestUnlockedModuleId(): Int =
         ProgressionRules.nextUnlockedModuleId(modules, completedModuleIds)
 
+    fun nextAccessibleModuleId(): Int? =
+        ProgressionRules.nextAccessibleModuleIdAfter(activeModuleId, modules, completedModuleIds)
+
     fun rankTitle(lang: AppLanguage): String {
         val totalLessons = modules.size.coerceAtLeast(1)
         val rootbreakerThreshold = (totalLessons * 7 + 9) / 10
@@ -344,11 +347,16 @@ class LearningViewModel(
 
     fun advanceToNextModule() {
         _uiState.update { state ->
-            val nextId = (state.activeModuleId + 1).coerceAtMost(state.modules.size)
-            val nextMod = state.modules.firstOrNull { it.id == nextId } ?: state.activeModule
+            val nextId = ProgressionRules.nextAccessibleModuleIdAfter(
+                currentModuleId = state.activeModuleId,
+                modules = state.modules,
+                completedModuleIds = state.completedModuleIds
+            ) ?: return@update state
+            val nextMod = state.modules.firstOrNull { it.id == nextId } ?: return@update state
             state.copy(
                 activeModuleId = nextMod.id,
                 currentScreen = NeoScreen.THEORY,
+                isSandboxMode = false,
                 codeBuffer = loadDraft(nextMod.id) ?: nextMod.starterCode,
                 hintLevel = 0,
                 moduleAttemptFailed = false,
@@ -403,9 +411,9 @@ class LearningViewModel(
         val syntaxError = errorType == "SyntaxError"
         val dialogue = when {
             success && request.sandbox -> LocalizedText(
-                en = "CPython execution completed in the isolated runner.",
-                id = "Eksekusi CPython selesai di runner terisolasi.",
-                ph = "Natapos ang CPython execution sa isolated runner."
+                en = "CPython execution completed in the dedicated execution process.",
+                id = "Eksekusi CPython selesai di proses eksekusi terpisah.",
+                ph = "Natapos ang CPython execution sa hiwalay na execution process."
             ).resolve(request.language)
             success -> module.glitchSuccessDialogue.resolve(request.language)
             request.sandbox -> LocalizedText(

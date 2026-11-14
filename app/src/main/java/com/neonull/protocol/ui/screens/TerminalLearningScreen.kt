@@ -84,7 +84,7 @@ fun TerminalLearningScreen(
     val isSandbox = state.isSandboxMode
     val eval = state.evaluationResult
     val errorLines = eval?.errorLines ?: emptySet()
-    val hasNextModule = !isSandbox && module.id < state.modules.size
+    val hasNextModule = !isSandbox && state.nextAccessibleModuleId() != null
     val snippets = if (isSandbox) {
         listOf("print()", "for i in range(5):", "def hack():", "return ")
     } else {

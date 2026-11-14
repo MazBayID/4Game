@@ -1,4 +1,4 @@
-"""Bounded CPython execution for the ByteGhost companion runner."""
+"""Bounded CPython execution hosted by ByteGhost’s embedded Runner service."""
 import contextlib
 import io
 import itertools

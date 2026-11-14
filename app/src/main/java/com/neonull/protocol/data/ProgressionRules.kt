@@ -27,4 +27,22 @@ object ProgressionRules {
         return moduleId in completedModuleIds ||
             moduleId == nextUnlockedModuleId(modules, completedModuleIds)
     }
+
+    /**
+     * Returns the next campaign module after [currentModuleId] only when the
+     * current module is complete and the candidate is accessible.
+     */
+    fun nextAccessibleModuleIdAfter(
+        currentModuleId: Int,
+        modules: List<ProtocolModule>,
+        completedModuleIds: Set<Int>
+    ): Int? {
+        if (currentModuleId !in completedModuleIds) return null
+        return modules.asSequence()
+            .map { it.id }
+            .distinct()
+            .filter { it > currentModuleId }
+            .sorted()
+            .firstOrNull { isAccessible(it, modules, completedModuleIds) }
+    }
 }

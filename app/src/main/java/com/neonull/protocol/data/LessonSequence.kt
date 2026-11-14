@@ -29,8 +29,9 @@ private data class ExerciseSpec(
 /**
  * Curated learning sequence for the seven original story missions.
  *
- * This is deliberately content-first: it does not pretend that a task is
- * evaluated by CPython until the secure runner and semantic grader are ready.
+ * This is deliberately content-first: only the original seven module objectives
+ * currently have executable grader contracts. The phase exercises below remain
+ * instructional content until each receives its own contract and acceptance tests.
  */
 object LessonSequenceRepository {
     private fun text(en: String, id: String, ph: String = en) =

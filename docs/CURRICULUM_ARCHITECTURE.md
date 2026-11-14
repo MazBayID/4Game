@@ -17,7 +17,7 @@ These seven modules are the initial content slice, not a complete Python curricu
 5. **Operation** — story-context application.
 6. **Mastery** — independent competence exercise.
 
-The six-phase content is currently data-only. `LearningUiState.activeLessonSteps` can expose the list, but the existing Theory and Terminal screens still follow the older module-level flow. There is no persisted completion state for each phase, and the phase acceptance criteria are instructional text rather than executable evaluation contracts.
+The six-phase content is currently data-only. `LearningUiState.activeLessonSteps` exposes the list, but the existing Theory and Terminal screens still follow the older module-level flow. There is no persisted completion state for each phase, and the phase acceptance criteria are instructional text rather than executable evaluation contracts. The current module-level flow remains the playable path until phase progression is implemented.
 
 English and Indonesian content are authored for these steps. Filipino parity for the newer phase content has not been completed; the current localized-text fallback behavior must not be mistaken for a reviewed translation.
 
