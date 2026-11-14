@@ -228,8 +228,6 @@ fun TheoryViewerScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (assetCatalog != null) {
                     GameAssetSprite(catalog = assetCatalog, assetKey = "ic_code", modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(5.dp))
-                    GameAssetSprite(catalog = assetCatalog, assetKey = "ic_copy", modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                 }
                 Text(

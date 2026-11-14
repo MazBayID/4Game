@@ -87,13 +87,7 @@ fun CipherCodexDialog(
                         if (assetCatalog != null) {
                             GameAssetSprite(
                                 catalog = assetCatalog,
-                                assetKey = "ic_inventory",
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        GameAssetSprite(
-                            catalog = assetCatalog,
-                            assetKey = "ic_codex",
+                                assetKey = "ic_codex",
                                 modifier = Modifier.fillMaxSize(),
                                 fallback = {
                                     Image(
@@ -114,6 +108,10 @@ fun CipherCodexDialog(
                         }
                     }
                     Spacer(modifier = Modifier.width(10.dp))
+                    if (assetCatalog != null) {
+                        GameAssetSprite(catalog = assetCatalog, assetKey = "ic_inventory", modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(5.dp))
+                    }
                     Text(
                         text = strings.codexTitle,
                         fontFamily = FontFamily.Monospace,

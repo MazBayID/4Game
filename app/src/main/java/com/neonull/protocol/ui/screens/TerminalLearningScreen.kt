@@ -39,6 +39,8 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -81,6 +83,7 @@ fun TerminalLearningScreen(
     onNextModule: () -> Unit
 ) {
     val module = state.activeModule
+    val clipboardManager = LocalClipboardManager.current
     val isSandbox = state.isSandboxMode
     val eval = state.evaluationResult
     val errorLines = eval?.errorLines ?: emptySet()
@@ -353,6 +356,15 @@ fun TerminalLearningScreen(
                         color = NeoColors.CyberCyan
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        if (assetCatalog != null) {
+                            GameAssetSprite(
+                                catalog = assetCatalog,
+                                assetKey = "ic_copy",
+                                modifier = Modifier.size(16.dp).clickable {
+                                    clipboardManager.setText(AnnotatedString(state.codeBuffer))
+                                }
+                            )
+                        }
                         Row(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))

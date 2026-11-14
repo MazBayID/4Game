@@ -160,10 +160,8 @@ fun OnboardingScreen(
                     fillColor = NeoColors.TerminalSurface.copy(alpha = 0.92f)
                 ) {
                     Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (assetCatalog != null) GameAssetSprite(catalog = assetCatalog, assetKey = "ic_settings", modifier = Modifier.size(16.dp))
-                            Text(
-                                text = strings.operativeAliasLabel,
+                        Text(
+                            text = strings.operativeAliasLabel,
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,

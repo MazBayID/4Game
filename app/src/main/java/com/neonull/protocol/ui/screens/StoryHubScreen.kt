@@ -122,6 +122,7 @@ fun StoryHubScreen(
                         )
                     }
                 }
+                if (assetCatalog != null) GameAssetSprite(catalog = assetCatalog, assetKey = "ic_settings", modifier = Modifier.size(16.dp))
                 LanguageSwitchRow(
                     selected = state.language,
                     onSelect = onSelectLanguage
@@ -325,13 +326,6 @@ fun StoryHubScreen(
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(text = strings.victoryTitle, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = NeoColors.MatrixGreen)
                         }
-                        Text(
-                            text = strings.victorySubtitle,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                            color = NeoColors.MatrixGreen
-                        )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = strings.victorySubtitle,
