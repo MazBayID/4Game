@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "NeoNullProtocol"
-include(":app", ":runner")
+include(":app")
