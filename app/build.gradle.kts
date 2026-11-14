@@ -2,7 +2,6 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
-    id("com.chaquo.python")
 }
 
 android {
@@ -37,11 +36,6 @@ android {
     packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
 }
 
-chaquopy {
-    defaultConfig {
-        version = "3.13"
-    }
-}
 
 dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2024.12.01")

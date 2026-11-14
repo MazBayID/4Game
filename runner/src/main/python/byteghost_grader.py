@@ -1,13 +1,13 @@
 """AST-assisted semantic checks for ByteGhost's original seven missions.
 
 This is an educational grader, not a security boundary. It executes submitted
-Python through byteghost_runtime and must only be used in the isolated runner
+Python through the isolated companion runner and must only be used in the isolated runner
 once that runner is implemented and adversarially tested.
 """
 import ast
 import json
 
-from byteghost_runtime import MAX_SOURCE_CHARS, execute
+from byteghost_runner import MAX_SOURCE_CHARS, execute
 
 
 def _assigned_value(tree, name):
@@ -225,7 +225,15 @@ def _grade_structure(module_id, tree):
     return False, "Unknown mission."
 
 
-def grade(module_id, source, stdin_text=""):
+
+def _slot_preview(execution, name):
+    for slot in execution.get("ramSlots", []):
+        if slot.get("name") == name:
+            return slot.get("preview")
+    return None
+
+
+def grade(module_id, source, stdin_text="", workspace="."):
     """Run a mission and return JSON with CPython output and AST-based checks."""
     try:
         module_id = int(module_id)
@@ -263,13 +271,37 @@ def grade(module_id, source, stdin_text=""):
     elif module_id == 7:
         execution_source += '\nprint(OverlordOverride("TEST-KEY").shutdown())'
 
-    execution = json.loads(execute(execution_source, stdin_text))
+    execution = json.loads(execute(execution_source, stdin_text, workspace))
     output_complete = not execution.get("stdoutTruncated", False) and not execution.get("stderrTruncated", False)
     passed = bool(execution.get("ok")) and output_complete and passed_structure
 
+    if module_id == 1 and (
+        _slot_preview(execution, "agent") != "'Null-Agent'"
+        or _slot_preview(execution, "clearance") != "1"
+        or execution.get("stdout", "").splitlines()[-1:] != ["Null-Agent"]
+    ):
+        passed = False
+        feedback = "The final agent value must be Null-Agent, clearance must be 1, and print(agent) must display the identity."
+    if module_id == 2 and (
+        _slot_preview(execution, "threat") != "25"
+        or execution.get("stdout", "").splitlines()[-1:] != ["ALLOW"]
+    ):
+        passed = False
+        feedback = "The final threat value must be 25 and the safe else branch must finish by printing ALLOW."
+    if module_id == 3 and (
+        _slot_preview(execution, "shards") != "['K1', 'K2', 'K3']"
+        or _slot_preview(execution, "vault") != "{'code': 77}"
+        or execution.get("stdout", "").splitlines()[-1:] != ["3"]
+    ):
+        passed = False
+        feedback = "Keep K1, K2, and K3 in shards, store code 77 in vault, and print the final length 3."
+
     if not output_complete:
         feedback = "Output limit reached; remove excessive output and retry."
-    if module_id == 4 and execution.get("stdout", "").splitlines() != ["5"]:
+    if module_id == 4 and (
+        execution.get("stdout", "").splitlines() != ["5"]
+        or _slot_preview(execution, "packets") != "5"
+    ):
         passed = False
         feedback = "The loop must finish with packets equal to 5."
     if module_id == 5:
@@ -290,5 +322,7 @@ def grade(module_id, source, stdin_text=""):
         "stdout": execution.get("stdout", ""),
         "stderr": execution.get("stderr", ""),
         "errorType": execution.get("errorType"),
+        "traceback": execution.get("traceback"),
+        "ramSlots": execution.get("ramSlots", []),
         "feedback": "" if passed else (feedback or "The mission checks were not satisfied."),
     })

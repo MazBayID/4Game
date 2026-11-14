@@ -12,6 +12,8 @@ import com.neonull.protocol.data.ProgressionRules
 import com.neonull.protocol.localization.AppLanguage
 import com.neonull.protocol.localization.LanguageManager
 import com.neonull.protocol.localization.LocalizedText
+import com.neonull.protocol.runtime.CompanionPythonRunnerController
+import org.json.JSONObject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -61,7 +63,8 @@ data class LearningUiState(
     val hintLevel: Int = 0,
     val glitchDialogue: String = CurriculumRepository.modules.first().glitchIntroDialogue.en,
     val isWarningState: Boolean = false,
-    val evaluationResult: EvaluationResult? = null
+    val evaluationResult: EvaluationResult? = null,
+    val isExecuting: Boolean = false
 ) {
     val activeModule: ProtocolModule
         get() = modules.firstOrNull { it.id == activeModuleId } ?: modules.first()
@@ -111,6 +114,8 @@ class LearningViewModel(
     application: Application
 ) : AndroidViewModel(application) {
 
+    private data class PendingSubmission(val moduleId: Int?, val source: String, val language: AppLanguage, val sandbox: Boolean)
+
     private val languageManager = LanguageManager()
     private val progressPreferences = application.getSharedPreferences(
         "neo_null_progress",
@@ -121,6 +126,8 @@ class LearningViewModel(
 
     private val _uiState = MutableStateFlow(restoreProgress())
     val uiState: StateFlow<LearningUiState> = _uiState.asStateFlow()
+    private var pendingSubmission: PendingSubmission? = null
+    private val runnerController = CompanionPythonRunnerController(application.applicationContext) { handleRunnerResult(it) }
 
     init {
         viewModelScope.launch {
@@ -353,50 +360,128 @@ class LearningViewModel(
     }
 
     fun runExploit() {
-        _uiState.update { state ->
-            if (state.isSandboxMode) {
-                val sandboxRes = evaluateSandboxSubmission(state.codeBuffer, state.language)
-                return@update state.copy(
-                    evaluationResult = sandboxRes,
-                    isWarningState = !sandboxRes.isSuccess,
-                    glitchDialogue = sandboxRes.glitchFeedback
+        val state = _uiState.value
+        if (state.isExecuting || state.currentScreen != NeoScreen.TERMINAL) return
+        val request = PendingSubmission(
+            if (state.isSandboxMode) null else state.activeModuleId,
+            state.codeBuffer,
+            state.language,
+            state.isSandboxMode
+        )
+        pendingSubmission = request
+        _uiState.update { it.copy(isExecuting = true, evaluationResult = null) }
+        if (request.sandbox) runnerController.execute(request.source)
+        else runnerController.grade(request.moduleId ?: return, request.source)
+    }
+
+    private fun handleRunnerResult(raw: String) {
+        val request = pendingSubmission ?: return
+        pendingSubmission = null
+        val data = runCatching { JSONObject(raw) }.getOrElse {
+            JSONObject().put("ok", false).put("passed", false)
+                .put("errorType", "InvalidRunnerResponse").put("error", it.message ?: "Invalid runner response")
+        }
+        val state = _uiState.value
+        if (state.isSandboxMode != request.sandbox || state.codeBuffer != request.source ||
+            (!request.sandbox && state.activeModuleId != request.moduleId)) {
+            _uiState.update { it.copy(isExecuting = false) }
+            return
+        }
+
+        val module = state.activeModule
+        val ok = data.optBoolean("ok", false)
+        val success = if (request.sandbox) {
+            ok && !data.optBoolean("stdoutTruncated") && !data.optBoolean("stderrTruncated")
+        } else data.optBoolean("passed", false)
+        val errorType = data.optString("errorType")
+        val feedback = data.optString("feedback").takeIf { it.isNotBlank() && it != "null" }
+        val stdout = data.optString("stdout")
+        val stderr = data.optString("stderr")
+        val traceback = data.optString("traceback").takeIf { it.isNotBlank() && it != "null" }
+        val line = Regex("""(?:line |Line )(\d+)""")
+            .find((feedback ?: "") + "\n" + (traceback ?: ""))?.groupValues?.get(1)?.toIntOrNull()
+        val syntaxError = errorType == "SyntaxError"
+        val dialogue = when {
+            success && request.sandbox -> LocalizedText(
+                en = "CPython execution completed in the isolated runner.",
+                id = "Eksekusi CPython selesai di runner terisolasi.",
+                ph = "Natapos ang CPython execution sa isolated runner."
+            ).resolve(request.language)
+            success -> module.glitchSuccessDialogue.resolve(request.language)
+            request.sandbox -> LocalizedText(
+                en = "Python execution failed. Check the console output.",
+                id = "Eksekusi Python gagal. Periksa output konsol.",
+                ph = "Nabigo ang Python execution. Tingnan ang console."
+            ).resolve(request.language)
+            syntaxError && line != null -> LocalizedText(
+                en = "SYNTAX ALERT on line " + line + ". Check the Python error details.",
+                id = "PERINGATAN SINTAKS di baris " + line + ". Periksa detail kesalahan Python.",
+                ph = "BABALA SA SYNTAX sa linya " + line + ". Tingnan ang detalye ng Python error."
+            ).resolve(request.language)
+            else -> feedback ?: module.solutionHint1.resolve(request.language)
+        }
+        val output = buildString {
+            append(stdout)
+            if (stderr.isNotBlank()) append(if (isEmpty()) stderr else "\n" + stderr)
+            if (!success) {
+                val detail = feedback ?: data.optString("error").takeIf { it.isNotBlank() && it != "null" }
+                if (!detail.isNullOrBlank()) append(if (isEmpty()) detail else "\n" + detail)
+                if (!traceback.isNullOrBlank() && traceback != detail) {
+                    append(if (isEmpty()) traceback else "\n" + traceback)
+                }
+            } else if (!request.sandbox) append(if (isEmpty()) "[EXIT 0]" else "\n[EXIT 0] Mission checks passed.")
+            if (isEmpty()) append(if (success) "[EXIT 0]" else "Python execution failed.")
+        }
+        val ramSlots = runCatching {
+            val slots = data.optJSONArray("ramSlots") ?: return@runCatching emptyList()
+            (0 until slots.length()).mapNotNull { index ->
+                val slot = slots.optJSONObject(index) ?: return@mapNotNull null
+                RamVariableSlot(
+                    name = slot.optString("name"),
+                    type = slot.optString("type"),
+                    preview = slot.optString("preview")
                 )
             }
+        }.getOrDefault(emptyList())
+        val result = EvaluationResult(
+            isSuccess = success,
+            isSyntaxError = syntaxError,
+            outputText = output,
+            errorLines = if (syntaxError && line != null) setOf(line) else emptySet(),
+            glitchFeedback = dialogue,
+            ramSlots = ramSlots
+        )
+        if (request.sandbox) {
+            _uiState.update { current ->
+                if (!current.isSandboxMode || current.codeBuffer != request.source) current.copy(isExecuting = false)
+                else current.copy(isExecuting = false, evaluationResult = result,
+                    isWarningState = !success, glitchDialogue = dialogue)
+            }
+        } else {
+            applyMissionResult(request.moduleId ?: return, request.source, result)
+        }
+    }
 
-            val module = state.activeModule
-            val result = evaluatePythonSubmission(
-                module = module,
-                code = state.codeBuffer,
-                language = state.language
-            )
+    private fun applyMissionResult(moduleId: Int, source: String, result: EvaluationResult) {
+        _uiState.update { state ->
+            if (state.isSandboxMode || state.activeModuleId != moduleId || state.codeBuffer != source) {
+                return@update state.copy(isExecuting = false)
+            }
+            val module = state.modules.firstOrNull { it.id == moduleId }
+                ?: return@update state.copy(isExecuting = false)
             val alreadyCleared = module.id in state.completedModuleIds
-            val newCompleted = if (result.isSuccess) {
-                state.completedModuleIds + module.id
-            } else {
-                state.completedModuleIds
-            }
+            val completed = if (result.isSuccess) state.completedModuleIds + module.id else state.completedModuleIds
             val cleanBonus = if (result.isSuccess && !alreadyCleared && !state.moduleAttemptFailed) 50 else 0
-            val newXp = if (result.isSuccess && !alreadyCleared) {
-                state.xp + module.xpReward + cleanBonus
-            } else {
-                state.xp
-            }
-            val newRam = if (result.isSuccess && !alreadyCleared) {
-                state.ramMb + module.ramRewardMb
-            } else {
-                state.ramMb
-            }
-            val nextTrace = if (result.isSuccess) {
-                (state.traceIntegrity + 10).coerceAtMost(100)
-            } else {
-                (state.traceIntegrity - 20).coerceAtLeast(20)
-            }
-
+            val xp = if (result.isSuccess && !alreadyCleared) state.xp + module.xpReward + cleanBonus else state.xp
+            val ram = if (result.isSuccess && !alreadyCleared) state.ramMb + module.ramRewardMb else state.ramMb
+            val trace = if (result.isSuccess) (state.traceIntegrity + 10).coerceAtMost(100)
+                else (state.traceIntegrity - 20).coerceAtLeast(20)
             state.copy(
-                completedModuleIds = newCompleted,
-                xp = newXp,
-                ramMb = newRam,
-                traceIntegrity = nextTrace,
+                isExecuting = false,
+                completedModuleIds = completed,
+                xp = xp,
+                ramMb = ram,
+                traceIntegrity = trace,
                 moduleAttemptFailed = state.moduleAttemptFailed || !result.isSuccess,
                 evaluationResult = result,
                 isWarningState = !result.isSuccess || module.isBossStage,
@@ -404,286 +489,6 @@ class LearningViewModel(
             )
         }
     }
-
-    private fun evaluateSandboxSubmission(
-        code: String,
-        language: AppLanguage
-    ): EvaluationResult {
-        val strings = languageManager.getUiStrings(language)
-        val syntaxIssue = detectPythonSyntaxIssue(code)
-        if (syntaxIssue != null) {
-            val (lineNum, reason) = syntaxIssue
-            val glitchMsg = LocalizedText(
-                en = "SYNTAX ALERT on line $lineNum: $reason. Check indentation, quotes, or colons.",
-                id = "PERINGATAN SINTAKS di baris $lineNum: $reason. Periksa indentasi, tanda kutip, atau titik dua.",
-                ph = "BABALA SA SYNTAX sa linya $lineNum: $reason. Suriin ang indentation, quotes, o colon."
-            ).resolve(language)
-            return EvaluationResult(
-                isSuccess = false,
-                isSyntaxError = true,
-                outputText = "${strings.syntaxErrorPrefix} [Line $lineNum]: $reason",
-                errorLines = setOf(lineNum),
-                glitchFeedback = glitchMsg
-            )
-        }
-
-        val env = linkedMapOf<String, String>()
-        val types = linkedMapOf<String, String>()
-        val prints = mutableListOf<String>()
-        val assignRegex = Regex("""^([A-Za-z_]\w*)\s*=\s*(.+)$""")
-        val printRegex = Regex("""^print\s*\((.+)\)$""")
-        val defRegex = Regex("""^def\s+([A-Za-z_]\w*)\s*\(([^)]*)\)\s*:$""")
-        val classRegex = Regex("""^class\s+([A-Za-z_]\w*)\b.*:$""")
-
-        code.lines().forEach { raw ->
-            val cleaned = stripTrailingComment(raw).trim()
-            if (cleaned.isEmpty()) return@forEach
-
-            defRegex.matchEntire(cleaned)?.let { m ->
-                val name = m.groupValues[1]
-                val params = m.groupValues[2].trim()
-                types[name] = "function"
-                env[name] = "<fn $name($params)>"
-                return@forEach
-            }
-
-            classRegex.matchEntire(cleaned)?.let { m ->
-                val name = m.groupValues[1]
-                types[name] = "class"
-                env[name] = "<class '$name'>"
-                return@forEach
-            }
-
-            assignRegex.matchEntire(cleaned)?.let { m ->
-                val name = m.groupValues[1]
-                val expr = m.groupValues[2].trim()
-                val inferred = inferValuePreview(expr, env)
-                types[name] = inferred.first
-                env[name] = inferred.second
-                return@forEach
-            }
-
-            printRegex.matchEntire(cleaned)?.let { m ->
-                val inner = m.groupValues[1].trim()
-                val rendered = resolvePrintExpression(inner, env)
-                prints.add(rendered)
-            }
-        }
-
-        val ramSlots = env.entries.take(12).map { (k, v) ->
-            RamVariableSlot(name = k, type = types[k] ?: "obj", preview = v)
-        }
-        val stdout = if (prints.isNotEmpty()) {
-            prints.joinToString("\n")
-        } else {
-            "[Sandbox] Syntax verified (${ramSlots.size} symbols allocated)."
-        }
-
-        val okFeedback = LocalizedText(
-            en = "Free-Play Sandbox clean. Inspect allocated variables in your RAM Inspector below.",
-            id = "Sandbox Bebas bersih. Periksa variabel aktif di panel RAM Inspector di bawah.",
-            ph = "Malinis ang Free-Play Sandbox. Tingnan ang live variables sa RAM Inspector sa ibaba."
-        ).resolve(language)
-
-        return EvaluationResult(
-            isSuccess = true,
-            isSyntaxError = false,
-            outputText = stdout,
-            glitchFeedback = okFeedback,
-            ramSlots = ramSlots
-        )
-    }
-
-    private fun inferValuePreview(expr: String, env: Map<String, String>): Pair<String, String> {
-        return when {
-            (expr.startsWith("\"") && expr.endsWith("\"")) || (expr.startsWith("'") && expr.endsWith("'")) ->
-                "str" to expr
-            expr.startsWith("[") && expr.endsWith("]") -> "list" to expr
-            expr.startsWith("{") && expr.endsWith("}") && expr.contains(":") -> "dict" to expr
-            expr.startsWith("{") && expr.endsWith("}") -> "set" to expr
-            expr == "True" || expr == "False" -> "bool" to expr
-            expr.toIntOrNull() != null -> "int" to expr
-            expr.toDoubleOrNull() != null -> "float" to expr
-            env.containsKey(expr) -> "ref" to (env[expr] ?: expr)
-            else -> "expr" to expr
-        }
-    }
-
-    private fun resolvePrintExpression(expr: String, env: Map<String, String>): String {
-        if ((expr.startsWith("\"") && expr.endsWith("\"")) || (expr.startsWith("'") && expr.endsWith("'"))) {
-            return expr.substring(1, expr.length - 1)
-        }
-        if (env.containsKey(expr)) {
-            val raw = env[expr] ?: expr
-            return if ((raw.startsWith("\"") && raw.endsWith("\"")) || (raw.startsWith("'") && raw.endsWith("'"))) {
-                raw.substring(1, raw.length - 1)
-            } else {
-                raw
-            }
-        }
-        return expr
-    }
-
-    private fun hasIndentedStatementAfter(
-        code: String,
-        headerPattern: Regex,
-        statementPattern: Regex
-    ): Boolean {
-        val lines = code.lines()
-        for (headerIndex in lines.indices) {
-            val header = stripTrailingComment(lines[headerIndex]).trim()
-            if (!headerPattern.matches(header)) continue
-            val headerIndent = lines[headerIndex].takeWhile { it == ' ' || it == '\t' }.length
-            var suiteIndent: Int? = null
-            for (bodyIndex in headerIndex + 1 until lines.size) {
-                val body = stripTrailingComment(lines[bodyIndex])
-                if (body.isBlank()) continue
-                val bodyIndent = body.takeWhile { it == ' ' || it == '\t' }.length
-                if (bodyIndent <= headerIndent) break
-                if (suiteIndent == null) suiteIndent = bodyIndent
-                if (bodyIndent == suiteIndent && statementPattern.matches(body.trim())) return true
-            }
-        }
-        return false
-    }
-
-    private fun hasMissionBlockStructure(moduleId: Int, code: String): Boolean {
-        return when (moduleId) {
-            2 -> hasIndentedStatementAfter(
-                code, Regex("""if\s+threat\s*>=\s*50\s*:"""), Regex("""print\s*\(\s*["']DENIED["']\s*\)""")
-            ) && hasIndentedStatementAfter(
-                code, Regex("""else\s*:"""), Regex("""print\s*\(\s*["']ALLOW["']\s*\)""")
-            )
-            4 -> hasIndentedStatementAfter(
-                code,
-                Regex("""for\s+\w+\s+in\s+range\s*\(\s*5\s*\)\s*:"""),
-                Regex("""packets\s*(?:\+=|=\s*packets\s*\+)\s*1\b""")
-            )
-            5 -> hasIndentedStatementAfter(
-                code,
-                Regex("""def\s+craft_token\s*\(\s*seed\s*\)\s*:"""),
-                Regex("""return\s+seed\s*\*\s*3\s*\+\s*9\b""")
-            )
-            6 -> hasIndentedStatementAfter(
-                code, Regex("""try\s*:"""), Regex("""(?:with\s+)?open\s*\(\s*["']corrupt\.log["']""")
-            ) && hasIndentedStatementAfter(
-                code, Regex("""except\b.*:"""), Regex("""print\s*\(\s*["']SAFE_EXTRACT["']\s*\)""")
-            )
-            7 -> hasIndentedStatementAfter(
-                code, Regex("""class\s+OverlordOverride\s*:"""), Regex("""def\s+__init__\s*\(\s*self\s*,\s*key\s*\)\s*:""")
-            ) && hasIndentedStatementAfter(
-                code, Regex("""def\s+__init__\s*\(\s*self\s*,\s*key\s*\)\s*:"""), Regex("""self\.key\s*=\s*key""")
-            ) && hasIndentedStatementAfter(
-                code, Regex("""class\s+OverlordOverride\s*:"""), Regex("""def\s+shutdown\s*\(\s*self\s*\)\s*:""")
-            ) && hasIndentedStatementAfter(
-                code, Regex("""def\s+shutdown\s*\(\s*self\s*\)\s*:"""), Regex("""return\s*["']ROOT_UNLOCKED["']""")
-            )
-            else -> true
-        }
-    }
-
-    private fun firstFailedMissionCheckpoint(moduleId: Int, code: String): Pair<String, Int>? {
-        val checks: List<Pair<Regex, Pair<String, Int>>> = when (moduleId) {
-            1 -> listOf(
-                Regex("""agent\s*=\s*["']Null-Agent["']""") to ("Create agent = \"Null-Agent\"." to 1),
-                Regex("""clearance\s*=\s*1\b""") to ("Set clearance to 1." to 2),
-                Regex("""print\s*\(\s*agent\s*\)""") to ("Display the agent variable with print(agent)." to 3)
-            )
-            2 -> listOf(
-                Regex("""threat\s*=\s*\d+""") to ("Assign a numeric value to threat." to 1),
-                Regex("""if\s+threat\s*>=\s*50\s*:""") to ("Add the if threat >= 50: condition." to 2),
-                Regex("""print\s*\(\s*["']DENIED["']\s*\)""") to ("Print DENIED inside the if branch." to 3),
-                Regex("""\belse\s*:""") to ("Add an else: branch." to 4),
-                Regex("""print\s*\(\s*["']ALLOW["']\s*\)""") to ("Print ALLOW inside the else branch." to 5)
-            )
-            3 -> listOf(
-                Regex("""shards\s*=\s*\[\s*["']K1["']\s*,\s*["']K2["']\s*\]""") to ("Initialize shards with K1 and K2." to 1),
-                Regex("""shards\.append\s*\(\s*["']K3["']\s*\)""") to ("Append K3 using shards.append(\"K3\")." to 2),
-                Regex("""vault\s*=\s*\{\s*["']code["']\s*:\s*77\s*\}""") to ("Set vault code to 77." to 3),
-                Regex("""print\s*\(\s*len\s*\(\s*shards\s*\)\s*\)""") to ("Print len(shards)." to 4)
-            )
-            4 -> listOf(
-                Regex("""packets\s*=\s*0\b""") to ("Initialize packets = 0." to 1),
-                Regex("""for\s+\w+\s+in\s+range\s*\(\s*5\s*\)\s*:""") to ("Create a for-loop using range(5)." to 2),
-                Regex("""packets\s*(?:\+=|=\s*packets\s*\+)\s*1\b""") to ("Increase packets by one inside the loop." to 3),
-                Regex("""print\s*\(\s*packets\s*\)""") to ("Print the final packets value." to 4)
-            )
-            5 -> listOf(
-                Regex("""def\s+craft_token\s*\(\s*seed\s*\)\s*:""") to ("Define craft_token(seed)." to 1),
-                Regex("""return\s+seed\s*\*\s*3\s*\+\s*9""") to ("Return seed * 3 + 9." to 2),
-                Regex("""print\s*\(\s*craft_token\s*\(\s*7\s*\)\s*\)""") to ("Call and print craft_token(7)." to 3)
-            )
-            6 -> listOf(
-                Regex("""\btry\s*:""") to ("Start exception handling with try:." to 1),
-                Regex("""open\s*\(\s*["']corrupt\.log["']""") to ("Open corrupt.log inside try." to 2),
-                Regex("""\bexcept\b.*:""") to ("Add an except handler." to 4),
-                Regex("""print\s*\(\s*["']SAFE_EXTRACT["']\s*\)""") to ("Print SAFE_EXTRACT in the handler." to 5)
-            )
-            7 -> listOf(
-                Regex("""class\s+OverlordOverride\b\s*:""") to ("Declare the OverlordOverride class." to 1),
-                Regex("""def\s+__init__\s*\(\s*self\s*,\s*key\s*\)\s*:""") to ("Create __init__(self, key)." to 2),
-                Regex("""self\.key\s*=\s*key""") to ("Store the key with self.key = key." to 3),
-                Regex("""def\s+shutdown\s*\(\s*self\s*\)\s*:""") to ("Define shutdown(self)." to 4),
-                Regex("""return\s*["']ROOT_UNLOCKED["']""") to ("Return ROOT_UNLOCKED." to 5),
-                Regex("""core\s*=\s*OverlordOverride\s*\(""") to ("Create an OverlordOverride instance named core." to 6),
-                Regex("""print\s*\(\s*core\.shutdown\s*\(\s*\)\s*\)""") to ("Print core.shutdown()." to 7)
-            )
-            else -> return "Unknown mission." to 1
-        }
-        if (moduleId == 2) {
-            val threat = Regex("""threat\s*=\s*(\d+)""").find(code)?.groupValues?.get(1)?.toIntOrNull()
-            if (threat != null && threat !in 0..49) {
-                return "Set threat below 50 so the ALLOW branch can be tested." to 1
-            }
-        }
-        return checks.firstOrNull { (pattern, _) -> !pattern.containsMatchIn(code) }?.second
-    }
-
-    private fun evaluatePythonSubmission(
-        module: ProtocolModule,
-        code: String,
-        language: AppLanguage
-    ): EvaluationResult {
-        val strings = languageManager.getUiStrings(language)
-        val syntaxIssue = detectPythonSyntaxIssue(code)
-        if (syntaxIssue != null) {
-            val (lineNum, reason) = syntaxIssue
-            val glitchMsg = LocalizedText(
-                en = "SYNTAX ALERT on line $lineNum: $reason. Crimson trace triggered—fix it before SYNTHEX locks this node!",
-                id = "PERINGATAN SINTAKS di baris $lineNum: $reason. Pelacak merah aktif—perbaiki sebelum SYNTHEX mengunci node!",
-                ph = "BABALA SA SYNTAX sa linya $lineNum: $reason. Umaalarma ang Crimson trace—ayusin agad!"
-            ).resolve(language)
-
-            return EvaluationResult(
-                isSuccess = false,
-                isSyntaxError = true,
-                outputText = "${strings.syntaxErrorPrefix} [Line $lineNum]: $reason",
-                errorLines = setOf(lineNum),
-                glitchFeedback = glitchMsg
-            )
-        }
-
-        val normalized = code.lines()
-            .joinToString("\n") { stripTrailingComment(it) }
-
-        val result = when (module.id) {
-            1 -> evaluateModule1(normalized, language, module, strings.testFailedPrefix)
-            2 -> evaluateModule2(normalized, language, module, strings.testFailedPrefix)
-            3 -> evaluateModule3(normalized, language, module, strings.testFailedPrefix)
-            4 -> evaluateModule4(normalized, language, module, strings.testFailedPrefix)
-            5 -> evaluateModule5(normalized, language, module, strings.testFailedPrefix)
-            6 -> evaluateModule6(normalized, language, module, strings.testFailedPrefix)
-            7 -> evaluateModule7(normalized, language, module, strings.testFailedPrefix)
-            else -> EvaluationResult(false, false, "Unknown module", emptySet(), "")
-        }
-        if (result.isSuccess || result.isSyntaxError) return result
-        val checkpoint = firstFailedMissionCheckpoint(module.id, normalized) ?: return result
-        return result.copy(
-            outputText = "${strings.testFailedPrefix}: ${checkpoint.first}",
-            errorLines = setOf(checkpoint.second)
-        )
-    }
-
     companion object {
         private const val MAX_DRAFT_LENGTH = 32_768
         private const val DRAFT_SAVE_DEBOUNCE_MS = 400L
@@ -701,326 +506,9 @@ class LearningViewModel(
         """.trimIndent()
     }
 
-    private fun detectPythonSyntaxIssue(code: String): Pair<Int, String>? {
-        val lines = code.lines()
-        val blockHeaders = Regex("""^\s*(if|elif|else|for|while|def|class|try|except|finally|with)\b.*""")
-
-        var parenDepth = 0
-        var bracketDepth = 0
-        var braceDepth = 0
-        var expectedIndentLevel: Int? = null
-
-        lines.forEachIndexed { idx, rawLine ->
-            val lineNum = idx + 1
-            val trimmed = rawLine.trim()
-            if (trimmed.isEmpty() || trimmed.startsWith("#")) return@forEachIndexed
-
-            val codeOnly = stripTrailingComment(rawLine)
-            val trimmedCode = codeOnly.trim()
-
-            var inSingle = false
-            var inDouble = false
-            var escaped = false
-            for (ch in codeOnly) {
-                if (escaped) {
-                    escaped = false
-                    continue
-                }
-                if (ch == '\\') {
-                    escaped = true
-                    continue
-                }
-                if (ch == '\'' && !inDouble) inSingle = !inSingle
-                else if (ch == '"' && !inSingle) inDouble = !inDouble
-                else if (!inSingle && !inDouble) {
-                    when (ch) {
-                        '(' -> parenDepth++
-                        ')' -> parenDepth--
-                        '[' -> bracketDepth++
-                        ']' -> bracketDepth--
-                        '{' -> braceDepth++
-                        '}' -> braceDepth--
-                    }
-                }
-            }
-            if (inSingle || inDouble) return lineNum to "Unterminated string literal"
-            if (parenDepth < 0 || bracketDepth < 0 || braceDepth < 0) {
-                return lineNum to "Unmatched closing delimiter"
-            }
-            val indentLevel = rawLine.takeWhile { it == ' ' || it == '\t' }.length
-            if (expectedIndentLevel != null && indentLevel <= expectedIndentLevel) {
-                return lineNum to "Expected an indented block"
-            }
-            expectedIndentLevel = null
-
-            if (blockHeaders.matches(trimmedCode)) {
-                if (!trimmedCode.endsWith(":")) return lineNum to "Missing ':' at end of block header"
-                expectedIndentLevel = rawLine.takeWhile { it == ' ' || it == '\t' }.length
-            }
-        }
-
-        if (parenDepth != 0 || bracketDepth != 0 || braceDepth != 0) {
-            return lines.size to "Unclosed parentheses or brackets"
-        }
-        if (expectedIndentLevel != null) return lines.size to "Block header requires at least one indented line"
-        return null
-    }
-
-    private fun stripTrailingComment(line: String): String {
-        var inSingle = false
-        var inDouble = false
-        var escaped = false
-        for (i in line.indices) {
-            val ch = line[i]
-            if (escaped) {
-                escaped = false
-                continue
-            }
-            if (ch == '\\') {
-                escaped = true
-                continue
-            }
-            if (ch == '\'' && !inDouble) inSingle = !inSingle
-            else if (ch == '"' && !inSingle) inDouble = !inDouble
-            else if (ch == '#' && !inSingle && !inDouble) return line.substring(0, i)
-        }
-        return line
-    }
-
-    private fun evaluateModule1(
-        code: String,
-        lang: AppLanguage,
-        module: ProtocolModule,
-        failPrefix: String
-    ): EvaluationResult {
-        val hasAgent = Regex("""agent\s*=\s*["']Null-Agent["']""").containsMatchIn(code)
-        val hasClearance = Regex("""clearance\s*=\s*1\b""").containsMatchIn(code)
-        val hasPrintAgent = Regex("""print\s*\(\s*agent\s*\)""").containsMatchIn(code)
-
-        return if (hasAgent && hasClearance && hasPrintAgent) {
-            EvaluationResult(
-                isSuccess = true,
-                isSyntaxError = false,
-                outputText = "Null-Agent\n[EXIT 0] Identity & clearance verified.",
-                glitchFeedback = module.glitchSuccessDialogue.resolve(lang),
-                ramSlots = listOf(
-                    RamVariableSlot("agent", "str", "'Null-Agent'"),
-                    RamVariableSlot("clearance", "int", "1")
-                )
-            )
-        } else {
-            EvaluationResult(
-                isSuccess = false,
-                isSyntaxError = false,
-                outputText = "$failPrefix: Expected agent = \"Null-Agent\", clearance = 1, and print(agent).",
-                errorLines = setOf(2),
-                glitchFeedback = module.solutionHint1.resolve(lang)
-            )
-        }
-    }
-
-    private fun evaluateModule2(
-        code: String,
-        lang: AppLanguage,
-        module: ProtocolModule,
-        failPrefix: String
-    ): EvaluationResult {
-        val threatMatch = Regex("""threat\s*=\s*(\d+)""").find(code)
-        val threatVal = threatMatch?.groupValues?.get(1)?.toIntOrNull() ?: -1
-        val ok = threatVal in 0..49 &&
-            Regex("""if\s+threat\s*>=\s*50\s*:""").containsMatchIn(code) &&
-            Regex("""print\s*\(\s*["']DENIED["']\s*\)""").containsMatchIn(code) &&
-            Regex("""\belse\s*:""").containsMatchIn(code) &&
-            Regex("""print\s*\(\s*["']ALLOW["']\s*\)""").containsMatchIn(code)
-
-        val accepted = ok && hasMissionBlockStructure(2, code)
-
-        return if (accepted) {
-            EvaluationResult(
-                isSuccess = true,
-                isSyntaxError = false,
-                outputText = "ALLOW\n[EXIT 0] Gatekeeper branch routed cleanly.",
-                glitchFeedback = module.glitchSuccessDialogue.resolve(lang),
-                ramSlots = listOf(RamVariableSlot("threat", "int", threatVal.toString()))
-            )
-        } else {
-            EvaluationResult(
-                isSuccess = false,
-                isSyntaxError = false,
-                outputText = "$failPrefix: Expected threat < 50 with if/else printing DENIED or ALLOW.",
-                errorLines = setOf(4),
-                glitchFeedback = module.solutionHint1.resolve(lang)
-            )
-        }
-    }
-
-    private fun evaluateModule3(
-        code: String,
-        lang: AppLanguage,
-        module: ProtocolModule,
-        failPrefix: String
-    ): EvaluationResult {
-        val ok = Regex("""shards\s*=\s*\[\s*["']K1["']\s*,\s*["']K2["']\s*\]""").containsMatchIn(code) &&
-            Regex("""shards\.append\s*\(\s*["']K3["']\s*\)""").containsMatchIn(code) &&
-            Regex("""vault\s*=\s*\{\s*["']code["']\s*:\s*77\s*\}""").containsMatchIn(code) &&
-            Regex("""print\s*\(\s*len\s*\(\s*shards\s*\)\s*\)""").containsMatchIn(code)
-
-        return if (ok) {
-            EvaluationResult(
-                isSuccess = true,
-                isSyntaxError = false,
-                outputText = "3\n[EXIT 0] Shards list & Vault-4 dictionary verified.",
-                glitchFeedback = module.glitchSuccessDialogue.resolve(lang),
-                ramSlots = listOf(
-                    RamVariableSlot("shards", "list", "['K1', 'K2', 'K3']"),
-                    RamVariableSlot("vault", "dict", "{'code': 77}")
-                )
-            )
-        } else {
-            EvaluationResult(
-                isSuccess = false,
-                isSyntaxError = false,
-                outputText = "$failPrefix: Ensure shards.append(\"K3\"), vault = {\"code\": 77}, and print(len(shards)).",
-                errorLines = setOf(3),
-                glitchFeedback = module.solutionHint1.resolve(lang)
-            )
-        }
-    }
-
-    private fun evaluateModule4(
-        code: String,
-        lang: AppLanguage,
-        module: ProtocolModule,
-        failPrefix: String
-    ): EvaluationResult {
-        val ok = Regex("""packets\s*=\s*0\b""").containsMatchIn(code) &&
-            Regex("""for\s+\w+\s+in\s+range\s*\(\s*5\s*\)\s*:""").containsMatchIn(code) &&
-            Regex("""packets\s*(\+=|=\s*packets\s*\+)\s*1\b""").containsMatchIn(code) &&
-            Regex("""print\s*\(\s*packets\s*\)""").containsMatchIn(code)
-
-        val structurallyValid = hasMissionBlockStructure(4, code)
-        val accepted = ok && structurallyValid
-
-        return if (accepted) {
-            EvaluationResult(
-                isSuccess = true,
-                isSyntaxError = false,
-                outputText = "5\n[EXIT 0] 5/5 relay ports flooded via for-loop.",
-                glitchFeedback = module.glitchSuccessDialogue.resolve(lang),
-                ramSlots = listOf(RamVariableSlot("packets", "int", "5"))
-            )
-        } else {
-            EvaluationResult(
-                isSuccess = false,
-                isSyntaxError = false,
-                outputText = "$failPrefix: Use `for i in range(5):` with `packets += 1` and `print(packets)`.",
-                errorLines = setOf(2),
-                glitchFeedback = module.solutionHint2.resolve(lang)
-            )
-        }
-    }
-
-    private fun evaluateModule5(
-        code: String,
-        lang: AppLanguage,
-        module: ProtocolModule,
-        failPrefix: String
-    ): EvaluationResult {
-        val ok = Regex("""def\s+craft_token\s*\(\s*seed\s*\)\s*:""").containsMatchIn(code) &&
-            Regex("""return\s+seed\s*\*\s*3\s*\+\s*9""").containsMatchIn(code) &&
-            Regex("""print\s*\(\s*craft_token\s*\(\s*7\s*\)\s*\)""").containsMatchIn(code)
-
-        val structurallyValid = hasMissionBlockStructure(5, code)
-        val accepted = ok && structurallyValid
-
-        return if (accepted) {
-            EvaluationResult(
-                isSuccess = true,
-                isSyntaxError = false,
-                outputText = "30\n[EXIT 0] craft_token(7) returned 30.",
-                glitchFeedback = module.glitchSuccessDialogue.resolve(lang),
-                ramSlots = listOf(RamVariableSlot("craft_token", "function", "<fn craft_token(seed)>"))
-            )
-        } else {
-            EvaluationResult(
-                isSuccess = false,
-                isSyntaxError = false,
-                outputText = "$failPrefix: Define `craft_token(seed)` returning `seed * 3 + 9` and print `craft_token(7)`.",
-                errorLines = setOf(2),
-                glitchFeedback = module.solutionHint1.resolve(lang)
-            )
-        }
-    }
-
-    private fun evaluateModule6(
-        code: String,
-        lang: AppLanguage,
-        module: ProtocolModule,
-        failPrefix: String
-    ): EvaluationResult {
-        val ok = Regex("""\btry\s*:""").containsMatchIn(code) &&
-            Regex("""open\s*\(\s*["']corrupt\.log["']""").containsMatchIn(code) &&
-            Regex("""\bexcept\b.*:""").containsMatchIn(code) &&
-            Regex("""print\s*\(\s*["']SAFE_EXTRACT["']\s*\)""").containsMatchIn(code)
-
-        val structurallyValid = hasMissionBlockStructure(6, code)
-        val accepted = ok && structurallyValid
-
-        return if (accepted) {
-            EvaluationResult(
-                isSuccess = true,
-                isSyntaxError = false,
-                outputText = "SAFE_EXTRACT\n[EXIT 0] Trap exception caught cleanly without crash.",
-                glitchFeedback = module.glitchSuccessDialogue.resolve(lang),
-                ramSlots = listOf(RamVariableSlot("exception_guard", "handler", "FileNotFoundError -> SAFE_EXTRACT"))
-            )
-        } else {
-            EvaluationResult(
-                isSuccess = false,
-                isSyntaxError = false,
-                outputText = "$failPrefix: Handle the trap with `except` and print `\"SAFE_EXTRACT\"`.",
-                errorLines = setOf(4),
-                glitchFeedback = module.solutionHint1.resolve(lang)
-            )
-        }
-    }
-
-    private fun evaluateModule7(
-        code: String,
-        lang: AppLanguage,
-        module: ProtocolModule,
-        failPrefix: String
-    ): EvaluationResult {
-        val ok = Regex("""class\s+OverlordOverride\b\s*:""").containsMatchIn(code) &&
-            Regex("""def\s+__init__\s*\(\s*self\s*,\s*key\s*\)\s*:""").containsMatchIn(code) &&
-            Regex("""self\.key\s*=\s*key""").containsMatchIn(code) &&
-            Regex("""def\s+shutdown\s*\(\s*self\s*\)\s*:""").containsMatchIn(code) &&
-            Regex("""return\s+["']ROOT_UNLOCKED["']""").containsMatchIn(code) &&
-            Regex("""core\s*=\s*OverlordOverride\s*\(""").containsMatchIn(code) &&
-            Regex("""print\s*\(\s*core\.shutdown\s*\(\s*\)\s*\)""").containsMatchIn(code)
-
-        val structurallyValid = hasMissionBlockStructure(7, code)
-        val accepted = ok && structurallyValid
-
-        return if (accepted) {
-            EvaluationResult(
-                isSuccess = true,
-                isSyntaxError = false,
-                outputText = "ROOT_UNLOCKED\n[EXIT 0] AI OVERLORD KERNEL OVERWRITTEN.",
-                glitchFeedback = module.glitchSuccessDialogue.resolve(lang),
-                ramSlots = listOf(
-                    RamVariableSlot("OverlordOverride", "class", "shutdown() -> 'ROOT_UNLOCKED'"),
-                    RamVariableSlot("core", "instance:OverlordOverride", "key='NULL-2142'")
-                )
-            )
-        } else {
-            EvaluationResult(
-                isSuccess = false,
-                isSyntaxError = false,
-                outputText = "$failPrefix: OverlordOverride.shutdown() must return \"ROOT_UNLOCKED\" and be printed.",
-                errorLines = setOf(6),
-                glitchFeedback = module.solutionHint1.resolve(lang)
-            )
-        }
+    override fun onCleared() {
+        pendingSubmission = null
+        runnerController.close()
+        super.onCleared()
     }
 }
