@@ -354,7 +354,8 @@ fun TerminalLearningScreen(
                         fontWeight = FontWeight.Bold,
                         fontSize = 11.5.sp,
                         color = NeoColors.CyberCyan
-                    )
+                        )
+                    }
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         if (assetCatalog != null) {
                             GameAssetSprite(
