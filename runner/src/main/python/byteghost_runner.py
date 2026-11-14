@@ -1,6 +1,7 @@
 """Bounded CPython execution for the ByteGhost companion runner."""
 import contextlib
 import io
+import itertools
 import json
 import os
 import sys
@@ -58,23 +59,23 @@ def _safe_preview(value, depth=0):
         return repr(value[:60])[:80]
     if depth >= 2:
         return "..."
-    if isinstance(value, list):
-        items = [_safe_preview(item, depth + 1) for item in value[:4]]
+    if type(value) is list:
+        items = [_safe_preview(item, depth + 1) for item in itertools.islice(value, 4)]
         suffix = ", ..." if len(value) > 4 else ""
         return "[" + ", ".join(items) + suffix + "]"
-    if isinstance(value, tuple):
-        items = [_safe_preview(item, depth + 1) for item in value[:4]]
+    if type(value) is tuple:
+        items = [_safe_preview(item, depth + 1) for item in itertools.islice(value, 4)]
         suffix = ", ..." if len(value) > 4 else ""
         return "(" + ", ".join(items) + suffix + ")"
-    if isinstance(value, dict):
+    if type(value) is dict:
         items = [
             _safe_preview(key, depth + 1) + ": " + _safe_preview(item, depth + 1)
-            for key, item in list(value.items())[:4]
+            for key, item in itertools.islice(value.items(), 4)
         ]
         suffix = ", ..." if len(value) > 4 else ""
         return "{" + ", ".join(items) + suffix + "}"
-    if isinstance(value, set):
-        items = [_safe_preview(item, depth + 1) for item in list(value)[:4]]
+    if type(value) is set:
+        items = [_safe_preview(item, depth + 1) for item in itertools.islice(value, 4)]
         suffix = ", ..." if len(value) > 4 else ""
         return "{" + ", ".join(items) + suffix + "}"
     return "<" + type(value).__name__ + ">"
@@ -86,7 +87,7 @@ def _ram_slots(namespace):
         if not isinstance(name, str) or name.startswith("__"):
             continue
         if callable(value):
-            value_type = "function" if getattr(value, "__name__", "") != "<lambda>" else "function"
+            value_type = "function"
         elif isinstance(value, bool):
             value_type = "bool"
         elif isinstance(value, int):
