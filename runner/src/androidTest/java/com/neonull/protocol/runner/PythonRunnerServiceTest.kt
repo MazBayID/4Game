@@ -158,6 +158,7 @@ print(core.shutdown())
 
     @Test
     fun executesRepresentativePythonLanguageCorpusAndFreshNamespaces() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
         val source = """import math
 numbers = [value * value for value in range(4)]
 lookup = {str(value): value for value in numbers}
