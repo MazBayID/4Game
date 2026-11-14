@@ -81,6 +81,29 @@ print(agent)
     }
 
     @Test
+    fun controllerUsesFreshInterpreterForConsecutiveSubmissions() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val responses = LinkedBlockingQueue<String>()
+        val controller = CompanionPythonRunnerController(context) { responses.offer(it) }
+        try {
+            controller.execute("import builtins; builtins._byteghost_controller_probe = True")
+            val first = JSONObject(
+                responses.poll(90, TimeUnit.SECONDS) ?: error("First submission did not finish")
+            )
+            assertTrue(first.toString(), first.getBoolean("ok"))
+
+            controller.execute("import builtins; print(hasattr(builtins, '_byteghost_controller_probe'))")
+            val second = JSONObject(
+                responses.poll(90, TimeUnit.SECONDS) ?: error("Second submission did not finish")
+            )
+            assertTrue(second.toString(), second.getBoolean("ok"))
+            assertEquals("False\\n", second.getString("stdout"))
+        } finally {
+            controller.close()
+        }
+    }
+
+    @Test
     fun runnerServiceIsPackagedInsideTheHostApplication() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val service = context.packageManager.getServiceInfo(
