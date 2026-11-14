@@ -49,6 +49,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.neonull.protocol.R
+import com.neonull.protocol.assets.GameAssetCatalog
+import com.neonull.protocol.assets.GameAssetSprite
 import com.neonull.protocol.localization.AppLanguage
 import com.neonull.protocol.ui.theme.NeoColors
 import com.neonull.protocol.viewmodel.RamVariableSlot
@@ -455,7 +457,8 @@ fun GlitchMentorPanel(
     isWarning: Boolean,
     isBossStage: Boolean,
     warningBannerText: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    assetCatalog: GameAssetCatalog? = null
 ) {
     val activeBorder = if (isWarning || isBossStage) NeoColors.CrimsonRed else NeoColors.CyberCyan
     val activeFill = if (isWarning) NeoColors.CrimsonDarkTint else NeoColors.TerminalSurface
@@ -477,21 +480,45 @@ fun GlitchMentorPanel(
                 Spacer(modifier = Modifier.height(6.dp))
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Image(
-                    painter = painterResource(
-                        id = if (isBossStage && isWarning) {
-                            R.drawable.overlord_boss_core
-                        } else {
-                            R.drawable.glitch_mentor_avatar
-                        }
-                    ),
-                    contentDescription = title,
-                    contentScale = ContentScale.Crop,
+                Box(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .border(1.dp, activeBorder, RoundedCornerShape(8.dp))
-                )
+                ) {
+                    if (assetCatalog != null) {
+                        GameAssetSprite(
+                            catalog = assetCatalog,
+                            assetKey = when {
+                                isBossStage -> "overlord_idle"
+                                isWarning -> "glitch_warning"
+                                else -> "glitch_talking"
+                            },
+                            modifier = Modifier.fillMaxSize(),
+                            fallback = {
+                                Image(
+                                    painter = painterResource(
+                                        id = if (isBossStage && isWarning) R.drawable.overlord_boss_core
+                                        else R.drawable.glitch_mentor_avatar
+                                    ),
+                                    contentDescription = title,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(
+                                id = if (isBossStage && isWarning) R.drawable.overlord_boss_core
+                                else R.drawable.glitch_mentor_avatar
+                            ),
+                            contentDescription = title,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
