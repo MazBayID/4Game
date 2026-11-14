@@ -291,5 +291,6 @@ def grade(module_id, source, stdin_text="", workspace="."):
         "stderr": execution.get("stderr", ""),
         "errorType": execution.get("errorType"),
         "traceback": execution.get("traceback"),
+        "ramSlots": execution.get("ramSlots", []),
         "feedback": "" if passed else (feedback or "The mission checks were not satisfied."),
     })
