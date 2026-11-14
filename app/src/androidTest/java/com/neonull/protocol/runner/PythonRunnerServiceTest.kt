@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.Message
+import android.os.SystemClock
 import android.os.Messenger
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -206,6 +207,24 @@ print(round(math.pi, 2))
         val fresh = JSONObject(request("print('numbers' in globals())"))
         assertTrue(fresh.toString(), fresh.getBoolean("ok"))
         assertEquals("False\n", fresh.getString("stdout"))
+    }
+
+    @Test
+    fun interpreterStateDoesNotLeakAcrossSubmissions() {
+        val mutation = JSONObject(request(
+            "import builtins; builtins._byteghost_state_leak = 'contaminated'"
+        ))
+        assertTrue(mutation.toString(), mutation.getBoolean("ok"))
+
+        // The controller/test client unbinds after a result; allow the service's
+        // process-recycle callback to terminate the old CPython interpreter.
+        SystemClock.sleep(700)
+
+        val fresh = JSONObject(request(
+            "import builtins; print(hasattr(builtins, '_byteghost_state_leak'))"
+        ))
+        assertTrue(fresh.toString(), fresh.getBoolean("ok"))
+        assertEquals("False\\n", fresh.getString("stdout"))
     }
 
     @Test
