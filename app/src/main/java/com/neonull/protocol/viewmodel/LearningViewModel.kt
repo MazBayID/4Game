@@ -418,12 +418,24 @@ class LearningViewModel(
             } else if (!request.sandbox) append(if (isEmpty()) "[EXIT 0]" else "\n[EXIT 0] Mission checks passed.")
             if (isEmpty()) append(if (success) "[EXIT 0]" else "Python execution failed.")
         }
+        val ramSlots = runCatching {
+            val slots = data.optJSONArray("ramSlots") ?: return@runCatching emptyList()
+            (0 until slots.length()).mapNotNull { index ->
+                val slot = slots.optJSONObject(index) ?: return@mapNotNull null
+                RamVariableSlot(
+                    name = slot.optString("name"),
+                    type = slot.optString("type"),
+                    preview = slot.optString("preview")
+                )
+            }
+        }.getOrDefault(emptyList())
         val result = EvaluationResult(
             isSuccess = success,
             isSyntaxError = syntaxError,
             outputText = output,
             errorLines = if (syntaxError && line != null) setOf(line) else emptySet(),
-            glitchFeedback = dialogue
+            glitchFeedback = dialogue,
+            ramSlots = ramSlots
         )
         if (request.sandbox) {
             _uiState.update { current ->
