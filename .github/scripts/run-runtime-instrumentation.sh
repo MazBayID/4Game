@@ -70,7 +70,7 @@ for report in reports:
         errors += int(suite.attrib.get("errors", 0))
 
 print(f"Instrumentation report: tests={total}, failures={failures}, errors={errors}")
-if total < 13:
+if total < 14:
     print("ERROR: expected five host tests, three controller tests, and six runner tests.")
     sys.exit(2)
 if failures or errors:
