@@ -24,10 +24,5 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <!-- Legacy same-UID PoC only. Never use this for arbitrary player code. -->
-        <service
-            android:name=".runtime.PythonExecutionService"
-            android:exported="false"
-            android:process=":python_runtime" />
     </application>
 </manifest>
