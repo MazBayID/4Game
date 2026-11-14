@@ -161,6 +161,13 @@ fun TerminalLearningScreen(
         if (assetCatalog != null && showRadarInTop) {
             GameAssetSprite(catalog = assetCatalog, assetKey = "fx_scan", modifier = Modifier.fillMaxSize().alpha(0.05f))
         }
+        if (assetCatalog != null && eval?.isSuccess == true) {
+            GameAssetSprite(catalog = assetCatalog, assetKey = "fx_breach", modifier = Modifier.fillMaxSize().alpha(0.10f))
+            GameAssetSprite(catalog = assetCatalog, assetKey = "fx_energy_pulse", modifier = Modifier.align(Alignment.Center).size(180.dp).alpha(0.42f))
+            if (!isSandbox && module.isBossStage) {
+                GameAssetSprite(catalog = assetCatalog, assetKey = "fx_firewall_break", modifier = Modifier.fillMaxSize().alpha(0.16f))
+            }
+        }
 
         if (assetCatalog != null && activeExecutionEffect != null) {
             GameAssetSprite(

@@ -154,6 +154,8 @@ fun CipherCodexDialog(
                             if (unlocked) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     if (assetCatalog != null) {
+                                        GameAssetSprite(catalog = assetCatalog, assetKey = "ic_solution", modifier = Modifier.size(18.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
                                         GameAssetSprite(catalog = assetCatalog, assetKey = "ic_completed", modifier = Modifier.size(18.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
                                     }
