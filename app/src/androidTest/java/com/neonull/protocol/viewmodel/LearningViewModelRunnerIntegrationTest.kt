@@ -1,21 +1,30 @@
 package com.neonull.protocol.viewmodel
 
 import android.app.Application
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class LearningViewModelRunnerIntegrationTest {
-    private fun newViewModel(): LearningViewModel {
+    private data class Fixture(val viewModel: LearningViewModel, val store: ViewModelStore)
+
+    private fun newFixture(): Fixture {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         context.getSharedPreferences("neo_null_progress", 0).edit().clear().commit()
-        return LearningViewModel(context.applicationContext as Application)
+        val application = context.applicationContext as Application
+        val store = ViewModelStore()
+        val provider = ViewModelProvider(
+            store,
+            ViewModelProvider.AndroidViewModelFactory.getInstance(application)
+        )
+        return Fixture(provider[LearningViewModel::class.java], store)
     }
 
     private fun awaitResult(viewModel: LearningViewModel): LearningUiState {
@@ -30,7 +39,8 @@ class LearningViewModelRunnerIntegrationTest {
 
     @Test
     fun missionPassUsesRunnerResultAndAwardsProgressionOnce() {
-        val viewModel = newViewModel()
+        val fixture = newFixture()
+        val viewModel = fixture.viewModel
         try {
             viewModel.enterHub()
             viewModel.openModuleTerminal(1)
@@ -52,17 +62,18 @@ print(agent)
             val repeated = awaitResult(viewModel)
             assertEquals("A cleared mission must not award XP twice", rewardedXp, repeated.xp)
         } finally {
-            viewModel.onCleared()
+            fixture.store.clear()
         }
     }
 
     @Test
     fun sandboxExecutesPythonButDoesNotAwardMissionRewards() {
-        val viewModel = newViewModel()
+        val fixture = newFixture()
+        val viewModel = fixture.viewModel
         try {
             viewModel.enterHub()
             viewModel.openSandbox()
-            viewModel.updateCode("value = 6 * 7\nprint(value)")
+            viewModel.updateCode("value = 6 * 7\\nprint(value)")
             viewModel.runExploit()
 
             val result = awaitResult(viewModel)
@@ -74,17 +85,18 @@ print(agent)
             assertEquals("Sandbox must not award XP", 0, result.xp)
             assertTrue("Sandbox must not complete a campaign mission", result.completedModuleIds.isEmpty())
         } finally {
-            viewModel.onCleared()
+            fixture.store.clear()
         }
     }
 
     @Test
     fun failedMissionDoesNotAwardXpOrUnlockProgression() {
-        val viewModel = newViewModel()
+        val fixture = newFixture()
+        val viewModel = fixture.viewModel
         try {
             viewModel.enterHub()
             viewModel.openModuleTerminal(1)
-            viewModel.updateCode("agent = 'wrong'\nclearance = 0\nprint(agent)")
+            viewModel.updateCode("agent = 'wrong'\\nclearance = 0\\nprint(agent)")
             viewModel.runExploit()
 
             val failed = awaitResult(viewModel)
@@ -92,7 +104,7 @@ print(agent)
             assertEquals("Failed mission must not award XP", 0, failed.xp)
             assertFalse("Failed mission must not be marked complete", 1 in failed.completedModuleIds)
         } finally {
-            viewModel.onCleared()
+            fixture.store.clear()
         }
     }
 }
