@@ -12,6 +12,8 @@ import com.neonull.protocol.data.ProgressionRules
 import com.neonull.protocol.localization.AppLanguage
 import com.neonull.protocol.localization.LanguageManager
 import com.neonull.protocol.localization.LocalizedText
+import com.neonull.protocol.runtime.CompanionPythonRunnerController
+import org.json.JSONObject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -61,7 +63,8 @@ data class LearningUiState(
     val hintLevel: Int = 0,
     val glitchDialogue: String = CurriculumRepository.modules.first().glitchIntroDialogue.en,
     val isWarningState: Boolean = false,
-    val evaluationResult: EvaluationResult? = null
+    val evaluationResult: EvaluationResult? = null,
+    val isExecuting: Boolean = false
 ) {
     val activeModule: ProtocolModule
         get() = modules.firstOrNull { it.id == activeModuleId } ?: modules.first()
@@ -111,6 +114,8 @@ class LearningViewModel(
     application: Application
 ) : AndroidViewModel(application) {
 
+    private data class PendingSubmission(val moduleId: Int?, val source: String, val language: AppLanguage, val sandbox: Boolean)
+
     private val languageManager = LanguageManager()
     private val progressPreferences = application.getSharedPreferences(
         "neo_null_progress",
@@ -121,6 +126,8 @@ class LearningViewModel(
 
     private val _uiState = MutableStateFlow(restoreProgress())
     val uiState: StateFlow<LearningUiState> = _uiState.asStateFlow()
+    private var pendingSubmission: PendingSubmission? = null
+    private val runnerController = CompanionPythonRunnerController(application.applicationContext) { handleRunnerResult(it) }
 
     init {
         viewModelScope.launch {
@@ -353,50 +360,102 @@ class LearningViewModel(
     }
 
     fun runExploit() {
+        val state = _uiState.value
+        if (state.isExecuting || state.currentScreen != NeoScreen.TERMINAL) return
+        val request = PendingSubmission(
+            if (state.isSandboxMode) null else state.activeModuleId,
+            state.codeBuffer,
+            state.language,
+            state.isSandboxMode
+        )
+        pendingSubmission = request
+        _uiState.update { it.copy(isExecuting = true, evaluationResult = null) }
+        if (request.sandbox) runnerController.execute(request.source)
+        else runnerController.grade(request.moduleId ?: return, request.source)
+    }
+
+    private fun handleRunnerResult(raw: String) {
+        val request = pendingSubmission ?: return
+        pendingSubmission = null
+        val data = runCatching { JSONObject(raw) }.getOrElse {
+            JSONObject().put("ok", false).put("passed", false)
+                .put("errorType", "InvalidRunnerResponse").put("error", it.message ?: "Invalid runner response")
+        }
+        val state = _uiState.value
+        if (state.isSandboxMode != request.sandbox || state.codeBuffer != request.source ||
+            (!request.sandbox && state.activeModuleId != request.moduleId)) {
+            _uiState.update { it.copy(isExecuting = false) }
+            return
+        }
+
+        val module = state.activeModule
+        val ok = data.optBoolean("ok", false)
+        val success = if (request.sandbox) {
+            ok && !data.optBoolean("stdoutTruncated") && !data.optBoolean("stderrTruncated")
+        } else data.optBoolean("passed", false)
+        val errorType = data.optString("errorType")
+        val feedback = data.optString("feedback").takeIf { it.isNotBlank() && it != "null" }
+        val stdout = data.optString("stdout")
+        val stderr = data.optString("stderr")
+        val traceback = data.optString("traceback").takeIf { it.isNotBlank() && it != "null" }
+        val line = Regex("""(?:line |Line )(\d+)""")
+            .find((feedback ?: "") + "\n" + (traceback ?: ""))?.groupValues?.get(1)?.toIntOrNull()
+        val syntaxError = errorType == "SyntaxError"
+        val dialogue = when {
+            success && request.sandbox -> "CPython execution completed in the isolated runner."
+            success -> module.glitchSuccessDialogue.resolve(request.language)
+            request.sandbox -> "Python execution failed. Check the console output."
+            syntaxError && line != null -> "SYNTAX ALERT on line " + line + ". Check the Python error details."
+            else -> feedback ?: module.solutionHint1.resolve(request.language)
+        }
+        val output = buildString {
+            append(stdout)
+            if (stderr.isNotBlank()) append(if (isEmpty()) stderr else "\n" + stderr)
+            if (!success) {
+                val detail = feedback ?: data.optString("error").takeIf { it.isNotBlank() && it != "null" }
+                if (!detail.isNullOrBlank()) append(if (isEmpty()) detail else "\n" + detail)
+                else if (!traceback.isNullOrBlank()) append(if (isEmpty()) traceback else "\n" + traceback)
+            } else if (!request.sandbox) append(if (isEmpty()) "[EXIT 0]" else "\n[EXIT 0] Mission checks passed.")
+            if (isEmpty()) append(if (success) "[EXIT 0]" else "Python execution failed.")
+        }
+        val result = EvaluationResult(
+            isSuccess = success,
+            isSyntaxError = syntaxError,
+            outputText = output,
+            errorLines = if (syntaxError && line != null) setOf(line) else emptySet(),
+            glitchFeedback = dialogue
+        )
+        if (request.sandbox) {
+            _uiState.update { current ->
+                if (!current.isSandboxMode || current.codeBuffer != request.source) current.copy(isExecuting = false)
+                else current.copy(isExecuting = false, evaluationResult = result,
+                    isWarningState = !success, glitchDialogue = dialogue)
+            }
+        } else {
+            applyMissionResult(request.moduleId ?: return, request.source, result)
+        }
+    }
+
+    private fun applyMissionResult(moduleId: Int, source: String, result: EvaluationResult) {
         _uiState.update { state ->
-            if (state.isSandboxMode) {
-                val sandboxRes = evaluateSandboxSubmission(state.codeBuffer, state.language)
-                return@update state.copy(
-                    evaluationResult = sandboxRes,
-                    isWarningState = !sandboxRes.isSuccess,
-                    glitchDialogue = sandboxRes.glitchFeedback
-                )
+            if (state.isSandboxMode || state.activeModuleId != moduleId || state.codeBuffer != source) {
+                return@update state.copy(isExecuting = false)
             }
-
-            val module = state.activeModule
-            val result = evaluatePythonSubmission(
-                module = module,
-                code = state.codeBuffer,
-                language = state.language
-            )
+            val module = state.modules.firstOrNull { it.id == moduleId }
+                ?: return@update state.copy(isExecuting = false)
             val alreadyCleared = module.id in state.completedModuleIds
-            val newCompleted = if (result.isSuccess) {
-                state.completedModuleIds + module.id
-            } else {
-                state.completedModuleIds
-            }
+            val completed = if (result.isSuccess) state.completedModuleIds + module.id else state.completedModuleIds
             val cleanBonus = if (result.isSuccess && !alreadyCleared && !state.moduleAttemptFailed) 50 else 0
-            val newXp = if (result.isSuccess && !alreadyCleared) {
-                state.xp + module.xpReward + cleanBonus
-            } else {
-                state.xp
-            }
-            val newRam = if (result.isSuccess && !alreadyCleared) {
-                state.ramMb + module.ramRewardMb
-            } else {
-                state.ramMb
-            }
-            val nextTrace = if (result.isSuccess) {
-                (state.traceIntegrity + 10).coerceAtMost(100)
-            } else {
-                (state.traceIntegrity - 20).coerceAtLeast(20)
-            }
-
+            val xp = if (result.isSuccess && !alreadyCleared) state.xp + module.xpReward + cleanBonus else state.xp
+            val ram = if (result.isSuccess && !alreadyCleared) state.ramMb + module.ramRewardMb else state.ramMb
+            val trace = if (result.isSuccess) (state.traceIntegrity + 10).coerceAtMost(100)
+                else (state.traceIntegrity - 20).coerceAtLeast(20)
             state.copy(
-                completedModuleIds = newCompleted,
-                xp = newXp,
-                ramMb = newRam,
-                traceIntegrity = nextTrace,
+                isExecuting = false,
+                completedModuleIds = completed,
+                xp = xp,
+                ramMb = ram,
+                traceIntegrity = trace,
                 moduleAttemptFailed = state.moduleAttemptFailed || !result.isSuccess,
                 evaluationResult = result,
                 isWarningState = !result.isSuccess || module.isBossStage,
@@ -404,7 +463,6 @@ class LearningViewModel(
             )
         }
     }
-
     private fun evaluateSandboxSubmission(
         code: String,
         language: AppLanguage
