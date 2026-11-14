@@ -37,6 +37,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.neonull.protocol.R
+import com.neonull.protocol.assets.GameAssetCatalog
+import com.neonull.protocol.assets.GameAssetSprite
 import com.neonull.protocol.localization.AppLanguage
 import com.neonull.protocol.localization.UiStrings
 import com.neonull.protocol.ui.components.CyberFramePanel
@@ -47,6 +49,7 @@ import com.neonull.protocol.viewmodel.LearningUiState
 
 @Composable
 fun StoryHubScreen(
+    assetCatalog: GameAssetCatalog?,
     state: LearningUiState,
     strings: UiStrings,
     onSelectLanguage: (AppLanguage) -> Unit,
@@ -77,15 +80,35 @@ fun StoryHubScreen(
                     modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.null_agent_portrait),
-                        contentDescription = "Null-Agent",
-                        contentScale = ContentScale.Crop,
+                    Box(
                         modifier = Modifier
                             .size(44.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .border(1.dp, NeoColors.MatrixGreen, RoundedCornerShape(8.dp))
-                    )
+                    ) {
+                        if (assetCatalog != null) {
+                            GameAssetSprite(
+                                catalog = assetCatalog,
+                                assetKey = "glitch_idle",
+                                modifier = Modifier.fillMaxSize(),
+                                fallback = {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.null_agent_portrait),
+                                        contentDescription = "GLITCH",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                            )
+                        } else {
+                            Image(
+                                painter = painterResource(id = R.drawable.null_agent_portrait),
+                                contentDescription = "GLITCH",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
                         Text(
@@ -115,14 +138,28 @@ fun StoryHubScreen(
                 contentPadding = 0.dp
             ) {
                 Box(modifier = Modifier.fillMaxWidth()) {
-                    Image(
-                        painter = painterResource(id = R.drawable.cyber_hud_header_banner),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .matchParentSize()
-                            .alpha(0.24f)
-                    )
+                    if (assetCatalog != null) {
+                        GameAssetSprite(
+                            catalog = assetCatalog,
+                            assetKey = "bg_server_room",
+                            modifier = Modifier.matchParentSize().alpha(0.24f),
+                            fallback = {
+                                Image(
+                                    painter = painterResource(id = R.drawable.cyber_hud_header_banner),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.matchParentSize().alpha(0.24f)
+                                )
+                            }
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(id = R.drawable.cyber_hud_header_banner),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.matchParentSize().alpha(0.24f)
+                        )
+                    }
                     Column(modifier = Modifier.padding(14.dp)) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -201,14 +238,20 @@ fun StoryHubScreen(
                         .weight(1f)
                         .height(46.dp)
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.cipher_codex_artifact),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                    )
+                    if (assetCatalog != null) {
+                        GameAssetSprite(
+                            catalog = assetCatalog,
+                            assetKey = "ic_codex",
+                            modifier = Modifier.size(20.dp)
+                        )
+                    } else {
+                        Image(
+                            painter = painterResource(id = R.drawable.cipher_codex_artifact),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.size(20.dp).clip(RoundedCornerShape(4.dp))
+                        )
+                    }
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = strings.codexBtn,
@@ -313,23 +356,51 @@ fun StoryHubScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (module.isBossStage) {
-                            Image(
-                                painter = painterResource(id = R.drawable.overlord_boss_core),
-                                contentDescription = "AI OVERLORD",
-                                contentScale = ContentScale.Crop,
+                            Box(
                                 modifier = Modifier
                                     .size(44.dp)
                                     .clip(RoundedCornerShape(8.dp))
                                     .border(1.dp, NeoColors.CrimsonRed, RoundedCornerShape(8.dp))
-                            )
+                            ) {
+                                if (assetCatalog != null) {
+                                    GameAssetSprite(
+                                        catalog = assetCatalog,
+                                        assetKey = "overlord_idle",
+                                        modifier = Modifier.fillMaxSize(),
+                                        fallback = {
+                                            Image(
+                                                painter = painterResource(id = R.drawable.overlord_boss_core),
+                                                contentDescription = "AI OVERLORD",
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+                                        }
+                                    )
+                                } else {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.overlord_boss_core),
+                                        contentDescription = "AI OVERLORD",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                            }
                             Spacer(modifier = Modifier.width(12.dp))
                         } else if (!isUnlocked) {
-                            Image(
-                                painter = painterResource(id = R.drawable.synthex_gate_badge),
-                                contentDescription = strings.lockedLabel,
-                                contentScale = ContentScale.Fit,
-                                modifier = Modifier.size(38.dp)
-                            )
+                            if (assetCatalog != null) {
+                                GameAssetSprite(
+                                    catalog = assetCatalog,
+                                    assetKey = "ic_locked",
+                                    modifier = Modifier.size(38.dp)
+                                )
+                            } else {
+                                Image(
+                                    painter = painterResource(id = R.drawable.synthex_gate_badge),
+                                    contentDescription = strings.lockedLabel,
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier.size(38.dp)
+                                )
+                            }
                             Spacer(modifier = Modifier.width(10.dp))
                         }
                         Column(modifier = Modifier.weight(1f)) {
