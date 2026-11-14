@@ -24,6 +24,7 @@ class CompanionPythonRunnerController(
     private var bound = false
     private var pendingSource: String? = null
     private var pendingStdin: String = ""
+    private var pendingMissionId: Int? = null
 
     private val replies = Messenger(Handler(Looper.getMainLooper()) { message ->
         if (message.what == MSG_RESULT) {
@@ -58,7 +59,13 @@ class CompanionPythonRunnerController(
         }
     }
 
-    fun execute(source: String, stdinText: String = "") {
+    fun execute(source: String, stdinText: String = "") =
+        submit(source, stdinText, null)
+
+    fun grade(missionId: Int, source: String, stdinText: String = "") =
+        submit(source, stdinText, missionId)
+
+    private fun submit(source: String, stdinText: String, missionId: Int?) {
         if (source.length > MAX_SOURCE_CHARS || stdinText.length > MAX_STDIN_CHARS) {
             onResult(errorJson(
                 if (source.length > MAX_SOURCE_CHARS) "SourceTooLarge" else "InputTooLarge",
@@ -68,6 +75,7 @@ class CompanionPythonRunnerController(
         }
         pendingSource = source
         pendingStdin = stdinText
+        pendingMissionId = missionId
         if (remote != null) {
             sendPending()
         } else if (!bound) {
@@ -96,6 +104,8 @@ class CompanionPythonRunnerController(
                 data = Bundle().apply {
                     putString(KEY_CODE, source)
                     putString(KEY_STDIN, pendingStdin)
+                    putString(KEY_MODE, if (pendingMissionId == null) MODE_EXECUTE else MODE_GRADE)
+                    pendingMissionId?.let { putInt(KEY_MISSION_ID, it) }
                 }
                 replyTo = replies
             })
@@ -110,6 +120,7 @@ class CompanionPythonRunnerController(
         remote = null
         pendingSource = null
         pendingStdin = ""
+        pendingMissionId = null
     }
 
     private fun errorJson(type: String, message: String?): String =
@@ -130,7 +141,11 @@ class CompanionPythonRunnerController(
         private const val MSG_RESULT = 2
         private const val KEY_CODE = "code"
         private const val KEY_STDIN = "stdin"
+        private const val KEY_MODE = "mode"
+        private const val KEY_MISSION_ID = "missionId"
         private const val KEY_RESULT = "result"
+        private const val MODE_EXECUTE = "execute"
+        private const val MODE_GRADE = "grade"
         private const val MAX_SOURCE_CHARS = 128 * 1024
         private const val MAX_STDIN_CHARS = 64 * 1024
     }
