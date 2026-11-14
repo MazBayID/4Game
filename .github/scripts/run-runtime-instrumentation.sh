@@ -16,12 +16,10 @@ gradle :app:connectedDebugAndroidTest
 host_test_status=$?
 
 echo "=== ByteGhost companion runner instrumentation suite ==="
-if [ "$host_test_status" -eq 0 ]; then
-  gradle :runner:connectedDebugAndroidTest
-  runner_test_status=$?
-else
-  runner_test_status=0
-fi
+# Always run the isolated runner suite, even when an unrelated host test fails.
+# This keeps runner diagnostics available instead of masking them behind host failures.
+gradle :runner:connectedDebugAndroidTest
+runner_test_status=$?
 
 echo "=== Android runtime diagnostics ==="
 adb logcat -b all -d -v threadtime | grep -Ei \
