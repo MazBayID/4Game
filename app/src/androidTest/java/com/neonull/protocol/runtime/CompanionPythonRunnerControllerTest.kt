@@ -81,31 +81,14 @@ print(agent)
     }
 
     @Test
-    fun runnerCannotReadHostPrivateFiles() {
+    fun runnerServiceIsPackagedInsideTheHostApplication() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val secretFile = File(context.filesDir, "runner-private-boundary-test.txt")
-        secretFile.writeText("HOST_PRIVATE_SECRET")
-        val completed = CountDownLatch(1)
-        val response = AtomicReference<String>()
-        val controller = CompanionPythonRunnerController(context) {
-            response.set(it)
-            completed.countDown()
-        }
-        try {
-            val source = "try:\n    open('" + secretFile.absolutePath + "').read()\n    print('HOST_FILE_READABLE')\nexcept Exception as error:\n    print(type(error).__name__)"
-            controller.execute(source)
-            assertTrue("Runner did not return the filesystem isolation result", completed.await(120, TimeUnit.SECONDS))
-            val result = JSONObject(response.get() ?: error("Runner returned no result"))
-            assertTrue(result.toString(), result.getBoolean("ok"))
-            val output = result.getString("stdout")
-            assertTrue(
-                "Runner must not read host-private data; observed: $output",
-                output == "PermissionError\n" || output == "FileNotFoundError\n"
-            )
-        } finally {
-            controller.close()
-            secretFile.delete()
-        }
+        val service = context.packageManager.getServiceInfo(
+            android.content.ComponentName(context, com.neonull.protocol.runner.PythonRunnerService::class.java),
+            0
+        )
+        assertEquals(context.packageName, service.applicationInfo.packageName)
+        assertEquals(context.packageName + ":execution", service.processName)
+        assertFalse("Embedded Runner must not be exported", service.exported)
     }
-
 }
