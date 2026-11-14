@@ -402,10 +402,22 @@ class LearningViewModel(
             .find((feedback ?: "") + "\n" + (traceback ?: ""))?.groupValues?.get(1)?.toIntOrNull()
         val syntaxError = errorType == "SyntaxError"
         val dialogue = when {
-            success && request.sandbox -> "CPython execution completed in the isolated runner."
+            success && request.sandbox -> LocalizedText(
+                en = "CPython execution completed in the isolated runner.",
+                id = "Eksekusi CPython selesai di runner terisolasi.",
+                ph = "Natapos ang CPython execution sa isolated runner."
+            ).resolve(request.language)
             success -> module.glitchSuccessDialogue.resolve(request.language)
-            request.sandbox -> "Python execution failed. Check the console output."
-            syntaxError && line != null -> "SYNTAX ALERT on line " + line + ". Check the Python error details."
+            request.sandbox -> LocalizedText(
+                en = "Python execution failed. Check the console output.",
+                id = "Eksekusi Python gagal. Periksa output konsol.",
+                ph = "Nabigo ang Python execution. Tingnan ang console."
+            ).resolve(request.language)
+            syntaxError && line != null -> LocalizedText(
+                en = "SYNTAX ALERT on line " + line + ". Check the Python error details.",
+                id = "PERINGATAN SINTAKS di baris " + line + ". Periksa detail kesalahan Python.",
+                ph = "BABALA SA SYNTAX sa linya " + line + ". Tingnan ang detalye ng Python error."
+            ).resolve(request.language)
             else -> feedback ?: module.solutionHint1.resolve(request.language)
         }
         val output = buildString {
@@ -414,7 +426,9 @@ class LearningViewModel(
             if (!success) {
                 val detail = feedback ?: data.optString("error").takeIf { it.isNotBlank() && it != "null" }
                 if (!detail.isNullOrBlank()) append(if (isEmpty()) detail else "\n" + detail)
-                else if (!traceback.isNullOrBlank()) append(if (isEmpty()) traceback else "\n" + traceback)
+                if (!traceback.isNullOrBlank() && traceback != detail) {
+                    append(if (isEmpty()) traceback else "\n" + traceback)
+                }
             } else if (!request.sandbox) append(if (isEmpty()) "[EXIT 0]" else "\n[EXIT 0] Mission checks passed.")
             if (isEmpty()) append(if (success) "[EXIT 0]" else "Python execution failed.")
         }
