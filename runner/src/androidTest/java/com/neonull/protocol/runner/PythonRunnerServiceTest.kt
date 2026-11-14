@@ -28,7 +28,7 @@ class PythonRunnerServiceTest {
     fun companionRunnerUsesSeparateUidAndSignaturePermission() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val runnerUid = context.applicationInfo.uid
-        val hostUid = context.packageManager.getApplicationInfo("com.neonull.protocol", 0).uid
+        val hostUid = context.packageManager.getApplicationInfo("com.neonull.protocol", PackageManager.MATCH_ALL).uid
         assertTrue("Runner must have a separate Android UID", runnerUid != hostUid)
         val service = context.packageManager.getServiceInfo(
             ComponentName(context, PythonRunnerService::class.java), 0
