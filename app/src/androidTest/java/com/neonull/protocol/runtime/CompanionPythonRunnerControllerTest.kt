@@ -24,7 +24,7 @@ class CompanionPythonRunnerControllerTest {
             completed.countDown()
         }
         try {
-            controller.execute("print('HOST_TO_RUNNER_OK')")
+            controller.execute("agent = \"Null-Agent\"\ncount = 3\nprint(agent)")
             assertTrue("Game could not get a response from the companion runner", completed.await(120, TimeUnit.SECONDS))
             val result = JSONObject(response.get() ?: error("Runner returned no result"))
             assertTrue(result.toString(), result.getBoolean("ok"))
