@@ -15,6 +15,10 @@ adb install -r "$RUNNER_APK_PATH"
 gradle :app:connectedDebugAndroidTest
 host_test_status=$?
 
+echo "=== Reinstall host APK before companion UID verification ==="
+# Host instrumentation and test APK lifecycle must not affect the cross-package UID check.
+adb install -r "$HOST_APK_PATH"
+
 echo "=== ByteGhost companion runner instrumentation suite ==="
 # Always run the isolated runner suite, even when an unrelated host test fails.
 # This keeps runner diagnostics available instead of masking them behind host failures.
