@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.Font
@@ -41,6 +42,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.neonull.protocol.R
+import com.neonull.protocol.assets.GameAssetCatalog
+import com.neonull.protocol.assets.GameAssetSprite
 import com.neonull.protocol.localization.AppLanguage
 import com.neonull.protocol.localization.UiStrings
 import com.neonull.protocol.syntax.SyntaxHighlightedCodeEditor
@@ -61,6 +64,7 @@ import com.neonull.protocol.viewmodel.LearningUiState
  */
 @Composable
 fun TerminalLearningScreen(
+    assetCatalog: GameAssetCatalog?,
     state: LearningUiState,
     strings: UiStrings,
     onSelectLanguage: (AppLanguage) -> Unit,
@@ -95,6 +99,13 @@ fun TerminalLearningScreen(
             .fillMaxSize()
             .background(NeoColors.DeepNavyBlack)
     ) {
+        if (assetCatalog != null) {
+            GameAssetSprite(
+                catalog = assetCatalog,
+                assetKey = if (!isSandbox && module.isBossStage) "bg_overlord_domain" else "bg_cyberspace",
+                modifier = Modifier.fillMaxSize().alpha(0.14f)
+            )
+        }
         // Subtle EXAPUNKS background matrix grid
         Canvas(modifier = Modifier.fillMaxSize()) {
             val step = 28.dp.toPx()
@@ -200,7 +211,8 @@ fun TerminalLearningScreen(
                     dialogue = state.glitchDialogue,
                     isWarning = state.isWarningState,
                     isBossStage = !isSandbox && module.isBossStage,
-                    warningBannerText = strings.warningBannerText
+                    warningBannerText = strings.warningBannerText,
+                    assetCatalog = assetCatalog
                 )
 
                 // Compact Mission Objective bar + optional Tactical Grid toggle
