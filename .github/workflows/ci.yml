@@ -1,23 +1,92 @@
-name: Android Validation
+name: ByteGhost Validation
 
 concurrency:
-  group: android-validation-${{ github.ref }}
+  group: byteghost-validation-${{ github.ref }}
   cancel-in-progress: true
 
 on:
   push:
-    branches: [main, python-runtime-poc]
+    branches:
+      - main
+      - python-runtime-poc
   pull_request:
-    branches: [main]
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: "APK build variant"
+        required: true
+        default: "debug"
+        type: choice
+        options:
+          - debug
+          - release
+      version_code:
+        description: "Android versionCode"
+        required: false
+        default: "1"
+        type: string
+      version_name:
+        description: "Android versionName"
+        required: false
+        default: "1.0.0"
+        type: string
+      full_validation:
+        description: "Also run the complete CPython, Binder, and emulator instrumentation suite"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  pull-requests: read
 
 jobs:
-  android-compile:
+  detect-changes:
+    name: Detect runtime changes
     runs-on: ubuntu-latest
+    outputs:
+      runtime: ${{ steps.filter.outputs.runtime }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identify files requiring runtime validation
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            runtime:
+              - 'runner/**'
+              - 'tests/python/**'
+              - 'app/src/androidTest/**'
+              - 'app/src/main/java/com/neonull/protocol/runtime/**'
+              - 'app/src/main/java/com/neonull/protocol/viewmodel/LearningViewModel.kt'
+              - 'app/src/main/java/com/neonull/protocol/MainActivity.kt'
+              - 'app/build.gradle.kts'
+              - 'runner/build.gradle.kts'
+              - 'build.gradle.kts'
+              - 'settings.gradle.kts'
+              - 'gradle/**'
+              - 'gradle.properties'
+              - '.github/scripts/run-runtime-instrumentation.sh'
+
+  android-compile:
+    name: Android compile and asset validation
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    env:
+      BUILD_TYPE: ${{ inputs.build_type || 'debug' }}
+      VERSION_CODE: ${{ inputs.version_code || '1' }}
+      VERSION_NAME: ${{ inputs.version_name || '1.0.0' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.13 for Chaquopy
+      - name: Set up Python 3.13 for Chaquopy and asset checks
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
@@ -33,7 +102,7 @@ jobs:
         with:
           packages: "platform-tools"
 
-      - name: Install Android SDK 35 & Build Tools
+      - name: Install Android SDK 35 and Build Tools
         run: |
           yes | sdkmanager --licenses > /dev/null || true
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
@@ -43,32 +112,89 @@ jobs:
         with:
           gradle-version: "8.11.1"
 
-      - name: Test Python runtime helper
+      - name: Test Python runtime helpers when runtime code changed
+        if: needs.detect-changes.outputs.runtime == 'true' || inputs.full_validation == true
         run: PYTHONPATH=runner/src/main/python python -m unittest discover -s tests/python -v
 
-      - name: Compile native Android debug APK
-        run: gradle assembleDebug
+      - name: Validate ByteGhost asset manifest and PNG files
+        run: |
+          python - <<'PY'
+          import json
+          import struct
+          from pathlib import Path
 
-      - name: Collect debug APK artifact
+          assets_root = Path("app/src/main/assets")
+          manifest_path = assets_root / "byteghost" / "asset_manifest.json"
+          manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+          entries = manifest.get("assets")
+          if not isinstance(entries, list) or not entries:
+              raise SystemExit("Asset manifest has no asset entries.")
+
+          seen_keys = set()
+          for entry in entries:
+              key = entry.get("key")
+              relative_path = entry.get("path")
+              if not key or key in seen_keys:
+                  raise SystemExit(f"Missing or duplicate asset key: {key!r}")
+              seen_keys.add(key)
+
+              if not isinstance(relative_path, str) or not relative_path.startswith("byteghost/"):
+                  raise SystemExit(f"Invalid asset path for {key}: {relative_path!r}")
+
+              asset_path = (assets_root / relative_path).resolve()
+              if not asset_path.is_relative_to(assets_root.resolve()) or not asset_path.is_file():
+                  raise SystemExit(f"Missing or unsafe asset path for {key}: {relative_path}")
+
+              if asset_path.suffix.lower() != ".png":
+                  continue
+              with asset_path.open("rb") as image:
+                  header = image.read(24)
+              if len(header) != 24 or header[:8] != b"\\x89PNG\\r\\n\\x1a\\n" or header[12:16] != b"IHDR":
+                  raise SystemExit(f"Invalid PNG file: {relative_path}")
+              width, height = struct.unpack(">II", header[16:24])
+              if width != entry.get("width") or height != entry.get("height"):
+                  raise SystemExit(
+                      f"Dimension mismatch for {key}: manifest={entry.get('width')}x{entry.get('height')}, "
+                      f"actual={width}x{height}"
+                  )
+
+          print(f"Asset validation passed: {len(entries)} manifest entries, {len(seen_keys)} unique keys.")
+          PY
+
+      - name: Build Android APKs
+        run: |
+          if [ "$BUILD_TYPE" = "release" ]; then
+            gradle assembleRelease -PVERSION_CODE="$VERSION_CODE" -PVERSION_NAME="$VERSION_NAME"
+          else
+            gradle assembleDebug -PVERSION_CODE="$VERSION_CODE" -PVERSION_NAME="$VERSION_NAME"
+          fi
+
+      - name: Collect APKs and checksums
         run: |
           mkdir -p apk-output
-          APK_PATH=$(find app/build/outputs/apk/debug -name "*.apk" -print -quit)
+          APK_PATH=$(find "app/build/outputs/apk/$BUILD_TYPE" -name "*.apk" -print -quit)
+          RUNNER_APK_PATH=$(find "runner/build/outputs/apk/$BUILD_TYPE" -name "*.apk" -print -quit)
           test -n "$APK_PATH"
-          RUNNER_APK_PATH=$(find runner/build/outputs/apk/debug -name "*.apk" -print -quit)
           test -n "$RUNNER_APK_PATH"
-          cp "$APK_PATH" apk-output/ByteGhost-The-Synthex-Files-debug.apk
-          cp "$RUNNER_APK_PATH" apk-output/ByteGhost-Python-Runner-debug.apk
+          cp "$APK_PATH" "apk-output/ByteGhost-The-Synthex-Files-v$VERSION_NAME-$BUILD_TYPE.apk"
+          cp "$RUNNER_APK_PATH" "apk-output/ByteGhost-Python-Runner-v$VERSION_NAME-$BUILD_TYPE.apk"
           sha256sum apk-output/*.apk > apk-output/SHA256SUMS.txt
+          ls -lh apk-output/
 
-      - name: Upload debug APK artifact
+      - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ByteGhost-debug-${{ github.sha }}
+          name: ByteGhost-${{ env.BUILD_TYPE }}-${{ github.sha }}
           path: apk-output/
           if-no-files-found: error
 
-  android-instrumentation:
+  runtime-instrumentation:
+    name: CPython, Binder, and emulator instrumentation
     runs-on: ubuntu-latest
+    needs:
+      - detect-changes
+      - android-compile
+    if: needs.detect-changes.outputs.runtime == 'true' || inputs.full_validation == true
     timeout-minutes: 30
     steps:
       - name: Checkout repository
@@ -90,7 +216,7 @@ jobs:
         with:
           packages: "platform-tools"
 
-      - name: Install Android SDK 35 & Build Tools
+      - name: Install Android SDK 35 and Build Tools
         run: |
           yes | sdkmanager --licenses > /dev/null || true
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
@@ -100,7 +226,7 @@ jobs:
         with:
           gradle-version: "8.11.1"
 
-      - name: Run ordered CPython, Binder, and asset tests
+      - name: Run complete runtime instrumentation suite
         uses: ReactiveCircus/android-emulator-runner@v2
         with:
           api-level: 34
