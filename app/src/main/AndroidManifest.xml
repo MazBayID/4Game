@@ -1,12 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <permission
-        android:name="com.neonull.protocol.permission.RUN_PYTHON"
-        android:protectionLevel="signature" />
-    <uses-permission android:name="com.neonull.protocol.permission.RUN_PYTHON" />
-    <queries>
-        <package android:name="com.neonull.protocol.runner" />
-    </queries>
     <application
         android:allowBackup="true"
         android:icon="@drawable/app_icon"
@@ -24,5 +17,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <service
+            android:name="com.neonull.protocol.runner.PythonRunnerService"
+            android:exported="false"
+            android:process=":execution" />
     </application>
 </manifest>
