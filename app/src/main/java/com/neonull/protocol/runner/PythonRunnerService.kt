@@ -75,10 +75,8 @@ class PythonRunnerService : Service() {
     override fun onUnbind(intent: Intent?): Boolean {
         // A fresh process per request prevents Python globals, imported-module mutations,
         // and background threads from leaking into the next player's submission.
-        watchdog.postDelayed({
-            Log.i(TAG, "No clients remain; recycling the Python interpreter process")
-            Process.killProcess(Process.myPid())
-        }, PROCESS_RECYCLE_DELAY_MS)
+        Log.i(TAG, "No clients remain; recycling the Python interpreter process")
+        Process.killProcess(Process.myPid())
         return false
     }
 
@@ -187,6 +185,5 @@ class PythonRunnerService : Service() {
         private const val MAX_SOURCE_CHARS = 128 * 1024
         private const val MAX_STDIN_CHARS = 64 * 1024
         private const val EXECUTION_TIMEOUT_MS = 5_000L
-        private const val PROCESS_RECYCLE_DELAY_MS = 300L
     }
 }
