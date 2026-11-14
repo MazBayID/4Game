@@ -35,6 +35,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.neonull.protocol.R
+import com.neonull.protocol.assets.GameAssetCatalog
+import com.neonull.protocol.assets.GameAssetSprite
 import com.neonull.protocol.localization.AppLanguage
 import com.neonull.protocol.localization.UiStrings
 import com.neonull.protocol.ui.components.CyberFramePanel
@@ -42,6 +44,7 @@ import com.neonull.protocol.ui.theme.NeoColors
 
 @Composable
 fun OnboardingScreen(
+    assetCatalog: GameAssetCatalog?,
     selectedLanguage: AppLanguage,
     strings: UiStrings,
     onSelectLanguage: (AppLanguage) -> Unit,
@@ -52,14 +55,28 @@ fun OnboardingScreen(
             .fillMaxSize()
             .background(NeoColors.DeepNavyBlack)
     ) {
-        Image(
-            painter = painterResource(id = R.drawable.neonull_sector_backdrop),
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxSize()
-                .alpha(0.26f)
-        )
+        if (assetCatalog != null) {
+            GameAssetSprite(
+                catalog = assetCatalog,
+                assetKey = "bg_hacker_base",
+                modifier = Modifier.fillMaxSize().alpha(0.26f),
+                fallback = {
+                    Image(
+                        painter = painterResource(id = R.drawable.neonull_sector_backdrop),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            )
+        } else {
+            Image(
+                painter = painterResource(id = R.drawable.neonull_sector_backdrop),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize().alpha(0.26f)
+            )
+        }
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -90,15 +107,35 @@ fun OnboardingScreen(
                         modifier = Modifier.size(56.dp)
                     )
                     Spacer(modifier = Modifier.width(10.dp))
-                    Image(
-                        painter = painterResource(id = R.drawable.glitch_mentor_avatar),
-                        contentDescription = "GLITCH",
-                        contentScale = ContentScale.Crop,
+                    Box(
                         modifier = Modifier
                             .size(52.dp)
                             .clip(RoundedCornerShape(10.dp))
                             .border(1.dp, NeoColors.CyberCyan, RoundedCornerShape(10.dp))
-                    )
+                    ) {
+                        if (assetCatalog != null) {
+                            GameAssetSprite(
+                                catalog = assetCatalog,
+                                assetKey = "glitch_idle",
+                                modifier = Modifier.fillMaxSize(),
+                                fallback = {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.glitch_mentor_avatar),
+                                        contentDescription = "GLITCH",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                            )
+                        } else {
+                            Image(
+                                painter = painterResource(id = R.drawable.glitch_mentor_avatar),
+                                contentDescription = "GLITCH",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
