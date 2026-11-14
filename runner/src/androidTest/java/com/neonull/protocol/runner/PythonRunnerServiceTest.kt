@@ -129,6 +129,41 @@ print(core.shutdown())
     }
 
     @Test
+    fun executesRepresentativePythonLanguageCorpusAndFreshNamespaces() {
+        val source = """import math
+numbers = [value * value for value in range(4)]
+lookup = {str(value): value for value in numbers}
+def double(value):
+    return value * 2
+class Device:
+    def __init__(self, name):
+        self.name = name
+    def boot(self):
+        return f"{self.name}:{double(5)}"
+try:
+    raise ValueError("handled")
+except ValueError as error:
+    caught = str(error)
+with open("runner-check.txt", "w") as output_file:
+    output_file.write("workspace-ok")
+with open("runner-check.txt", "r") as input_file:
+    file_value = input_file.read()
+print(numbers)
+print(lookup["9"])
+print(Device("CPython").boot())
+print(caught)
+print(file_value)
+print(round(math.pi, 2))
+"""
+        val result = JSONObject(request(source))
+        assertTrue(result.toString(), result.getBoolean("ok"))
+        assertEquals("[0, 1, 4, 9]\n9\nCPython:10\nhandled\nworkspace-ok\n3.14\n", result.getString("stdout"))
+        val fresh = JSONObject(request("print('numbers' in globals())"))
+        assertTrue(fresh.toString(), fresh.getBoolean("ok"))
+        assertEquals("False\n", fresh.getString("stdout"))
+    }
+
+    @Test
     fun rejectsConcurrentExecutionInsteadOfQueueingIt() {
         val connection = bind(InstrumentationRegistry.getInstrumentation().targetContext)
         val firstFinished = CountDownLatch(1)
