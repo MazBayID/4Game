@@ -59,6 +59,75 @@ class PythonRunnerServiceTest {
         assertTrue(large.getBoolean("stdoutTruncated"))
     }
 
+
+    @Test
+    fun gradesAllSevenMissionsAndRejectsIncorrectSolutions() {
+        val valid = linkedMapOf(
+            1 to """agent = "Null-Agent"
+clearance = 1
+print(agent)
+""",
+            2 to """threat = 25
+if threat >= 50:
+    print("DENIED")
+else:
+    print("ALLOW")
+""",
+            3 to """shards = ["K1", "K2"]
+shards.append("K3")
+vault = {"code": 77}
+print(len(shards))
+""",
+            4 to """packets = 0
+for packet in range(5):
+    packets += 1
+print(packets)
+""",
+            5 to """def craft_token(seed):
+    return seed * 3 + 9
+print(craft_token(7))
+""",
+            6 to """try:
+    with open("corrupt.log", "r") as log_file:
+        print(log_file.read())
+except FileNotFoundError:
+    print("SAFE_EXTRACT")
+""",
+            7 to """class OverlordOverride:
+    def __init__(self, key):
+        self.key = key
+    def shutdown(self):
+        return "ROOT_UNLOCKED"
+core = OverlordOverride("NULL-2142")
+print(core.shutdown())
+"""
+        )
+        valid.forEach { (missionId, source) ->
+            val result = JSONObject(requestGrade(missionId, source))
+            assertTrue("Mission $missionId CPython execution failed: $result", result.getBoolean("ok"))
+            assertTrue("Mission $missionId should pass: $result", result.getBoolean("passed"))
+        }
+
+        val invalid = valid.mapValues { (_, source) -> source.replace("clearance = 1", "clearance = 0") }
+        val wrongMissionOne = JSONObject(requestGrade(1, invalid.getValue(1)))
+        assertTrue(wrongMissionOne.toString(), wrongMissionOne.getBoolean("ok"))
+        assertFalse("Incorrect mission solution must not pass", wrongMissionOne.getBoolean("passed"))
+
+        val syntax = JSONObject(requestGrade(1, "if True print('broken')"))
+        assertFalse(syntax.getBoolean("ok"))
+        assertFalse(syntax.getBoolean("passed"))
+        assertEquals("SyntaxError", syntax.getString("errorType"))
+    }
+
+    private fun requestGrade(missionId: Int, source: String): String {
+        val connection = bind(InstrumentationRegistry.getInstrumentation().targetContext)
+        return try {
+            connection.send(source, "", MSG_RESULT, "grade", missionId)
+        } finally {
+            connection.close()
+        }
+    }
+
     @Test
     fun rejectsConcurrentExecutionInsteadOfQueueingIt() {
         val connection = bind(InstrumentationRegistry.getInstrumentation().targetContext)
@@ -143,7 +212,7 @@ class PythonRunnerServiceTest {
             })
         }
 
-        fun send(source: String, stdin: String, expectedWhat: Int): String {
+        fun send(source: String, stdin: String, expectedWhat: Int, mode: String = "execute", missionId: Int = -1): String {
             val latch = CountDownLatch(1)
             val result = AtomicReference<String>()
             val reply = Messenger(Handler(Looper.getMainLooper()) { message ->
@@ -157,6 +226,8 @@ class PythonRunnerServiceTest {
                 data = Bundle().apply {
                     putString(PythonRunnerService.KEY_CODE, source)
                     putString(PythonRunnerService.KEY_STDIN, stdin)
+                    putString(PythonRunnerService.KEY_MODE, mode)
+                    if (missionId >= 0) putInt(PythonRunnerService.KEY_MISSION_ID, missionId)
                 }
                 replyTo = reply
             })
