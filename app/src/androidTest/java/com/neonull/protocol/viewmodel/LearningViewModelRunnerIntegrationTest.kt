@@ -73,7 +73,7 @@ print(agent)
         try {
             viewModel.enterHub()
             viewModel.openSandbox()
-            viewModel.updateCode("value = 6 * 7\\nprint(value)")
+            viewModel.updateCode("value = 6 * 7\nprint(value)")
             viewModel.runExploit()
 
             val result = awaitResult(viewModel)
@@ -96,7 +96,7 @@ print(agent)
         try {
             viewModel.enterHub()
             viewModel.openModuleTerminal(1)
-            viewModel.updateCode("agent = 'wrong'\\nclearance = 0\\nprint(agent)")
+            viewModel.updateCode("agent = 'wrong'\nclearance = 0\nprint(agent)")
             viewModel.runExploit()
 
             val failed = awaitResult(viewModel)
