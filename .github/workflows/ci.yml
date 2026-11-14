@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   build:
-    name: Compile ByteGhost and Python Runner
+    name: Build unified ByteGhost APK
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -50,5 +50,5 @@ jobs:
         with:
           gradle-version: "8.11.1"
 
-      - name: Build application modules
+      - name: Build the single application APK
         run: gradle :app:assembleDebug
