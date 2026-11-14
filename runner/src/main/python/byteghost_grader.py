@@ -225,6 +225,14 @@ def _grade_structure(module_id, tree):
     return False, "Unknown mission."
 
 
+
+def _slot_preview(execution, name):
+    for slot in execution.get("ramSlots", []):
+        if slot.get("name") == name:
+            return slot.get("preview")
+    return None
+
+
 def grade(module_id, source, stdin_text="", workspace="."):
     """Run a mission and return JSON with CPython output and AST-based checks."""
     try:
@@ -267,9 +275,33 @@ def grade(module_id, source, stdin_text="", workspace="."):
     output_complete = not execution.get("stdoutTruncated", False) and not execution.get("stderrTruncated", False)
     passed = bool(execution.get("ok")) and output_complete and passed_structure
 
+    if module_id == 1 and (
+        _slot_preview(execution, "agent") != "'Null-Agent'"
+        or _slot_preview(execution, "clearance") != "1"
+        or execution.get("stdout", "").splitlines()[-1:] != ["Null-Agent"]
+    ):
+        passed = False
+        feedback = "The final agent value must be Null-Agent, clearance must be 1, and print(agent) must display the identity."
+    if module_id == 2 and (
+        _slot_preview(execution, "threat") != "25"
+        or execution.get("stdout", "").splitlines()[-1:] != ["ALLOW"]
+    ):
+        passed = False
+        feedback = "The final threat value must be 25 and the safe else branch must finish by printing ALLOW."
+    if module_id == 3 and (
+        _slot_preview(execution, "shards") != "['K1', 'K2', 'K3']"
+        or _slot_preview(execution, "vault") != "{'code': 77}"
+        or execution.get("stdout", "").splitlines()[-1:] != ["3"]
+    ):
+        passed = False
+        feedback = "Keep K1, K2, and K3 in shards, store code 77 in vault, and print the final length 3."
+
     if not output_complete:
         feedback = "Output limit reached; remove excessive output and retry."
-    if module_id == 4 and execution.get("stdout", "").splitlines() != ["5"]:
+    if module_id == 4 and (
+        execution.get("stdout", "").splitlines() != ["5"]
+        or _slot_preview(execution, "packets") != "5"
+    ):
         passed = False
         feedback = "The loop must finish with packets equal to 5."
     if module_id == 5:
