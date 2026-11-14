@@ -4,6 +4,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import java.io.File
 import android.content.ServiceConnection
 import android.os.Bundle
 import android.os.Handler
@@ -193,6 +194,8 @@ print(round(math.pi, 2))
         val result = JSONObject(request(source))
         assertTrue(result.toString(), result.getBoolean("ok"))
         assertEquals("[0, 1, 4, 9]\n9\nCPython:10\nhandled\nworkspace-ok\n3.14\n", result.getString("stdout"))
+        val workspaceFile = File(context.cacheDir, "byteghost-session/runner-check.txt")
+        assertFalse("Temporary workspace must be removed after execution", workspaceFile.exists())
         val slots = result.getJSONArray("ramSlots")
         assertTrue((0 until slots.length()).any {
             slots.getJSONObject(it).optString("name") == "hostile" &&
