@@ -149,7 +149,7 @@ jobs:
                   continue
               with asset_path.open("rb") as image:
                   header = image.read(24)
-              if len(header) != 24 or header[:8] != b"\\x89PNG\\r\\n\\x1a\\n" or header[12:16] != b"IHDR":
+              if len(header) != 24 or header[:8] != bytes.fromhex("89504e470d0a1a0a") or header[12:16] != b"IHDR":
                   raise SystemExit(f"Invalid PNG file: {relative_path}")
               width, height = struct.unpack(">II", header[16:24])
               if width != entry.get("width") or height != entry.get("height"):
