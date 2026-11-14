@@ -572,7 +572,8 @@ fun TerminalLearningScreen(
                             RamInspectorPanel(
                                 title = strings.ramInspectorTitle,
                                 emptyText = strings.ramEmptyText,
-                                slots = eval?.ramSlots ?: emptyList()
+                                slots = eval?.ramSlots ?: emptyList(),
+                                assetCatalog = assetCatalog
                             )
                         }
                     }

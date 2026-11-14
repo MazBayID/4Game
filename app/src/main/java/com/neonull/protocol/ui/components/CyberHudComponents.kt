@@ -355,7 +355,8 @@ fun RamInspectorPanel(
     title: String,
     emptyText: String,
     slots: List<RamVariableSlot>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    assetCatalog: GameAssetCatalog? = null
 ) {
     CyberFramePanel(
         modifier = modifier.fillMaxWidth(),
@@ -363,13 +364,19 @@ fun RamInspectorPanel(
         fillColor = NeoColors.TerminalSurface
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(
-                text = title,
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Bold,
-                fontSize = 11.sp,
-                color = NeoColors.CyberCyan
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (assetCatalog != null) {
+                    GameAssetSprite(catalog = assetCatalog, assetKey = "ic_ram", modifier = Modifier.size(17.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                }
+                Text(
+                    text = title,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 11.sp,
+                    color = NeoColors.CyberCyan
+                )
+            }
             if (slots.isEmpty()) {
                 Text(
                     text = emptyText,
@@ -389,13 +396,34 @@ fun RamInspectorPanel(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "${slot.name} (${slot.type})",
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            color = NeoColors.MatrixGreen
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (assetCatalog != null) {
+                                val typeIcon = when (slot.type.lowercase()) {
+                                    "str", "string" -> "ic_string"
+                                    "int", "integer" -> "ic_integer"
+                                    "float" -> "ic_float"
+                                    "bool", "boolean" -> "ic_boolean"
+                                    "list" -> "ic_list"
+                                    "tuple" -> "ic_tuple"
+                                    "dict", "dictionary" -> "ic_dictionary"
+                                    "set" -> "ic_set"
+                                    else -> "ic_variable"
+                                }
+                                GameAssetSprite(
+                                    catalog = assetCatalog,
+                                    assetKey = typeIcon,
+                                    modifier = Modifier.size(17.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                            }
+                            Text(
+                                text = "${slot.name} (${slot.type})",
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = NeoColors.MatrixGreen
+                            )
+                        }
                         Text(
                             text = slot.preview,
                             fontFamily = FontFamily.Monospace,
