@@ -19,7 +19,11 @@ import java.io.File
 import java.nio.file.Files
 import java.util.concurrent.atomic.AtomicBoolean
 
-/** In-package Python execution service hosted in a dedicated Android process. */
+/**
+ * In-package Python execution service hosted in a dedicated Android process.
+ * The process shares ByteGhost's UID: this protects UI responsiveness and allows
+ * process recovery, but it is not a filesystem or security sandbox for Python code.
+ */
 class PythonRunnerService : Service() {
     private lateinit var worker: HandlerThread
     private lateinit var messenger: Messenger
