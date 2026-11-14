@@ -111,13 +111,11 @@ fun StoryHubScreen(
                     }
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
-                        Text(
-                            text = strings.sectorYearLabel,
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = NeoColors.CrimsonRed
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (assetCatalog != null) GameAssetSprite(catalog = assetCatalog, assetKey = "ic_dashboard", modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(text = strings.sectorYearLabel, fontFamily = FontFamily.Monospace, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = NeoColors.CrimsonRed)
+                        }
                         Text(
                             text = strings.hubTitle,
                             style = MaterialTheme.typography.headlineMedium
@@ -161,6 +159,12 @@ fun StoryHubScreen(
                         )
                     }
                     Column(modifier = Modifier.padding(14.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (assetCatalog != null) GameAssetSprite(catalog = assetCatalog, assetKey = "ic_profile", modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(strings.glitchMentorTitle, fontFamily = FontFamily.Monospace, fontSize = 10.sp, color = NeoColors.CyberCyan)
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
@@ -191,6 +195,13 @@ fun StoryHubScreen(
                             )
                         }
                         Spacer(modifier = Modifier.height(12.dp))
+                        if (assetCatalog != null) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                GameAssetSprite(catalog = assetCatalog, assetKey = "ic_campaign", modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(5.dp))
+                                Text(strings.rankLabel, fontFamily = FontFamily.Monospace, fontSize = 11.sp, color = NeoColors.CyberCyan)
+                            }
+                        }
                         LinearProgressIndicator(
                             progress = { progressFraction },
                             color = NeoColors.MatrixGreen,
@@ -201,12 +212,15 @@ fun StoryHubScreen(
                                 .clip(RoundedCornerShape(3.dp))
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "${strings.rankLabel}: ${state.rankTitle(state.language)} · ${state.completedModuleIds.size}/${state.modules.size}",
-                            fontFamily = FontFamily.Monospace,
-                            fontSize = 12.sp,
-                            color = NeoColors.TextSecondary
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (assetCatalog != null) {
+                                GameAssetSprite(catalog = assetCatalog, assetKey = "ic_rank", modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(5.dp))
+                                GameAssetSprite(catalog = assetCatalog, assetKey = "ic_streak", modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(5.dp))
+                            }
+                            Text(text = "${state.rankTitle(state.language)} · ${state.completedModuleIds.size}/${state.modules.size}", fontFamily = FontFamily.Monospace, fontSize = 12.sp, color = NeoColors.TextSecondary)
+                        }
                     }
                 }
             }
@@ -305,8 +319,14 @@ fun StoryHubScreen(
                     fillColor = NeoColors.ElevatedPanel
                 ) {
                     Column {
+                        if (assetCatalog != null) GameAssetSprite(catalog = assetCatalog, assetKey = "ic_mastery", modifier = Modifier.size(22.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (assetCatalog != null) GameAssetSprite(catalog = assetCatalog, assetKey = "ic_achievement", modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(text = strings.victoryTitle, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = NeoColors.MatrixGreen)
+                        }
                         Text(
-                            text = strings.victoryTitle,
+                            text = strings.victorySubtitle,
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
@@ -356,15 +376,26 @@ fun StoryHubScreen(
                             fontSize = 11.sp,
                             color = borderColor
                         )
-                        Text(
-                            text = "+${module.xpReward} XP / ${module.ramRewardMb} MB",
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (assetCatalog != null) GameAssetSprite(catalog = assetCatalog, assetKey = "ic_credit", modifier = Modifier.size(14.dp))
+                            Text(
+                                text = "+${module.xpReward} XP / ${module.ramRewardMb} MB",
                             fontFamily = FontFamily.Monospace,
                             fontSize = 11.sp,
-                            color = NeoColors.TextSecondary
-                        )
+                                color = NeoColors.TextSecondary
+                            )
+                        }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (assetCatalog != null) {
+                            GameAssetSprite(catalog = assetCatalog, assetKey = if (isUnlocked) "ic_unlocked" else "ic_locked", modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            GameAssetSprite(catalog = assetCatalog, assetKey = "ic_level", modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            GameAssetSprite(catalog = assetCatalog, assetKey = if (module.isBossStage) "ic_security" else "ic_challenge", modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(5.dp))
+                        }
                         if (module.isBossStage) {
                             Box(
                                 modifier = Modifier

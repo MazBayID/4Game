@@ -188,6 +188,8 @@ fun TheoryViewerScreen(
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (assetCatalog != null) {
+                        GameAssetSprite(catalog = assetCatalog, assetKey = "ic_operation", modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(5.dp))
                         GameAssetSprite(catalog = assetCatalog, assetKey = "ic_python", modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                     }
@@ -198,6 +200,21 @@ fun TheoryViewerScreen(
                     fontSize = 12.sp,
                         color = NeoColors.MatrixGreen
                     )
+                }
+                if (assetCatalog != null) {
+                    val conceptIcons = when (module.id) {
+                        1 -> listOf("ic_variable", "ic_string", "ic_stdout")
+                        2 -> listOf("ic_condition", "ic_security", "ic_network")
+                        3 -> listOf("ic_list", "ic_tuple", "ic_dictionary", "ic_set", "ic_database", "ic_json")
+                        4 -> listOf("ic_loop", "ic_async", "ic_network")
+                        5 -> listOf("ic_function", "ic_lambda", "ic_recursion")
+                        6 -> listOf("ic_exception", "ic_file", "ic_stderr")
+                        else -> listOf("ic_class", "ic_object", "ic_security")
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
+                        conceptIcons.forEach { key -> GameAssetSprite(catalog = assetCatalog, assetKey = key, modifier = Modifier.size(22.dp)) }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
                 }
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
@@ -211,6 +228,8 @@ fun TheoryViewerScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (assetCatalog != null) {
                     GameAssetSprite(catalog = assetCatalog, assetKey = "ic_code", modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(5.dp))
+                    GameAssetSprite(catalog = assetCatalog, assetKey = "ic_copy", modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                 }
                 Text(
