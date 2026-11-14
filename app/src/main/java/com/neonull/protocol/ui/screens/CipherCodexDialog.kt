@@ -146,6 +146,20 @@ fun CipherCodexDialog(
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             if (unlocked) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    if (assetCatalog != null) {
+                                        GameAssetSprite(catalog = assetCatalog, assetKey = "ic_completed", modifier = Modifier.size(18.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                    }
+                                    Text(
+                                        text = strings.completedLabel,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 10.sp,
+                                        color = NeoColors.MatrixGreen
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
                                 Text(
                                     text = mod.pythonConceptExplanation.resolve(language),
                                     style = MaterialTheme.typography.bodyMedium,

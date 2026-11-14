@@ -117,7 +117,11 @@ fun TerminalLearningScreen(
         if (assetCatalog != null) {
             GameAssetSprite(
                 catalog = assetCatalog,
-                assetKey = if (!isSandbox && module.isBossStage) "bg_overlord_domain" else "bg_cyberspace",
+                assetKey = when {
+                    !isSandbox && module.isBossStage -> "bg_overlord_domain"
+                    isSandbox -> "bg_cyberspace"
+                    else -> "bg_security_facility"
+                },
                 modifier = Modifier.fillMaxSize().alpha(0.14f)
             )
         }
@@ -144,6 +148,14 @@ fun TerminalLearningScreen(
                 )
                 y += step
             }
+        }
+
+        if (assetCatalog != null && state.isExecuting) {
+            GameAssetSprite(
+                catalog = assetCatalog,
+                assetKey = "fx_data_stream",
+                modifier = Modifier.fillMaxSize().alpha(0.10f)
+            )
         }
 
         if (assetCatalog != null && activeExecutionEffect != null) {

@@ -229,6 +229,10 @@ fun StoryHubScreen(
                         .height(46.dp)
                         .border(1.dp, NeoColors.CyberCyan.copy(alpha = 0.65f), RoundedCornerShape(8.dp))
                 ) {
+                    if (assetCatalog != null) {
+                        GameAssetSprite(catalog = assetCatalog, assetKey = "ic_practice", modifier = Modifier.size(19.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                    }
                     Text(
                         text = strings.sandboxModeBtn,
                         fontFamily = FontFamily.Monospace,
@@ -433,6 +437,10 @@ fun StoryHubScreen(
                                 shape = RoundedCornerShape(6.dp),
                                 modifier = Modifier.weight(1f)
                             ) {
+                                if (assetCatalog != null) {
+                                    GameAssetSprite(catalog = assetCatalog, assetKey = "ic_lesson", modifier = Modifier.size(17.dp))
+                                    Spacer(modifier = Modifier.width(5.dp))
+                                }
                                 Text(
                                     text = strings.openTheoryBtn,
                                     fontFamily = FontFamily.Monospace,
@@ -449,6 +457,10 @@ fun StoryHubScreen(
                                 shape = RoundedCornerShape(6.dp),
                                 modifier = Modifier.weight(1f)
                             ) {
+                                if (assetCatalog != null) {
+                                    GameAssetSprite(catalog = assetCatalog, assetKey = "ic_terminal", modifier = Modifier.size(17.dp))
+                                    Spacer(modifier = Modifier.width(5.dp))
+                                }
                                 Text(
                                     text = strings.launchTerminalBtn,
                                     fontFamily = FontFamily.Monospace,

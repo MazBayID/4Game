@@ -105,7 +105,7 @@ fun TheoryViewerScreen(
                 if (assetCatalog != null) {
                     GameAssetSprite(
                         catalog = assetCatalog,
-                        assetKey = "bg_ai_lab",
+                        assetKey = if (module.isBossStage) "bg_overlord_domain" else "bg_ai_lab",
                         modifier = Modifier.matchParentSize().alpha(0.14f)
                     )
                 }
@@ -186,13 +186,19 @@ fun TheoryViewerScreen(
             fillColor = NeoColors.TerminalSurface
         ) {
             Column {
-                Text(
-                    text = strings.pythonConceptTitle,
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (assetCatalog != null) {
+                        GameAssetSprite(catalog = assetCatalog, assetKey = "ic_python", modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                    }
+                    Text(
+                        text = strings.pythonConceptTitle,
                     fontFamily = FontFamily.Monospace,
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,
-                    color = NeoColors.MatrixGreen
-                )
+                        color = NeoColors.MatrixGreen
+                    )
+                }
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = module.pythonConceptExplanation.resolve(state.language),
@@ -202,13 +208,19 @@ fun TheoryViewerScreen(
         }
 
         Column {
-            Text(
-                text = strings.codeExampleTitle,
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (assetCatalog != null) {
+                    GameAssetSprite(catalog = assetCatalog, assetKey = "ic_code", modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                }
+                Text(
+                    text = strings.codeExampleTitle,
                 fontFamily = FontFamily.Monospace,
                 fontWeight = FontWeight.Bold,
                 fontSize = 12.sp,
-                color = NeoColors.CyberCyan
-            )
+                    color = NeoColors.CyberCyan
+                )
+            }
             Spacer(modifier = Modifier.height(6.dp))
             SyntaxHighlightedCodeBlock(
                 code = module.codeExample,
@@ -229,6 +241,10 @@ fun TheoryViewerScreen(
                 .fillMaxWidth()
                 .height(50.dp)
         ) {
+            if (assetCatalog != null) {
+                GameAssetSprite(catalog = assetCatalog, assetKey = "ic_terminal", modifier = Modifier.size(19.dp))
+                Spacer(modifier = Modifier.width(7.dp))
+            }
             Text(
                 text = strings.proceedToTerminalBtn,
                 fontFamily = FontFamily.Monospace,
