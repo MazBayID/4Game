@@ -9,6 +9,7 @@ import java.io.File
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
@@ -55,6 +56,25 @@ print(agent)
             assertTrue(result.toString(), result.getBoolean("ok"))
             assertTrue(result.toString(), result.getBoolean("passed"))
             assertEquals("Null-Agent\n", result.getString("stdout"))
+        } finally {
+            controller.close()
+        }
+    }
+
+    @Test
+    fun controllerRecoversAfterWatchdogRestartsRunnerProcess() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val responses = LinkedBlockingQueue<String>()
+        val controller = CompanionPythonRunnerController(context) { responses.offer(it) }
+        try {
+            controller.execute("while True: pass")
+            val timeout = JSONObject(responses.poll(45, TimeUnit.SECONDS) ?: error("Runner watchdog did not report process death"))
+            assertEquals("RunnerDisconnected", timeout.optString("errorType"))
+
+            controller.execute("print('CONTROLLER_RECOVERED')")
+            val recovered = JSONObject(responses.poll(90, TimeUnit.SECONDS) ?: error("Controller did not recover after runner restart"))
+            assertTrue(recovered.toString(), recovered.getBoolean("ok"))
+            assertEquals("CONTROLLER_RECOVERED\n", recovered.getString("stdout"))
         } finally {
             controller.close()
         }
