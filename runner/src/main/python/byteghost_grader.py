@@ -290,5 +290,6 @@ def grade(module_id, source, stdin_text="", workspace="."):
         "stdout": execution.get("stdout", ""),
         "stderr": execution.get("stderr", ""),
         "errorType": execution.get("errorType"),
+        "traceback": execution.get("traceback"),
         "feedback": "" if passed else (feedback or "The mission checks were not satisfied."),
     })
