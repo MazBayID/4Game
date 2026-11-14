@@ -17,8 +17,10 @@ Status: CPython is embedded in the single ByteGhost APK and is hosted by an in-p
 - Source: 128 Ki characters maximum.
 - stdin: 64 Ki characters maximum.
 - stdout and stderr: 64 Ki characters each, capped while writing.
-- Execution watchdog: 5 seconds after CPython has initialized. On timeout, the Runner process is killed; Android may restart the bound service.
+- Execution watchdog: 5 seconds from the start of request handling, including workspace setup and CPython initialization. On timeout, the Runner process is killed; Android can recreate the bound service.
 - Each submission receives a fresh Python globals namespace.
+- The game controller unbinds after each completed response. When the final client unbinds, the service schedules termination of the Runner process, so the next request starts a fresh CPython interpreter and does not inherit mutated `builtins`, imported-module state, or background threads from the previous request.
+- This process recycling adds interpreter startup cost to each submission; performance must be measured on target devices.
 - A temporary cache workspace is created for a submission and deleted after it finishes.
 - RAM Inspector previews are limited to 12 variables, with bounded summaries of basic Python values and containers.
 
@@ -28,8 +30,8 @@ These limits reduce some accidental or abusive workloads. They do not provide a 
 
 - The Runner process shares the app UID. Submitted Python must be assumed capable of accessing data and resources available to the ByteGhost app process, including app-private files.
 - The Python Java bridge is available in the Runner process and has not been comprehensively audited.
-- Python modules and interpreter-level state can persist between submissions even though each submission receives a fresh globals namespace.
-- Python threads or other background activity may outlive a submission.
+- Process recycling is triggered when the final service client unbinds. Any additional client which deliberately keeps the service bound can delay recycling; the app's normal controller unbinds after every result.
+- Process recycling does not protect app-private files or Android permissions because the service still shares the app UID.
 - There is no hard per-process memory quota. Large allocations can cause Runner OOM or broader device memory pressure.
 - Filesystem traversal, reflection/Java bridge abuse, thread abuse, memory exhaustion, and IPC misuse still require adversarial tests on supported Android versions.
 - The Runner process is not an Android isolated process. Do not describe `:execution` as a security boundary.
@@ -53,6 +55,7 @@ A successful APK build is not proof of runtime or sandbox safety. Full tests and
 3. Verify source/stdin/output limits and watchdog behavior.
 4. Verify that a timeout kills the Runner process and that a later request can recover.
 5. Test large allocations, filesystem access, Java bridge/reflection, thread creation, and IPC abuse.
-6. Test whether interpreter/module state can influence later submissions or the grader.
-7. Decide whether arbitrary user-authored code is in scope. If it is, design and validate an actual isolation boundary before production release.
-8. Keep player progression and reward decisions in the game process; never treat a local client-side grader as tamper-proof.
+6. Verify that each completed request unbinds and the next request starts with a clean interpreter; include mutation tests for `builtins`, imported modules, and background threads.
+7. Measure the startup/per-submission latency impact of process recycling on supported devices.
+8. Decide whether arbitrary user-authored code is in scope. If it is, design and validate an actual Android isolation boundary before production release.
+9. Keep player progression and reward decisions in the game process; never treat a local client-side grader as tamper-proof.
