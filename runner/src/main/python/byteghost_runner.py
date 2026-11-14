@@ -48,6 +48,13 @@ def _failure(error_type, message=None):
 
 
 
+def _safe_type_name(value):
+    try:
+        return type.__getattribute__(type(value), "__name__")
+    except BaseException:
+        return "object"
+
+
 def _safe_preview(value, depth=0):
     if value is None:
         return "None"
@@ -78,7 +85,7 @@ def _safe_preview(value, depth=0):
         items = [_safe_preview(item, depth + 1) for item in itertools.islice(value, 4)]
         suffix = ", ..." if len(value) > 4 else ""
         return "{" + ", ".join(items) + suffix + "}"
-    return "<" + type(value).__name__ + ">"
+    return "<" + _safe_type_name(value) + ">"
 
 
 def _ram_slots(namespace):
@@ -107,7 +114,7 @@ def _ram_slots(namespace):
         elif value is None:
             value_type = "NoneType"
         else:
-            value_type = type(value).__name__
+            value_type = _safe_type_name(value)
         slots.append({"name": name[:40], "type": value_type[:32], "preview": _safe_preview(value)[:80]})
         if len(slots) >= 12:
             break
