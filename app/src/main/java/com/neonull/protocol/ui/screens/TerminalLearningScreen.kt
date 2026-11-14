@@ -299,28 +299,52 @@ fun TerminalLearningScreen(
                         color = NeoColors.CyberCyan
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text(
-                            text = strings.codexBtn,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
-                            color = NeoColors.MatrixGreen,
+                        Row(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
                                 .clickable { onOpenCodex() }
-                                .padding(horizontal = 8.dp, vertical = 10.dp)
-                        )
-                        Text(
-                            text = strings.resetCodeBtn,
-                            fontFamily = FontFamily.Monospace,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
-                            color = NeoColors.TextSecondary,
+                                .padding(horizontal = 8.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (assetCatalog != null) {
+                                GameAssetSprite(
+                                    catalog = assetCatalog,
+                                    assetKey = "ic_codex",
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                            }
+                            Text(
+                                text = strings.codexBtn,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                color = NeoColors.MatrixGreen
+                            )
+                        }
+                        Row(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
                                 .clickable { onResetCode() }
-                                .padding(horizontal = 8.dp, vertical = 10.dp)
-                        )
+                                .padding(horizontal = 8.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (assetCatalog != null) {
+                                GameAssetSprite(
+                                    catalog = assetCatalog,
+                                    assetKey = "ic_reset",
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                            }
+                            Text(
+                                text = strings.resetCodeBtn,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                color = NeoColors.TextSecondary
+                            )
+                        }
                     }
                 }
 
@@ -377,6 +401,14 @@ fun TerminalLearningScreen(
                                 .weight(0.42f)
                                 .height(46.dp)
                         ) {
+                            if (assetCatalog != null) {
+                                GameAssetSprite(
+                                    catalog = assetCatalog,
+                                    assetKey = "ic_hint",
+                                    modifier = Modifier.size(17.dp)
+                                )
+                                Spacer(modifier = Modifier.width(5.dp))
+                            }
                             Text(
                                 text = strings.requestHintBtn,
                                 fontFamily = FontFamily.Monospace,
@@ -401,6 +433,14 @@ fun TerminalLearningScreen(
                             .weight(if (isSandbox) 1f else 0.58f)
                             .height(46.dp)
                     ) {
+                        if (assetCatalog != null) {
+                            GameAssetSprite(
+                                catalog = assetCatalog,
+                                assetKey = "ic_run",
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                        }
                         Text(
                             text = strings.runExploitBtn,
                             fontFamily = FontFamily.Monospace,
