@@ -166,21 +166,27 @@ fun StoryHubScreen(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             StatColumn(
+                                iconKey = "ic_ram",
                                 label = strings.ramStatLabel,
                                 value = "${state.ramMb} MB",
                                 accent = NeoColors.CyberCyan,
+                                assetCatalog = assetCatalog,
                                 modifier = Modifier.weight(1f)
                             )
                             StatColumn(
+                                iconKey = "ic_xp",
                                 label = strings.xpStatLabel,
                                 value = "${state.xp} XP",
                                 accent = NeoColors.MatrixGreen,
+                                assetCatalog = assetCatalog,
                                 modifier = Modifier.weight(1f)
                             )
                             StatColumn(
+                                iconKey = "ic_trace",
                                 label = strings.firewallHealthLabel,
                                 value = "${state.firewallHealth}%",
                                 accent = if (state.firewallHealth <= 40) NeoColors.CrimsonRed else NeoColors.TextPrimary,
+                                assetCatalog = assetCatalog,
                                 modifier = Modifier.weight(1f)
                             )
                         }
@@ -465,17 +471,29 @@ private fun StatColumn(
     label: String,
     value: String,
     accent: Color,
+    iconKey: String? = null,
+    assetCatalog: GameAssetCatalog? = null,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
-        Text(
-            text = label,
-            fontFamily = FontFamily.Monospace,
-            fontSize = 11.sp,
-            color = NeoColors.TextMuted,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (iconKey != null && assetCatalog != null) {
+                GameAssetSprite(
+                    catalog = assetCatalog,
+                    assetKey = iconKey,
+                    modifier = Modifier.size(15.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+            }
+            Text(
+                text = label,
+                fontFamily = FontFamily.Monospace,
+                fontSize = 11.sp,
+                color = NeoColors.TextMuted,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
         Text(
             text = value,
             fontFamily = FontFamily.Monospace,
