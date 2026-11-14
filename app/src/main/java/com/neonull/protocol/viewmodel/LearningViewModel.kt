@@ -1081,4 +1081,10 @@ class LearningViewModel(
             )
         }
     }
+
+    override fun onCleared() {
+        pendingSubmission = null
+        runnerController.close()
+        super.onCleared()
+    }
 }
