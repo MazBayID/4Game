@@ -18,7 +18,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
-class PythonExecutionServiceInstrumentedTest {
+class GameRegressionInstrumentedTest {
     @Test
     fun loadsAssetManifestAndChecksPlannedEntries() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
@@ -53,7 +53,7 @@ print(agent)
 
             val state = viewModel.uiState.value
             assertTrue("CPython execution did not finish", !state.isExecuting)
-            assertTrue("Mission 1 was not completed: \${state.evaluationResult}", 1 in state.completedModuleIds)
+            assertTrue("Mission 1 was not completed: ${state.evaluationResult}", 1 in state.completedModuleIds)
             assertEquals(state.modules.first { it.id == 1 }.xpReward + 50, state.xp)
             assertEquals(128 + state.modules.first { it.id == 1 }.ramRewardMb, state.ramMb)
             assertTrue(state.evaluationResult?.outputText?.contains("Null-Agent") == true)
