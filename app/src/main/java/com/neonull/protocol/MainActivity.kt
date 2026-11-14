@@ -13,6 +13,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import com.neonull.protocol.assets.GameAssetCatalog
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -49,6 +51,8 @@ class MainActivity : ComponentActivity() {
 fun NeoNullRootApp(
     viewModel: LearningViewModel = viewModel()
 ) {
+    val context = LocalContext.current
+    val assetCatalog = remember(context) { runCatching { GameAssetCatalog.load(context) }.getOrNull() }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val strings = viewModel.getStrings(state.language)
     val audioEngine = remember { CyberAudioEngine() }
@@ -86,6 +90,7 @@ fun NeoNullRootApp(
     ) {
         when (state.currentScreen) {
             NeoScreen.ONBOARDING -> OnboardingScreen(
+                assetCatalog = assetCatalog,
                 selectedLanguage = state.language,
                 strings = strings,
                 onSelectLanguage = { lang ->
@@ -99,6 +104,7 @@ fun NeoNullRootApp(
             )
 
             NeoScreen.HUB -> StoryHubScreen(
+                assetCatalog = assetCatalog,
                 state = state,
                 strings = strings,
                 onSelectLanguage = { lang ->
@@ -145,6 +151,7 @@ fun NeoNullRootApp(
             )
 
             NeoScreen.TERMINAL -> TerminalLearningScreen(
+                assetCatalog = assetCatalog,
                 state = state,
                 strings = strings,
                 onSelectLanguage = { lang ->
