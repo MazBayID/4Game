@@ -108,10 +108,6 @@ fun CipherCodexDialog(
                         }
                     }
                     Spacer(modifier = Modifier.width(10.dp))
-                    if (assetCatalog != null) {
-                        GameAssetSprite(catalog = assetCatalog, assetKey = "ic_inventory", modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(5.dp))
-                    }
                     Text(
                         text = strings.codexTitle,
                         fontFamily = FontFamily.Monospace,
@@ -152,8 +148,6 @@ fun CipherCodexDialog(
                             if (unlocked) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     if (assetCatalog != null) {
-                                        GameAssetSprite(catalog = assetCatalog, assetKey = "ic_solution", modifier = Modifier.size(18.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
                                         GameAssetSprite(catalog = assetCatalog, assetKey = "ic_completed", modifier = Modifier.size(18.dp))
                                         Spacer(modifier = Modifier.width(6.dp))
                                     }

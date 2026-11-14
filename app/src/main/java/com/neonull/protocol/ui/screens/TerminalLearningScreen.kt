@@ -39,8 +39,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -83,7 +81,6 @@ fun TerminalLearningScreen(
     onNextModule: () -> Unit
 ) {
     val module = state.activeModule
-    val clipboardManager = LocalClipboardManager.current
     val isSandbox = state.isSandboxMode
     val eval = state.evaluationResult
     val errorLines = eval?.errorLines ?: emptySet()
@@ -102,8 +99,7 @@ fun TerminalLearningScreen(
     LaunchedEffect(eval) {
         if (eval !== previousEvaluation) {
             activeExecutionEffect = when {
-                eval?.isSuccess == true && !isSandbox && module.isBossStage -> "fx_explosion"
-                eval?.isSuccess == true -> "fx_success"
+                eval?.isSuccess == true -> "fx_breach"
                 eval != null -> "fx_error"
                 else -> null
             }
@@ -155,21 +151,11 @@ fun TerminalLearningScreen(
         }
 
         if (assetCatalog != null && state.isExecuting) {
-            GameAssetSprite(catalog = assetCatalog, assetKey = "fx_data_stream", modifier = Modifier.fillMaxSize().alpha(0.10f))
-            GameAssetSprite(catalog = assetCatalog, assetKey = "fx_data_packet", modifier = Modifier.align(Alignment.Center).size(112.dp).alpha(0.72f))
-        }
-        if (assetCatalog != null && state.isWarningState) {
-            GameAssetSprite(catalog = assetCatalog, assetKey = "fx_glitch", modifier = Modifier.fillMaxSize().alpha(0.07f))
-        }
-        if (assetCatalog != null && showRadarInTop) {
-            GameAssetSprite(catalog = assetCatalog, assetKey = "fx_scan", modifier = Modifier.fillMaxSize().alpha(0.05f))
-        }
-        if (assetCatalog != null && eval?.isSuccess == true) {
-            GameAssetSprite(catalog = assetCatalog, assetKey = "fx_breach", modifier = Modifier.fillMaxSize().alpha(0.10f))
-            GameAssetSprite(catalog = assetCatalog, assetKey = "fx_energy_pulse", modifier = Modifier.align(Alignment.Center).size(180.dp).alpha(0.42f))
-            if (!isSandbox && module.isBossStage) {
-                GameAssetSprite(catalog = assetCatalog, assetKey = "fx_firewall_break", modifier = Modifier.fillMaxSize().alpha(0.16f))
-            }
+            GameAssetSprite(
+                catalog = assetCatalog,
+                assetKey = "fx_data_stream",
+                modifier = Modifier.fillMaxSize().alpha(0.10f)
+            )
         }
 
         if (assetCatalog != null && activeExecutionEffect != null) {
@@ -205,7 +191,6 @@ fun TerminalLearningScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (assetCatalog != null) GameAssetSprite(catalog = assetCatalog, assetKey = "ic_exit", modifier = Modifier.size(15.dp))
                         Text(
                             text = "< ${strings.backToHubBtn}",
                             fontFamily = FontFamily.Monospace,
@@ -230,7 +215,6 @@ fun TerminalLearningScreen(
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (assetCatalog != null) GameAssetSprite(catalog = assetCatalog, assetKey = "ic_ram", modifier = Modifier.size(15.dp))
                         Text(
                             text = "${strings.ramStatLabel}: ${state.ramMb}M",
                             fontFamily = FontFamily.Monospace,
@@ -239,7 +223,6 @@ fun TerminalLearningScreen(
                             color = NeoColors.CyberCyan,
                             maxLines = 1
                         )
-                        if (assetCatalog != null) GameAssetSprite(catalog = assetCatalog, assetKey = "ic_credit", modifier = Modifier.size(15.dp))
                         Text(
                             text = "${strings.xpStatLabel}: ${state.xp}",
                             fontFamily = FontFamily.Monospace,
@@ -248,7 +231,6 @@ fun TerminalLearningScreen(
                             color = NeoColors.MatrixGreen,
                             maxLines = 1
                         )
-                        if (assetCatalog != null) GameAssetSprite(catalog = assetCatalog, assetKey = "ic_energy", modifier = Modifier.size(15.dp))
                         Text(
                             text = "${strings.firewallHealthLabel}: ${state.firewallHealth}%",
                             fontFamily = FontFamily.Monospace,
@@ -346,26 +328,14 @@ fun TerminalLearningScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (assetCatalog != null) GameAssetSprite(catalog = assetCatalog, assetKey = "ic_debug", modifier = Modifier.size(16.dp))
-                        Text(
-                            text = strings.editorHeaderTitle,
+                    Text(
+                        text = strings.editorHeaderTitle,
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Bold,
                         fontSize = 11.5.sp,
                         color = NeoColors.CyberCyan
-                        )
-                    }
+                    )
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        if (assetCatalog != null) {
-                            GameAssetSprite(
-                                catalog = assetCatalog,
-                                assetKey = "ic_copy",
-                                modifier = Modifier.size(16.dp).clickable {
-                                    clipboardManager.setText(AnnotatedString(state.codeBuffer))
-                                }
-                            )
-                        }
                         Row(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(4.dp))
@@ -503,7 +473,7 @@ fun TerminalLearningScreen(
                         if (assetCatalog != null) {
                             GameAssetSprite(
                                 catalog = assetCatalog,
-                                assetKey = if (state.isExecuting) "ic_stop" else "ic_run",
+                                assetKey = "ic_run",
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -539,8 +509,7 @@ fun TerminalLearningScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                            if (assetCatalog != null) GameAssetSprite(catalog = assetCatalog, assetKey = "ic_console", modifier = Modifier.size(15.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             DeckTabPill(
                                 label = if (eval?.isSuccess == true && !isSandbox) {
                                     "${strings.consoleTabLabel} · OK"

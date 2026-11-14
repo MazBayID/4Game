@@ -116,7 +116,7 @@ fun OnboardingScreen(
                         if (assetCatalog != null) {
                             GameAssetSprite(
                                 catalog = assetCatalog,
-                                assetKey = "glitch_portrait",
+                                assetKey = "glitch_idle",
                                 modifier = Modifier.fillMaxSize(),
                                 fallback = {
                                     Image(

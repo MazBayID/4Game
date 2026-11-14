@@ -519,9 +519,8 @@ fun GlitchMentorPanel(
                         GameAssetSprite(
                             catalog = assetCatalog,
                             assetKey = when {
-                                isBossStage && isSuccess -> "overlord_damage"
-                                isBossStage -> "overlord_attack"
-                                isWarning -> "glitch_angry"
+                                isBossStage -> "overlord_idle"
+                                isWarning -> "glitch_warning"
                                 isSuccess -> "glitch_happy"
                                 else -> "glitch_talking"
                             },
