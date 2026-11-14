@@ -28,6 +28,13 @@ class CompanionPythonRunnerController(
     private val replies = Messenger(Handler(Looper.getMainLooper()) { message ->
         if (message.what == MSG_RESULT) {
             onResult(message.data.getString(KEY_RESULT).orEmpty())
+            // Unbind after each completed request. The service recycles its process
+            // once no clients remain, giving the next submission a fresh interpreter.
+            if (bound) {
+                runCatching { context.unbindService(connection) }
+                bound = false
+            }
+            remote = null
         }
         true
     })
