@@ -52,3 +52,18 @@ jobs:
 
       - name: Build the single application APK
         run: gradle :app:assembleDebug
+
+      - name: Verify APK identity and output count
+        run: |
+          APK_DIR="app/build/outputs/apk/debug"
+          APK_COUNT=$(find "$APK_DIR" -maxdepth 1 -type f -name "*.apk" | wc -l)
+          test "$APK_COUNT" -eq 1
+          APK_PATH=$(find "$APK_DIR" -maxdepth 1 -type f -name "*.apk" -print -quit)
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK_PATH" | grep -F "package: name='com.neonull.protocol'"
+
+      - name: Upload unified ByteGhost APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ByteGhost-unified-debug-${{ github.sha }}
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
