@@ -225,4 +225,100 @@ print(round(math.pi, 2))
         }
     }
 
+    @Test
+    fun watchdogKillsInfiniteLoopAndRunnerCanRestart() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val disconnected = CountDownLatch(1)
+        val observer = object : ServiceConnection {
+            override fun onServiceConnected(name: ComponentName?, service: android.os.IBinder?) = Unit
+            override fun onServiceDisconnected(name: ComponentName?) { disconnected.countDown() }
+        }
+        val intent = Intent().setComponent(ComponentName(context, PythonRunnerService::class.java))
+        assertTrue(context.bindService(intent, observer, Context.BIND_AUTO_CREATE))
+        try {
+            val connection = bind(context)
+            try {
+                connection.sendWithoutWaiting("while True: pass")
+                assertTrue("Watchdog did not terminate the runner process", disconnected.await(90, TimeUnit.SECONDS))
+            } finally {
+                connection.close()
+            }
+        } finally {
+            context.unbindService(observer)
+        }
 
+        val recovered = JSONObject(request("print('RUNNER_RECOVERED')"))
+        assertTrue(recovered.toString(), recovered.getBoolean("ok"))
+        assertEquals("RUNNER_RECOVERED\n", recovered.getString("stdout"))
+    }
+
+    private fun request(source: String, stdin: String = ""): String {
+        val connection = bind(InstrumentationRegistry.getInstrumentation().targetContext)
+        return try { connection.send(source, stdin, MSG_RESULT) } finally { connection.close() }
+    }
+
+    private fun bind(context: Context): TestConnection {
+        val connected = CountDownLatch(1)
+        val remote = AtomicReference<Messenger?>()
+        val callback = object : ServiceConnection {
+            override fun onServiceConnected(name: ComponentName?, binder: android.os.IBinder?) {
+                remote.set(binder?.let(::Messenger))
+                connected.countDown()
+            }
+            override fun onServiceDisconnected(name: ComponentName?) = Unit
+        }
+        val intent = Intent().setComponent(ComponentName(context, PythonRunnerService::class.java))
+        check(context.bindService(intent, callback, Context.BIND_AUTO_CREATE)) { "Unable to bind runner" }
+        check(connected.await(30, TimeUnit.SECONDS)) { "Runner bind timed out" }
+        return TestConnection(context, callback, remote.get() ?: error("Missing runner Binder"))
+    }
+
+    private class TestConnection(
+        private val context: Context,
+        private val callback: ServiceConnection,
+        private val remote: Messenger
+    ) {
+        fun sendWithoutWaiting(source: String, onReply: () -> Unit = {}) {
+            val reply = Messenger(Handler(Looper.getMainLooper()) {
+                onReply()
+                true
+            })
+            remote.send(Message.obtain(null, PythonRunnerService.MSG_EXECUTE).apply {
+                data = Bundle().apply {
+                    putString(PythonRunnerService.KEY_CODE, source)
+                    putString(PythonRunnerService.KEY_STDIN, "")
+                }
+                replyTo = reply
+            })
+        }
+
+        fun send(source: String, stdin: String, expectedWhat: Int, mode: String = "execute", missionId: Int = -1): String {
+            val latch = CountDownLatch(1)
+            val result = AtomicReference<String>()
+            val reply = Messenger(Handler(Looper.getMainLooper()) { message ->
+                if (message.what == expectedWhat) {
+                    result.set(message.data.getString(PythonRunnerService.KEY_RESULT).orEmpty())
+                    latch.countDown()
+                }
+                true
+            })
+            remote.send(Message.obtain(null, PythonRunnerService.MSG_EXECUTE).apply {
+                data = Bundle().apply {
+                    putString(PythonRunnerService.KEY_CODE, source)
+                    putString(PythonRunnerService.KEY_STDIN, stdin)
+                    putString(PythonRunnerService.KEY_MODE, mode)
+                    if (missionId >= 0) putInt(PythonRunnerService.KEY_MISSION_ID, missionId)
+                }
+                replyTo = reply
+            })
+            check(latch.await(120, TimeUnit.SECONDS)) { "Runner response timed out" }
+            return result.get() ?: error("Empty runner response")
+        }
+
+        fun close() = context.unbindService(callback)
+    }
+
+    companion object {
+        private const val MSG_RESULT = PythonRunnerService.MSG_RESULT
+    }
+}
