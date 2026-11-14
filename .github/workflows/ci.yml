@@ -12,6 +12,12 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      run_runtime_tests:
+        description: "Run Python unit tests and Android instrumentation on an emulator"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -67,3 +73,15 @@ jobs:
           name: ByteGhost-unified-debug-${{ github.sha }}
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
+      - name: Run Python and Android runtime validation
+        if: github.event_name == 'workflow_dispatch' && inputs.run_runtime_tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          script: |
+            chmod +x .github/scripts/run-runtime-instrumentation.sh
+            .github/scripts/run-runtime-instrumentation.sh
