@@ -28,7 +28,9 @@ class CompanionPythonRunnerControllerTest {
             assertTrue("Game could not get a response from the companion runner", completed.await(120, TimeUnit.SECONDS))
             val result = JSONObject(response.get() ?: error("Runner returned no result"))
             assertTrue(result.toString(), result.getBoolean("ok"))
-            assertEquals("HOST_TO_RUNNER_OK\n", result.getString("stdout"))
+            assertEquals("Null-Agent\n", result.getString("stdout"))
+            val slots = result.getJSONArray("ramSlots")
+            assertTrue((0 until slots.length()).any { slots.getJSONObject(it).optString("name") == "agent" })
         } finally {
             controller.close()
         }
