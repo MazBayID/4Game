@@ -379,6 +379,7 @@ fun TerminalLearningScreen(
                     // Primary execution action; crimson remains reserved for boss stages and errors.
                     Button(
                         onClick = onRunExploit,
+                        enabled = !state.isExecuting,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (!isSandbox && module.isBossStage) NeoColors.CrimsonRed else NeoColors.MatrixGreen,
                             contentColor = if (!isSandbox && module.isBossStage) NeoColors.TextPrimary else NeoColors.ObsidianVoid
