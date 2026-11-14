@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicReference
 @RunWith(AndroidJUnit4::class)
 class CompanionPythonRunnerControllerTest {
     @Test
-    fun gameBindsToSeparateUidRunnerAndReceivesPythonOutput() {
+    fun gameBindsToEmbeddedRunnerProcessAndReceivesPythonOutput() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val completed = CountDownLatch(1)
         val response = AtomicReference<String>()
@@ -26,7 +26,7 @@ class CompanionPythonRunnerControllerTest {
         }
         try {
             controller.execute("agent = \"Null-Agent\"\ncount = 3\nprint(agent)")
-            assertTrue("Game could not get a response from the companion runner", completed.await(120, TimeUnit.SECONDS))
+            assertTrue("Game could not get a response from the embedded runner", completed.await(120, TimeUnit.SECONDS))
             val result = JSONObject(response.get() ?: error("Runner returned no result"))
             assertTrue(result.toString(), result.getBoolean("ok"))
             assertEquals("Null-Agent\n", result.getString("stdout"))
