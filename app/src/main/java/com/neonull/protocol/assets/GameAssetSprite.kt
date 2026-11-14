@@ -8,6 +8,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.FilterQuality
@@ -31,9 +32,11 @@ fun GameAssetSprite(
     assetKey: String,
     modifier: Modifier = Modifier,
     playing: Boolean = true,
-    fallback: @Composable () -> Unit = {}
+    fallback: @Composable () -> Unit = {},
+    onAnimationFinished: (() -> Unit)? = null
 ) {
     val spec = remember(catalog, assetKey) { catalog.find(assetKey) }
+    val onFinished by rememberUpdatedState(onAnimationFinished)
     val image by produceState<ImageBitmap?>(initialValue = null, catalog, assetKey) {
         value = withContext(Dispatchers.IO) {
             catalog.loadBitmap(assetKey)?.asImageBitmap()
@@ -62,6 +65,7 @@ fun GameAssetSprite(
             } else if (spec.loop) {
                 frameIndex = 0
             } else {
+                onFinished?.invoke()
                 break
             }
         }

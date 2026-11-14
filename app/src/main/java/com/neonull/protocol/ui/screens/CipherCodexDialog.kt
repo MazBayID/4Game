@@ -32,6 +32,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.neonull.protocol.R
+import com.neonull.protocol.assets.GameAssetCatalog
+import com.neonull.protocol.assets.GameAssetSprite
 import com.neonull.protocol.data.ProtocolModule
 import com.neonull.protocol.localization.AppLanguage
 import com.neonull.protocol.localization.UiStrings
@@ -41,6 +43,7 @@ import com.neonull.protocol.ui.theme.NeoColors
 
 @Composable
 fun CipherCodexDialog(
+    assetCatalog: GameAssetCatalog? = null,
     isOpen: Boolean,
     language: AppLanguage,
     strings: UiStrings,
@@ -73,15 +76,35 @@ fun CipherCodexDialog(
                     modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.cipher_codex_artifact),
-                        contentDescription = strings.codexTitle,
-                        contentScale = ContentScale.Crop,
+                    Box(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .border(1.dp, NeoColors.MatrixGreen, RoundedCornerShape(8.dp))
-                    )
+                    ) {
+                        if (assetCatalog != null) {
+                            GameAssetSprite(
+                                catalog = assetCatalog,
+                                assetKey = "ic_codex",
+                                modifier = Modifier.fillMaxSize(),
+                                fallback = {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.cipher_codex_artifact),
+                                        contentDescription = strings.codexTitle,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                            )
+                        } else {
+                            Image(
+                                painter = painterResource(id = R.drawable.cipher_codex_artifact),
+                                contentDescription = strings.codexTitle,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = strings.codexTitle,
@@ -133,12 +156,20 @@ fun CipherCodexDialog(
                                 )
                             } else {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Image(
-                                        painter = painterResource(id = R.drawable.synthex_gate_badge),
-                                        contentDescription = strings.lockedLabel,
-                                        contentScale = ContentScale.Fit,
-                                        modifier = Modifier.size(28.dp)
-                                    )
+                                    if (assetCatalog != null) {
+                                        GameAssetSprite(
+                                            catalog = assetCatalog,
+                                            assetKey = "ic_locked",
+                                            modifier = Modifier.size(28.dp)
+                                        )
+                                    } else {
+                                        Image(
+                                            painter = painterResource(id = R.drawable.synthex_gate_badge),
+                                            contentDescription = strings.lockedLabel,
+                                            contentScale = ContentScale.Fit,
+                                            modifier = Modifier.size(28.dp)
+                                        )
+                                    }
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
                                         text = strings.lockedLabel,

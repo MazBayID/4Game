@@ -4,10 +4,12 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.matchParentSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -25,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
@@ -32,6 +35,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.neonull.protocol.R
+import com.neonull.protocol.assets.GameAssetCatalog
+import com.neonull.protocol.assets.GameAssetSprite
 import com.neonull.protocol.localization.AppLanguage
 import com.neonull.protocol.localization.UiStrings
 import com.neonull.protocol.syntax.SyntaxHighlightedCodeBlock
@@ -42,6 +47,7 @@ import com.neonull.protocol.viewmodel.LearningUiState
 
 @Composable
 fun TheoryViewerScreen(
+    assetCatalog: GameAssetCatalog?,
     state: LearningUiState,
     strings: UiStrings,
     onSelectLanguage: (AppLanguage) -> Unit,
@@ -96,7 +102,15 @@ fun TheoryViewerScreen(
             borderColor = if (module.isBossStage) NeoColors.CrimsonRed else NeoColors.BorderSubtle,
             fillColor = if (module.isBossStage) NeoColors.CrimsonDarkTint else NeoColors.TerminalSurface
         ) {
-            Column {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                if (assetCatalog != null) {
+                    GameAssetSprite(
+                        catalog = assetCatalog,
+                        assetKey = "bg_ai_lab",
+                        modifier = Modifier.matchParentSize().alpha(0.14f)
+                    )
+                }
+                Column {
                 Text(
                     text = strings.loreTransmissionTitle,
                     fontFamily = FontFamily.Monospace,
@@ -109,6 +123,7 @@ fun TheoryViewerScreen(
                     text = module.storyBriefing.resolve(state.language),
                     style = MaterialTheme.typography.bodyLarge
                 )
+                }
             }
         }
 
@@ -118,14 +133,34 @@ fun TheoryViewerScreen(
                 fillColor = NeoColors.CrimsonDarkTint
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Image(
-                        painter = painterResource(id = R.drawable.synthex_gate_badge),
-                        contentDescription = strings.overlordTauntTitle,
-                        contentScale = ContentScale.Fit,
+                    Box(
                         modifier = Modifier
                             .size(44.dp)
                             .clip(RoundedCornerShape(8.dp))
-                    )
+                    ) {
+                        if (assetCatalog != null) {
+                            GameAssetSprite(
+                                catalog = assetCatalog,
+                                assetKey = "overlord_portrait",
+                                modifier = Modifier.fillMaxSize(),
+                                fallback = {
+                                    Image(
+                                        painter = painterResource(id = R.drawable.synthex_gate_badge),
+                                        contentDescription = strings.overlordTauntTitle,
+                                        contentScale = ContentScale.Fit,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
+                            )
+                        } else {
+                            Image(
+                                painter = painterResource(id = R.drawable.synthex_gate_badge),
+                                contentDescription = strings.overlordTauntTitle,
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(

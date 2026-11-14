@@ -92,6 +92,19 @@ fun TerminalLearningScreen(
 
     // Bottom console tab: 0 = Execution Console, 1 = Live RAM Inspector
     var bottomTabIndex by remember { mutableIntStateOf(0) }
+    var activeExecutionEffect by remember { mutableStateOf<String?>(null) }
+    var previousEvaluation by remember { mutableStateOf(eval) }
+
+    LaunchedEffect(eval) {
+        if (eval !== previousEvaluation) {
+            activeExecutionEffect = when {
+                eval?.isSuccess == true -> "fx_breach"
+                eval != null -> "fx_error"
+                else -> null
+            }
+            previousEvaluation = eval
+        }
+    }
     // Optional radar drawer toggle inside Top Panel
     var showRadarInTop by remember { mutableStateOf(false) }
 
@@ -130,6 +143,15 @@ fun TerminalLearningScreen(
                 )
                 y += step
             }
+        }
+
+        if (assetCatalog != null && activeExecutionEffect != null) {
+            GameAssetSprite(
+                catalog = assetCatalog,
+                assetKey = activeExecutionEffect!!,
+                modifier = Modifier.fillMaxSize().alpha(0.22f),
+                onAnimationFinished = { activeExecutionEffect = null }
+            )
         }
 
         Column(
@@ -212,6 +234,7 @@ fun TerminalLearningScreen(
                     dialogue = state.glitchDialogue,
                     isWarning = state.isWarningState,
                     isBossStage = !isSandbox && module.isBossStage,
+                    isSuccess = eval?.isSuccess == true,
                     warningBannerText = strings.warningBannerText,
                     assetCatalog = assetCatalog
                 )

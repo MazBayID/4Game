@@ -457,6 +457,7 @@ fun GlitchMentorPanel(
     isWarning: Boolean,
     isBossStage: Boolean,
     warningBannerText: String,
+    isSuccess: Boolean = false,
     modifier: Modifier = Modifier,
     assetCatalog: GameAssetCatalog? = null
 ) {
@@ -492,6 +493,7 @@ fun GlitchMentorPanel(
                             assetKey = when {
                                 isBossStage -> "overlord_idle"
                                 isWarning -> "glitch_warning"
+                                isSuccess -> "glitch_happy"
                                 else -> "glitch_talking"
                             },
                             modifier = Modifier.fillMaxSize(),

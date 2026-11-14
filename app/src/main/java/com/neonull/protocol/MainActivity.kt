@@ -134,6 +134,7 @@ fun NeoNullRootApp(
             )
 
             NeoScreen.THEORY -> TheoryViewerScreen(
+                assetCatalog = assetCatalog,
                 state = state,
                 strings = strings,
                 onSelectLanguage = { lang ->
@@ -195,6 +196,7 @@ fun NeoNullRootApp(
         }
 
         CipherCodexDialog(
+            assetCatalog = assetCatalog,
             isOpen = state.codexOpen,
             language = state.language,
             strings = strings,
