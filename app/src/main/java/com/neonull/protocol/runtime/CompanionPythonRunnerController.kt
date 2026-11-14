@@ -55,6 +55,10 @@ class CompanionPythonRunnerController(
 
         override fun onNullBinding(name: ComponentName?) {
             remote = null
+            if (bound) {
+                context.unbindService(this)
+                bound = false
+            }
             onResult(errorJson("RunnerUnavailable", "Python runner returned an empty binding"))
         }
     }
@@ -98,14 +102,17 @@ class CompanionPythonRunnerController(
     private fun sendPending() {
         val source = pendingSource ?: return
         val messenger = remote ?: return
+        val stdin = pendingStdin
+        val missionId = pendingMissionId
         pendingSource = null
+        pendingMissionId = null
         try {
             messenger.send(Message.obtain(null, MSG_EXECUTE).apply {
                 data = Bundle().apply {
                     putString(KEY_CODE, source)
-                    putString(KEY_STDIN, pendingStdin)
-                    putString(KEY_MODE, if (pendingMissionId == null) MODE_EXECUTE else MODE_GRADE)
-                    pendingMissionId?.let { putInt(KEY_MISSION_ID, it) }
+                    putString(KEY_STDIN, stdin)
+                    putString(KEY_MODE, if (missionId == null) MODE_EXECUTE else MODE_GRADE)
+                    missionId?.let { putInt(KEY_MISSION_ID, it) }
                 }
                 replyTo = replies
             })
