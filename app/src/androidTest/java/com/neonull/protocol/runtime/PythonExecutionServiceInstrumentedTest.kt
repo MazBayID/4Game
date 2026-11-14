@@ -57,6 +57,50 @@ print(agent)
             assertEquals(state.modules.first { it.id == 1 }.xpReward + 50, state.xp)
             assertEquals(128 + state.modules.first { it.id == 1 }.ramRewardMb, state.ramMb)
             assertTrue(state.evaluationResult?.outputText?.contains("Null-Agent") == true)
+            assertTrue(
+                "RAM Inspector must receive live CPython variables",
+                state.evaluationResult?.ramSlots?.any { it.name == "agent" && it.type == "str" } == true
+            )
+        } finally {
+            store.clear()
+        }
+    }
+
+    @Test
+    fun sandboxExecutesRealPythonAndPopulatesRamInspectorWithoutMissionRewards() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        context.getSharedPreferences("neo_null_progress", 0).edit().clear().commit()
+        val viewModel = LearningViewModel(context.applicationContext as Application)
+        val store = ViewModelStore().apply { put("learning", viewModel) }
+        try {
+            viewModel.openSandbox()
+            val xpBefore = viewModel.uiState.value.xp
+            val ramBefore = viewModel.uiState.value.ramMb
+            viewModel.updateCode("""name = "Zero"
+numbers = [value * value for value in range(4)]
+def double(value):
+    return value * 2
+print(name)
+print(numbers)
+print(double(6))
+""")
+            viewModel.runExploit()
+
+            val deadline = SystemClock.elapsedRealtime() + 120_000L
+            while (viewModel.uiState.value.isExecuting && SystemClock.elapsedRealtime() < deadline) {
+                SystemClock.sleep(50)
+            }
+
+            val state = viewModel.uiState.value
+            val result = state.evaluationResult
+            assertTrue("Sandbox CPython execution did not finish", !state.isExecuting)
+            assertTrue("Sandbox execution failed: $result", result?.isSuccess == true)
+            assertTrue(result?.outputText?.contains("Zero") == true)
+            assertTrue(result?.outputText?.contains("[0, 1, 4, 9]") == true)
+            assertTrue(result?.outputText?.contains("12") == true)
+            assertTrue(result?.ramSlots?.any { it.name == "numbers" && it.type == "list" } == true)
+            assertEquals(xpBefore, state.xp)
+            assertEquals(ramBefore, state.ramMb)
         } finally {
             store.clear()
         }
