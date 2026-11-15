@@ -19,7 +19,7 @@ Status: CPython is embedded in the single ByteGhost APK and is hosted by an in-p
 - stdout and stderr: 64 Ki characters each, capped while writing.
 - Execution watchdog: 5 seconds from the start of request handling, including workspace setup and CPython initialization. On timeout, the Runner process is killed; Android can recreate the bound service.
 - Each submission receives a fresh Python globals namespace.
-- The game controller unbinds after each completed response. When the final client unbinds, the service schedules termination of the Runner process, so the next request starts a fresh CPython interpreter and does not inherit mutated `builtins`, imported-module state, or background threads from the previous request.
+- The game controller unbinds after each completed response. When the final client unbinds, `onUnbind()` immediately terminates the Runner process, so the next request starts a fresh CPython interpreter and does not inherit mutated `builtins`, imported-module state, or background threads from the previous request.
 - This process recycling adds interpreter startup cost to each submission; performance must be measured on target devices.
 - A temporary cache workspace is created for a submission and deleted after it finishes.
 - RAM Inspector previews are limited to 12 variables, with bounded summaries of basic Python values and containers.
