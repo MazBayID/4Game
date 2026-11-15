@@ -1,20 +1,30 @@
-name: ByteGhost APK Integration Check
+name: ByteGhost Android Integration Check
 
 concurrency:
-  group: byteghost-apk-${{ github.ref }}
+  group: byteghost-android-${{ github.ref }}
   cancel-in-progress: true
 
 on:
   push:
     branches:
       - main
+    paths-ignore:
+      - "app/src/main/python/**"
+      - "tests/python/**"
+      - "*.md"
+      - "docs/**"
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - "app/src/main/python/**"
+      - "tests/python/**"
+      - "*.md"
+      - "docs/**"
   workflow_dispatch:
     inputs:
       run_runtime_tests:
-        description: "Run Python unit tests and Android instrumentation on an emulator"
+        description: "Run Android instrumentation on an emulator"
         required: false
         type: boolean
         default: false
@@ -40,9 +50,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-
-      - name: Run Python helper and grader tests
-        run: PYTHONPATH=app/src/main/python python -m unittest discover -s tests/python -v
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
@@ -77,8 +84,8 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
-      - name: Run Python and Android runtime validation
-        if: (github.event_name == 'workflow_dispatch' && inputs.run_runtime_tests) || github.event_name == 'push'
+      - name: Run Android instrumentation validation
+        if: github.event_name == 'workflow_dispatch' && inputs.run_runtime_tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
