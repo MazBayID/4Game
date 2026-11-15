@@ -78,7 +78,7 @@ jobs:
           if-no-files-found: error
 
       - name: Run Python and Android runtime validation
-        if: github.event_name == 'workflow_dispatch' && inputs.run_runtime_tests
+        if: (github.event_name == 'workflow_dispatch' && inputs.run_runtime_tests) || github.event_name == 'push'
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
