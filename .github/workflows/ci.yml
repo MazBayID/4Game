@@ -41,6 +41,9 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Run Python helper and grader tests
+        run: PYTHONPATH=app/src/main/python python -m unittest discover -s tests/python -v
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
         with:
