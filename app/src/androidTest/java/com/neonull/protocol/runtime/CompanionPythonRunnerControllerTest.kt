@@ -47,10 +47,10 @@ class CompanionPythonRunnerControllerTest {
             completed.countDown()
         }
         try {
-            controller.grade(1, \"\"\"agent = "Null-Agent"
+            controller.grade(1, """agent = "Null-Agent"
 clearance = 1
 print(agent)
-\"\"\")
+""")
             assertTrue("Mission grading did not return", completed.await(120, TimeUnit.SECONDS))
             val result = JSONObject(response.get() ?: error("Runner returned no grade"))
             assertTrue(result.toString(), result.getBoolean("ok"))
@@ -97,7 +97,7 @@ print(agent)
                 responses.poll(90, TimeUnit.SECONDS) ?: error("Second submission did not finish")
             )
             assertTrue(second.toString(), second.getBoolean("ok"))
-            assertEquals("False\\n", second.getString("stdout"))
+            assertEquals("False\n", second.getString("stdout"))
         } finally {
             controller.close()
         }
