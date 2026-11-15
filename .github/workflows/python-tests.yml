@@ -1,0 +1,43 @@
+name: ByteGhost Python Tests
+
+concurrency:
+  group: byteghost-python-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "app/src/main/python/**"
+      - "tests/python/**"
+      - ".github/workflows/python-tests.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "app/src/main/python/**"
+      - "tests/python/**"
+      - ".github/workflows/python-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python-tests:
+    name: Test Runner and Grader without Android
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Run independent Python test suite
+        env:
+          PYTHONPATH: app/src/main/python
+        run: python -m unittest discover -s tests/python -v
