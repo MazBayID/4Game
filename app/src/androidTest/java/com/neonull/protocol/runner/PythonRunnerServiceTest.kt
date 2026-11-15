@@ -217,7 +217,7 @@ print(round(math.pi, 2))
         assertTrue(mutation.toString(), mutation.getBoolean("ok"))
 
         // The controller/test client unbinds after a result; allow the service's
-        // process-recycle callback to terminate the old CPython interpreter.
+        // onUnbind() process termination to complete before starting a fresh interpreter.
         SystemClock.sleep(700)
 
         val fresh = JSONObject(request(
