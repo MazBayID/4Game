@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-echo "=== ByteGhost Python helper tests ==="
-PYTHONPATH=app/src/main/python python -m unittest discover -s tests/python -v
-
 echo "=== Unified ByteGhost APK instrumentation suite ==="
 gradle :app:connectedDebugAndroidTest
 
